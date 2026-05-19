@@ -1,1 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "ASS-CEE",
+  "author": "PhongChillFansub",
+  "version": "0.0.0.x",
+  "description": "Hiển thị phụ đề Aegisub trên YouTube",
+  "permissions": ["storage", "activeTab", "scripting", "unlimitedStorage"],
+  "host_permissions": [
+    "https://www.youtube.com/*"
+  ],
+  "background": {
+    "service_worker": "background/background.js",
+    "type": "module"
+  },
+  "action": { 
+    "default_title": "[PhongChillFansub] ASS-CEE"
+  },
+  "content_scripts": [{
+    "matches": ["https://www.youtube.com/*"],
+    "js": [
+      "content/styles.js",
+      "content/ui.js",
+      "content/renderer.js",
+      "content/content.js"
+    ],
+    "run_at": "document_idle"
+  }],
+  "web_accessible_resources": [
+    {
+      "resources": ["content/*.js"],
+      "matches": ["https://www.youtube.com/*"]
+    }
+  ]
+}
 
