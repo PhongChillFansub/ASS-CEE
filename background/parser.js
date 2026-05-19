@@ -69,11 +69,13 @@ export default function parseAegisubRaw(rawText) {
   };
   // Nếu ko có rawText, trả về Data trống và gửi log lỗi text trống.
   // to-do: viết tiếp đoạn này
-  const lines = rawText.split(/\r\n/); //
+  const lines = rawText.split(/\r\n/); // Tạm thời chỉ hỗ trợ file sub trên Windows 
   let currentSection = '';
   let styleFormat = [];
   let eventFormat = [];
+  for (let line of lines) {
 
+  }
 
 }
 
