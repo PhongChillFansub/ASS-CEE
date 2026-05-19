@@ -1,0 +1,141 @@
+Cấu trúc extension:
+- manifest.JSON
+- background
+  + background.js (script chạy chính của background, lưu trữ cache)
+  + fetcher.js (chuyên hóa tìm kiếm file sub trên GitHub, GDrive)
+  + parser.js (chuyên hóa đọc file sub)
+- content
+  + content.js (script chạy chính của content)
+  + renderer.js (chuyên hóa render)
+  + ui.js (chuyên hóa UI)
+
+
+
+
+
+Bản cũ (vibe coding) ở dưới.
+
+🧠 ASS-CEE — PIPELINE v3.1 (Full Protocol & AI-LLM Development Guide)
+
+📂 1. Cấu trúc thư mục chuẩn (Project Structure)
+Dựa trên quyết định tối ưu hóa hiệu năng, cấu trúc dự án được tổ chức như sau:
+extension/
+├── manifest.json        # Bản kê khai extension (MV3, cấu hình permissions, host_permissions)
+├── background/
+│   ├── background.js    # Bộ điều phối trung tâm (RPC Layer) - Tiếp nhận tin nhắn, xử lý định tuyến luồng dữ liệu
+│   ├── fetcher.js       # Stateless Engine tìm kiếm & tải tệp (GitHub API & GDrive HTML scraping)
+│   ├── parser.js        # Bộ phân tích dữ liệu ASS sang JSON (Quy đổi màu & thời gian thành ms)
+│   └── storage.js       # Quản lý lưu trữ bền vững (Chrome Storage Local) cho Cache & Settings
+└── content/
+    ├── content.js       # Theo dõi DOM YouTube, bắt sự kiện chuyển video, làm cầu nối RPC gửi tin nhắn
+    ├── renderer.js      # Canvas/DOM Engine - Nhận dữ liệu sạch từ JSON để vẽ phụ đề lên video Player
+    ├── ui.js            # Giao diện Chooser UI hiển thị danh sách phụ đề khi gặp trạng thái MULTIPLE
+    └── styles.js        # Lớp chèn CSS động cho UI Chooser và khung Canvas phụ đề
+
+🛠️ 2. Ma trận quyết định & Trạng thái phản hồi (Decision Matrix)
+Khi content.js gửi yêu cầu tìm kiếm phụ đề qua `SUBTITLE.SEARCH`, background.js điều phối tìm kiếm và phản hồi 1 trong 3 trạng thái:
+┌──────────────┬──────────────────────────────────────────────────────────────────────────────┐
+│ Trạng thái   │ Ý nghĩa & Hành động tiếp theo                                                │
+├──────────────┼──────────────────────────────────────────────────────────────────────────────┤
+│ HIT          │ Có sẵn dữ liệu trong Cache hoặc tự động giải quyết nếu chỉ có 1 file tìm thấy│
+│              │ -> Phản hồi lập tức gửi kèm dữ liệu cấu trúc (parsedData hoặc raw text).     │
+├──────────────┼──────────────────────────────────────────────────────────────────────────────┤
+│ MULTIPLE     │ Tìm thấy nhiều file phụ đề ứng với videoId hiện tại                          │
+│              │ -> Trả về danh sách candidates để content.js kích hoạt ui.js cho user chọn.   │
+├──────────────┼──────────────────────────────────────────────────────────────────────────────┤
+│ EMPTY        │ Không tìm thấy file phụ đề nào trên các nguồn cấu hình                       │
+│              │ -> Extension dừng luồng xử lý âm thầm để không gây ảnh hưởng đến YouTube.   │
+└──────────────┴──────────────────────────────────────────────────────────────────────────────┘
+
+📡 3. Chi tiết Giao thức Giao tiếp RPC (Message Protocols v1.0)
+Tất cả các file trao đổi dữ liệu xuyên suốt extension thông qua chuẩn format tin nhắn sau:
+- Gói tin gửi đi: { id: string, type: string, payload: object }
+- Gói tin phản hồi: { id: string, status: 'HIT' | 'MULTIPLE' | 'EMPTY' | 'ERROR', data?: object, candidates?: array, message?: string }
+
+Danh sách các Type hành động chuẩn hóa:
+1. 'SUBTITLE.SEARCH':
+   - Payload: { videoId: "chuỗi_id_youtube" }
+   - Hành động: background.js quét Cache trước, nếu hụt sẽ gọi fetcher.js quét GitHub/GDrive.
+2. 'SUBTITLE.SELECT':
+   - Payload: { videoId: "chuỗi_id_youtube", candidate: { id, fileName, url, sourceType } }
+   - Hành động: Thực hiện tải file thô, tự động phân tích (nếu là BACKGROUND mode), ghi Cache và trả về dữ liệu HIT.
+3. 'SOURCE.GET_ALL':
+   - Payload: {}
+   - Hành động: Lấy toàn bộ danh sách các link nguồn lưu trong Chrome Storage.
+4. 'SOURCE.REMOVE':
+   - Payload: { id: "uuid_nguồn" }
+   - Hành động: Xóa nguồn khỏi cấu hình lưu trữ.
+   
+🎨 3. Yêu cầu đặc tả cho UI & Styling (Giao diện hiển thị)
+Để đảm bảo extension không phá vỡ giao diện của YouTube (vốn thay đổi DOM liên tục) và mang lại trải nghiệm mượt mà, chúng ta tách biệt hoàn toàn CSS và logic UI.
+3.1. styles.js (CSS Injector Engine)
+Nhiệm vụ: Tiêm (inject) các rule CSS cần thiết vào YouTube DOM.
+Quy tắc thiết kế (Guardrails):
+No Global Bleeding: Tất cả class/id phải có prefix đặc trưng (ví dụ: #ass-cee-overlay-container, .ass-cee-btn, .ass-cee-chooser-modal) để không bị CSS của YouTube đè lên hoặc làm hỏng UI của YouTube.
+Z-Index Hierarchy: - Layer phụ đề (#ass-cee-overlay-container) phải nằm trên thẻ <video> nhưng phải nằm dưới thanh điều khiển (.ytp-chrome-bottom) để người dùng vẫn bấm pause/play được.
+Cần có thuộc tính pointer-events: none; cho Layer phụ đề để các click chuột xuyên qua rơi xuống đúng Video Player.
+Chooser UI (Bảng chọn sub) phải có z-index cao nhất để dễ thao tác, có nền tối (Dark mode) đồng điệu với phong cách của YouTube.
+3.2. ui.js (Chooser UI & Button Logic)
+Nhiệm vụ: Hiển thị danh sách phụ đề khi background.js trả về trạng thái MULTIPLE và quản lý nút bật/tắt (Toggle Button) trên thanh player.
+Yêu cầu Hàm:
+renderChooserModal(candidates, onSelectCallback): Tạo một popup nhỏ lơ lửng góc màn hình hoặc giữa player. Khi người dùng click vào 1 item, nó sẽ gọi onSelectCallback(candidate).
+destroyUI(): Xóa hoàn toàn popup rác ra khỏi DOM sau khi chọn xong hoặc khi video chuyển cảnh.
+injectToggleButton(playerControls): Thêm một nút [ASS] cạnh nút CC của YouTube để người dùng chủ động tắt/mở overlay.
+
+⚙️ 4. Chế độ Phân tách & Phân tích dữ liệu (parseMode Strategy)
+Hệ thống linh hoạt vận hành dựa trên biến cấu hình `parseMode` trong Settings:
+- Chế độ BACKGROUND (Mặc định):
+  - Tầng nền (parser.js) chịu trách nhiệm bóc tách toàn bộ file `.ass` thô thành JSON Object sạch sẽ.
+  - Chuyển đổi mã màu từ định dạng ASS (&HAABBGGRR) sang CSS RGBA lý tưởng.
+  - Quy đổi toàn bộ thời gian dạng chuỗi (0:00:00.00) sang đơn vị mili-giây (ms) để tối ưu so khớp.
+  - Tầng Content Script (renderer.js) nhận Object sạch, chạy bộ đếm thời gian cực nhẹ và render.
+- Chế độ CONTENT:
+  - Tầng nền chỉ tải văn bản và gửi chuỗi thô (rawText) về cho Content Script.
+  - Content Script phải tự sở hữu hoặc gọi một bộ Parser nội bộ để tự xử lý chuỗi trên trình duyệt.
+
+
+💾 5. Chính sách Bộ nhớ đệm (Cache Policy)
+- Khóa định danh (Key): videoId (Chuỗi ID video của YouTube lấy trực tiếp từ URL).
+- Giá trị lưu trữ (Value): Cấu trúc động tùy biến theo parseMode:
+  {
+    fileName: "sub_goc.ass",
+    sourceType: "github" | "gdrive",
+    cachedAt: 1715942400000,
+    raw: "[Script Info]...", // Cấp phát trường này nếu parseMode là CONTENT
+    parsedData: { info: {}, styles: {}, events: [] } // Cấp phát trường này nếu parseMode là BACKGROUND
+  }
+- Trình kích hoạt lưu cache (Cache Triggers):
+  - Tự động lưu khi hệ thống thực hiện Auto-resolve (Chỉ tìm thấy 1 candidate duy nhất).
+  - Lưu thủ công sau khi người dùng click chọn 1 phụ đề cụ thể từ danh sách hiển thị của UI Chooser.
+
+📌 6. Tài liệu tham khảo & Giới hạn phạm vi (Reference Boundaries)
+- File nguồn `Kull-Vietsub_extension_content.js.txt` CHỈ ĐÓNG VAI TRÒ THAM KHẢO Ý TƯỞNG (Các thông số cấu hình mặc định DEFAULTS hiển thị, logic hoán đổi toán học cơ bản hoặc băm chuỗi thô).
+- Tuyệt đối KHÔNG thiết kế cấu trúc mã nguồn đi hoàn toàn theo hướng giải quyết gom cụm (monolithic) của file này. Dự án ASS-CEE tuân thủ tách biệt hoàn toàn Layer tìm kiếm/xử lý (Background) và Layer dựng hình (Content Script) nhằm bảo toàn hiệu năng tối đa cho trình phát video YouTube.
+
+⚠️ 7. Quy tắc phát triển code bắt buộc (AI-LLM Vibe Coding Critical Rules)
+a.Luôn có comment giải thích code.
+b.Để khắc phục triệt để lỗi đọc/ghi ngữ cảnh của AI (LLM thỉnh thoảng nhận diện nhầm dòng trống hoàn toàn là điểm kết thúc tệp tin dẫn đến việc cắt cụt hàm, thiếu code), toàn bộ mã nguồn xuất ra phải tuân thủ nghiêm ngặt:
+- TUYỆT ĐỐI KHÔNG để bất kỳ dòng nào trống hoàn toàn (không có chứa ký tự) khi xuất mã nguồn JavaScript hoặc JSON.
+- Khi cần tạo khoảng trống cách dòng giúp code thoáng, dễ đọc và phân tách mạch lạc các hàm, BẮT BUỘC phải điền một dòng comment trống bằng ký hiệu `//`.
+- Các cấu trúc khối lệnh phức tạp phải đóng ngoặc đầy đủ và có comment ghi chú rõ ràng kết thúc block để AI kiểm soát toàn vẹn dòng chảy logic, không viết lửng lơ.
+- Tuy nhiên, vẫn phải giữ indent của các dòng lệnh trong khối.
+
+💎 8. Quy tắc Fallback Style & Khai báo Style Default Nguyên Bản (Style Fallback Engine)
+Quy tắc quản lý hiển thị khi gặp Style không xác định trong file phụ đề .ass:
+- Khi một dòng Dialogue chứa một Style không tồn tại trong danh sách Styles của tệp phụ đề, Renderer.js phải thực hiện tra cứu và fallback về Style mang tên 'Default' được định nghĩa sẵn trong tệp đó.
+- Trong trường hợp tệp phụ đề hoàn toàn không định nghĩa Style 'Default', Renderer.js sẽ tự động kích hoạt bộ lọc fallback cuối cùng bằng cách áp dụng cấu hình Object Style Default Nguyên Bản (được lưu trữ cố định ngay bên trong bộ nhớ của Renderer.js).
+- Object Style Default Nguyên Bản tuân thủ chính xác các thông số từ cấu hình mẫu chuẩn hóa dưới đây:
+//   ORIGINAL_DEFAULT_STYLE = {
+//     Name: "Default",
+//     Fontname: "Arial",
+//     Fontsize: "20",
+//     PrimaryColour: "rgba(255,255,255,1.0)", // Chuyển đổi sẵn từ &H00FFFFFF sang RGBA
+//     SecondaryColour: "rgba(255,0,0,1.0)",   // Chuyển đổi sẵn từ &H000000FF sang RGBA
+//     OutlineColour: "rgba(0,0,0,1.0)",      // Chuyển đổi sẵn từ &H00000000 sang RGBA
+//     BackColour: "rgba(0,0,0,1.0)",         // Chuyển đổi sẵn từ &H00000000 sang RGBA
+//     Bold: "0", Italic: "0", Underline: "0", StrikeOut: "0",
+//     ScaleX: "100", ScaleY: "100", Spacing: "0", Angle: "0",
+//     BorderStyle: "1", Outline: "2", Shadow: "2", Alignment: "2",
+//     MarginL: "10", MarginR: "10", MarginV: "10", Encoding: "1"
+//   }
+- Giai đoạn xử lý tối ưu: Để tránh việc kiểm tra lặp đi lặp lại trong vòng lặp thời gian 10ms gây suy giảm hiệu năng, Renderer.js phải chuẩn bị sẵn (pre-inject) style Default nguyên bản vào bộ nhớ lưu trữ Map Styles cục bộ ngay khi nhận được dữ liệu phụ đề mới từ content.js, đảm bảo vòng lặp vẽ chỉ cần gọi: stylesMap[line.style] || stylesMap['Default'].
