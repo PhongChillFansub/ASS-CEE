@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.0.1 21may26
+// v0.0.0.1 23may26
 const FETCH_TIMEOUT = 60000; // Tối đa 60 giây kết nối và nhận dữ liệu. Dùng cho hàm fetchWithTimeout().
 const VALID_FILE_SIGNATURE = ["[Script Info]", "[V4+ Styles]", "[Events]"];
 // Danh sách các nội dung mà parser dùng để đánh dấu. Dùng cho hàm validateSubtitleContent().
@@ -88,7 +88,7 @@ async function scanGoogleDrive(source, videoId) {
         const titleRegex = /<title>([^<]+) - Google Drive<\/title>/;
         const titleMatch = html.match(titleRegex);
         // Nếu tìm thấy thì lấy nhóm 1 và xóa khoảng trắng, nếu không thấy thì để tên mặc định
-        const folderName = titleMatch ? titleMatch[1].trim() : "Google Drive";
+        const folderName = titleMatch ? titleMatch[1].trim() : "undefined_GDrive";
         
         // 4. Regex bóc tách cặp [File ID, Tên File] từ đống dữ liệu JSON ẩn trong HTML
         const entryRegex = /\["([a-zA-Z0-9_-]{19,})","([^"]+)"/g;
