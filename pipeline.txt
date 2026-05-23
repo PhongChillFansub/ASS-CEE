@@ -1,15 +1,47 @@
 Cấu trúc extension:
 - manifest.JSON
 - background
-  + background.js (script chạy chính của background, lưu trữ cache)
-  + fetcher.js (chuyên hóa tìm kiếm file sub trên GitHub, GDrive)
-  + parser.js (chuyên hóa đọc file sub)
+  + background.js (script chạy chính của background)
+  + fetcher.js (chuyên hóa tìm kiếm file sub trên GDrive) (ko hỗ trợ GitHub nữa). xong.
+	fetcher làm 2 việc: 
+	- nhận danh sách (array) URL folder GDrive từ background (từ user/hoặc chỗ khác) trả về danh sách URL các file tương ứng với videoId (candidates)
+	- nhận URL đã được chọn từ background (từ user, trong candidates) trả về text của file sub. (cho parser chạy tại background)
+  + parser.js (chuyên hóa đọc file sub chuyển thành cấu trúc JS). xong.
+  + storage.js (chuyên hóa lưu cache)
 - content
   + content.js (script chạy chính của content)
   + renderer.js (chuyên hóa render)
   + ui.js (chuyên hóa UI)
 
+Cấu trúc dữ liệu:
+- Của file phụ đề, sau xử lí (parsed), quy định trong file parsed.js:
+  parsedData = {
+    info: {},     // Phần [Script Info],  xử lí trong file parsed.js
+    styles: [],   // Phần [V4+ Styles],   xử lí trong file parsed.js
+    events: []    // Phần [Events],       xử lí trong file parsed.js
+  }
+- Của các file phụ đề đã lưu (cached), quy định trong file storage.js:
+  SUBTITLE_DATA_KEY = {
+    "videoId" : parsedData
+  };
+  (obj SUBTITLE_DATA_KEY được lưu trong chrome.storage.local)
+  (tên được đặt theo hàm hằng SUBTITLE_DATA_KEY)
 
+- Của nguồn file sub trên GDrive (quy định trong file fetcher.js)
+  candidate (hoặc results.push) = {
+    id: id,
+    fileName: name,
+    url: `https://docs.google.com/uc?export=download&id=${id}`,
+    sourceType: 'gdrive',
+    groupName: folderName
+  }
+- Của nguồn folder trên GDrive chứa file sub:
+  folderUrl: ``
+- Của danh sách các nguồn folder GDrive chứa file sub
+  SUBTITLE_SOURCES_KEY = { 
+    "folderName" : folderUrl 
+  }
+  
 
 
 
