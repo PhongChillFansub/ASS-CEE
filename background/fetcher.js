@@ -45,7 +45,7 @@ function validateSubtitleContent(text) {
     const isValid = VALID_FILE_SIGNATURE.some(sig => text.includes(sig));
     if (!isValid) throw new Error("Định dạng không thể sử dụng parser");
 }
-export async function fetchSubtitles(sources, videoId) {
+export async function fetchSubtitleFile(sources, videoId) {
 	// Hàm quét DANH SÁCH thư mục GDrive (Gemini, đã check)
     // 1. Hàm nhận đầu vào sources là array các string URL thư mục GDrive.
     const scanPromises = sources.map(url => {
