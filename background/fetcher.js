@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.0.1 23may26
+// v0.0.0.1 25may26
 const FETCH_TIMEOUT = 60000; // Tối đa 60 giây kết nối và nhận dữ liệu. Dùng cho hàm fetchWithTimeout().
 const VALID_FILE_SIGNATURE = ["[Script Info]", "[V4+ Styles]", "[Events]"];
 // Danh sách các nội dung mà parser dùng để đánh dấu. Dùng cho hàm validateSubtitleContent().
@@ -59,9 +59,70 @@ export async function fetchSubtitles(sources, videoId) {
     const candidates = results.filter(r => r.status === 'fulfilled').flatMap(r => r.value);
 
     // 4. Sắp xếp file theo thứ tự bảng chữ cái ABC
-	candidates.sort((a, b) => a.groupName.localeCompare(b.groupName, undefined, { numeric: true }) || a.fileName.localeCompare(b.fileName, undefined, { numeric: true }));
+	candidates.sort((a, b) => a.groupName.localeCompare(b.groupName) || a.fileName.localeCompare(b.fileName));
 	// So sánh theo groupName trước, sau đó là theo fileName. Cả 2 đều theo dạng numeric (vd: file10 đứng sau file2)
     return { candidates: candidates };
+}
+async function scanGitHub(source, videoId) {
+    // Hàm quét thư mục GitHub (Gemini, đã check)
+    // 1. Kiểm tra cấu trúc URL
+    const regex = /github\.com\/([^\/]+)\/([^\/]+)\/tree\/([^\/]+)\/?(.*)/;
+    // Cấu trúc link GitHub folder chuẩn 
+    const match = source.url.match(regex);
+    if (!match) {
+        console.warn(
+            `%c[ASS-CEE]%c fetcher: Link chuẩn chưa em? (GitHub: ${source})`, 
+            "color: orange; font-weight: bold;",
+            ""
+        );
+        return []
+        // Nếu URL không đúng chuẩn, báo lại
+    }
+    const [_, owner, repo, branch, path] = match;
+    const groupName = `${owner}/${repo}/${branch}/${path}`;
+    // Trích xuất các thông tin trong URL, lưu vào groupName để xử lí và hiển thị sau này
+    const results = [];
+    try {
+        // 2. Tạo URL API và quét thư mục
+        const url =`https://api.github.com/repos/${owner}/${repo}/contents/${path || ""}?ref=${branch}`;
+        const resp = await fetchWithTimeout(url, groupName, "folder");
+        // fetchWithTimeout()?
+        if (!resp.ok) return [];
+        const items = await resp.json();
+        if (!Array.isArray(items)) {
+            console.warn(
+                `%c[ASS-CEE]%c fetcher: Lag? (GitHub API ko trả về array, folder: ${groupName})`, 
+                "color: orange; font-weight: bold;",
+                ""
+            );
+            return [];
+            // Kiểm tra nếu trả về ko phải array các file
+        }
+        for (const item of items) { // 3. Quét các file tìm được
+            if (item.type !== "file") continue; 
+            // Vì chỉ quét các file nên bỏ qua các folder và file ko phải file sub
+            if (name.endsWith('.ass') && isMatchingSubtitle(item.name, videoId)) {
+                // isMatchingSubtitle()?
+                results.push({
+                    id: item.sha,
+                    fileName: item.name,
+                    // URL cấu hình tải trực tiếp file thô từ Drive mà không cần API Key
+                    url: item.download_url,
+                    sourceType: 'github',
+                    groupName
+                }); 
+            }
+        }
+
+    } catch (e) {
+        console.error(
+			"%c[ASS-CEE]%c fetcher: Lỗi quét GitHub:", e, 
+			"color: red; font-weight: bold;",
+			""
+		);
+    }
+    return results;
+    // phụ thuộc các hàm ngoài là fetchWithTimeout() và isMatchingSubtitle()
 }
 async function scanGoogleDrive(source, videoId) {
 	// Hàm quét thư mục GDrive (Gemini, đã check)
@@ -69,7 +130,14 @@ async function scanGoogleDrive(source, videoId) {
     const folderId = source.url.split('/folders/')[1]?.split('?')[0];
 	// URL folder GDrive dạng https://drive.google.com/drive/folders/1A2b3C4d5E6f?usp=sharing
 	// .split('/folder/')[1] để lấy 1A2b3C4d5E6f?usp=sharing; .split('?')[0] để lấy 1A2b3C4d5E6f
-    if (!folderId) return [];
+    if (!folderId) {
+        console.warn(
+            `%c[ASS-CEE]%c fetcher: Link chuẩn chưa em? (GDrive: ${folderId})`, 
+            "color: orange; font-weight: bold;",
+            ""
+        );
+        return []
+    }
 	// Nếu ko tìm thấy Id (vd: split('/folder/') ko hoạt động) thì trả về trống.
 	console.log(
 		`%c[ASS-CEE]%c fetcher: Đang tìm thư mục GDrive ${folderId}`, 
