@@ -32,14 +32,18 @@ Cấu trúc dữ liệu:
     id,
     fileName,
     url,
-    sourceType: 'gdrive' hoặc 'github'
+    sourceType: 'gdrive' hoặc 'github',
     groupName
   }
-- Của nguồn folder chứa file sub (quy định trong file background.js?)
-  folderUrl: ``
+- Của nguồn folder chứa file sub (quy định trong file storage.js)
+  folderSource = {
+    url,
+    type: 'gdrive' hoặc 'github',
+    savedAt: time
+  }
 - Của danh sách các nguồn folder chứa file sub (quy định trong file storage.js)
   SUBTITLE_SOURCES_KEY = { 
-    "folderName" : folderUrl 
+    "folderName" : folderSource 
   }
   
 
