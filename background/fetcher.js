@@ -47,10 +47,21 @@ function validateSubtitleContent(text) {
 }
 export async function fetchSubtitleFile(sources, videoId) {
 	// Hàm quét DANH SÁCH thư mục GDrive (Gemini, đã check)
-    // 1. Hàm nhận đầu vào sources là array các string URL thư mục GDrive.
-    const scanPromises = sources.map(url => {
+    // 1. Hàm nhận đầu vào sources là array các string URL thư mục GitHub/GDrive.
+    // Cấu trúc array 
+    const scanPromises = sources.map(source => {
         // Tạo một đối tượng source đơn giản để truyền vào hàm quét
-        return scanGoogleDrive({ url: url }, videoId);
+        if (source.type === 'github') {
+            return scanGitHub(source, videoId);
+        } else if (source.type === 'gdrive') {
+            return scanGoogleDrive(source, videoId);
+        } 
+        console.warn(
+            `%c[ASS-CEE]%c fetcher: Link chuẩn chưa em? (GitHub: ${source})`, 
+            "color: orange; font-weight: bold;",
+            ""
+        );
+        return [];
 		// Đã check, khớp đầu vào của scanGoogleDrive().
     });
     // 2. Chờ tất cả các luồng quét kết thúc đồng thời
