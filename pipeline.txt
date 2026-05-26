@@ -7,7 +7,7 @@ Cấu trúc extension:
 	- nhận danh sách (array) URL folder GDrive từ background (từ user hoặc chỗ khác) trả về danh sách URL các file tương ứng với videoId (candidates)
 	- nhận URL đã được chọn từ background (từ user, trong candidates) trả về text của file sub. (cho parser chạy tại background)
   + parser.js (chuyên hóa đọc file sub chuyển thành cấu trúc JS). xong.
-  + storage.js (chuyên hóa lưu cache)
+  + storage.js (chuyên hóa lưu cache). xong
 - content
   + content.js (script chạy chính của content)
   + renderer.js (chuyên hóa render)
@@ -19,11 +19,10 @@ Cấu trúc dữ liệu:
     info: {},     // Phần [Script Info],  xử lí trong file parsed.js
     styles: [],   // Phần [V4+ Styles],   xử lí trong file parsed.js
     events: []    // Phần [Events],       xử lí trong file parsed.js
+    cachedAt: time                     // xử lí trong file storage.js
   }
 - Của các file phụ đề đã lưu (cached), quy định trong file storage.js:
-  SUBTITLE_DATA_KEY = {
-    "videoId" : parsedData
-  };
+  SUBTITLE_DATA_KEY = {"videoId" : parsedData, ...};
   (obj SUBTITLE_DATA_KEY được lưu trong chrome.storage.local)
   (tên được đặt theo hàm hằng SUBTITLE_DATA_KEY)
 
@@ -37,13 +36,15 @@ Cấu trúc dữ liệu:
   }
 - Của nguồn folder chứa file sub (quy định trong file storage.js)
   folderData = {
-    time,
-    url,
-    folderName,
-    folderId
+    time,         // xử lí trong file storage.js
+    url,          // xử lí trong file background.js
+    folderName,   // xử lí trong file background.js
+    folderId      // xử lí trong file background.js
   }
 - Của danh sách các nguồn folder chứa file sub (quy định trong file storage.js)
   SUBTITLE_SOURCES_KEY = [folderData, ...]
+  (obj SUBTITLE_SOURCES_KEY được lưu trong chrome.storage.local)
+  (tên được đặt theo hàm hằng SUBTITLE_SOURCES_KEY)
   
 
 
