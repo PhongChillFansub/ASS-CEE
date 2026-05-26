@@ -54,7 +54,7 @@ export async function removeSource(time) {
  * @param {*} videoId đầu vào
  * @returns 
  */
-export async function getSubtitle(videoId) {
+export async function getSubtitleCache(videoId) {
   const data = await chrome.storage.local.get(SUBTITLE_DATA_KEY);
   const cache = data[STORAGE_KEY_SUBTITLES] || {};
   return cache[videoId] || null;
@@ -64,7 +64,7 @@ export async function getSubtitle(videoId) {
  * @param {*} videoId đầu vào
  * @param {*} subtitleObj đầu vào
  */
-export async function saveSubtitle(videoId, subtitleObj = {}) {
+export async function saveSubtitleCache(videoId, subtitleObj = {}) {
     // Chỉ lưu dữ liệu subtitleObj dạng parsedData (xem pipeline.txt)
     if (!videoId || !subtitleObj || typeof subtitleObj !== "object" || Array.isArray(subtitleObj)) { 
         throw new Error("Dữ liệu file sub lưu cache không hợp lệ"); 
