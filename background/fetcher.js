@@ -258,6 +258,8 @@ async function scanGoogleDrive(source, videoId, folderName = { groupName: '',id:
  */
 function isMatchingSubtitle(fileName, videoId) {
 	// Hàm check tên file có chứa YT ID, và bao quanh nó trong ngoặc () hoặc [] ko.
+    if (!videoId) return false;
+    // Nếu không có videoId hoặc videoId trống ("" để chỉ scan lấy tên folder), trả về false luôn
     const regex = new RegExp(`\\(${videoId}\\)|\\[${videoId}\\]`); 
     return regex.test(fileName);
 }
