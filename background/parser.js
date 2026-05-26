@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.0.1 23may26
+// v0.0.0.1 26may26
 // Mẫu text của các line [Events] trong file sub
 // [Events]
 // Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -71,9 +71,9 @@ export default function parseAegisubRaw(rawText) {
 	// Styles và Events lưu dưới dạng array do file sub có cấu trúc khác, và trong Lua Automation của Aegisub cũng xử lí tương tự.
 	if (!rawText) {
 	console.error(
-	"%c[ASS-CEE]%c parser: Đã có ai làm gì đâu? Đã làm gì đâu? (rawText trống)", 
-	"color: red; font-weight: bold;",
-	"color: white;"
+		"%c[ASS-CEE]%c parser: Đã có ai làm gì đâu? Đã làm gì đâu? (rawText trống)", 
+		"color: red; font-weight: bold;",
+		"color: white;"
 	);
 	return parsedData
 	};
@@ -121,11 +121,11 @@ export default function parseAegisubRaw(rawText) {
 				if (key === 'ScriptType' && value !== 'v4.00+') {
 					// ScriptType trong file ko phải v4.00+
 					console.error(
-					`%c[ASS-CEE]%c parser: %cTin%c File chuẩn chưa em? (Extension ko hỗ trợ tốt với ScriptType=${value})`, 
-					"color: red; font-weight: bold;",
-					"",
-					"color: gray; text-decoration: line-through;",
-					""
+						`%c[ASS-CEE]%c parser: %cTin%c File chuẩn chưa em? (Extension ko hỗ trợ tốt với ScriptType=${value})`, 
+						"color: red; font-weight: bold;",
+						"",
+						"color: gray; text-decoration: line-through;",
+						""
 					);
 				}
 				// Phần kiểm tra lỗi.
@@ -207,8 +207,13 @@ export default function parseAegisubRaw(rawText) {
 					orgline[toCamelCase(eventField)] = eventValue;
 				});
 				parsedData.events.push(orgline);
-            }
+      }
 		}
 	}
+	console.log(
+		"%c[ASS-CEE]%c parser: Đã xử lí xong.", 
+		"font-weight: bold;",
+		""
+	);
 	return parsedData;
 }
