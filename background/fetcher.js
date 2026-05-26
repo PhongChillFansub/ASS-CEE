@@ -126,7 +126,8 @@ async function scanGitHub(source, videoId, folderName = { groupName:'',id:'' }) 
         // Nếu URL không đúng chuẩn, báo lại
     }
     const [_, owner, repo, branch, path] = match;
-    folderName.groupName = `${owner}/${repo}/${branch}/${path}`;
+    folderName.groupName = `${path}`;
+    folderName.id = `${owner}/${repo}/${branch}`;
     // Trích xuất các thông tin trong URL, lưu vào groupName để xử lí và hiển thị sau này
     const results = [];
     try {
@@ -184,7 +185,7 @@ async function scanGitHub(source, videoId, folderName = { groupName:'',id:'' }) 
     groupName
   } 
  */
-async function scanGoogleDrive(source, videoId, folderName = { groupName: ''}) {
+async function scanGoogleDrive(source, videoId, folderName = { groupName: '',id: '' }) {
 	// Hàm quét thư mục GDrive (Gemini, đã check)
     // 1. Bóc tách lấy ID của thư mục từ URL
     const folderId = source.url.split('/folders/')[1]?.split('?')[0];
