@@ -110,7 +110,7 @@ export async function fetchSubtitleFile(sources, videoId) {
     groupName
     }
  */
-async function scanGitHub(source, videoId, folderName = { groupName: '',id:'' }) {
+async function scanGitHub(source, videoId, folderName = { groupName:'',id:'' }) {
     // folderName
     // 1. Kiểm tra cấu trúc URL
     const regex = /github\.com\/([^\/]+)\/([^\/]+)\/tree\/([^\/]+)\/?(.*)/;
@@ -145,7 +145,6 @@ async function scanGitHub(source, videoId, folderName = { groupName: '',id:'' })
             return [];
             // Kiểm tra nếu trả về ko phải array các file
         }
-        folderName.id = item.sha;
         for (const item of items) { // 3. Quét các file tìm được
             if (item.type !== "file") continue; 
             // Vì chỉ quét các file nên bỏ qua các folder và file ko phải file sub
