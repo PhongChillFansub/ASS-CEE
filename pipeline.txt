@@ -38,6 +38,7 @@ Cấu trúc dữ liệu:
 - Của nguồn folder chứa file sub (quy định trong file storage.js)
   folderSource = {
     url,
+    comment,
     savedAt: time
   }
 - Của danh sách các nguồn folder chứa file sub (quy định trong file storage.js)
