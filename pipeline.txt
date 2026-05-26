@@ -36,14 +36,14 @@ Cấu trúc dữ liệu:
     groupName
   }
 - Của nguồn folder chứa file sub (quy định trong file storage.js)
-  folderSource = {
+  folderData = {
     url,
-    comment,
-    savedAt: time
+    folderName,
+    folderId
   }
 - Của danh sách các nguồn folder chứa file sub (quy định trong file storage.js)
   SUBTITLE_SOURCES_KEY = { 
-    "folderName" : folderSource 
+    "time" : folderData
   }
   
 
