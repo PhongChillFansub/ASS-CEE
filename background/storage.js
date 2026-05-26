@@ -1,8 +1,8 @@
 // Code bằng tay
 // v0.0.0.1 26may26
 // Lưu 2 key khác nhau trên chrome.storage.local.
-const SUBTITLE_SOURCES_KEY = "sourceListASSCEE";
-const SUBTITLE_DATA_KEY = "dataFileASSCEE";
+const SUBTITLE_SOURCES_KEY = "ASSCEE_sourceList";
+const SUBTITLE_DATA_KEY = "ASSCEE_dataFile";
 /**
  * Hàm thêm nguồn (URL của folder GitHub/GDrive) vào bộ nhớ extension.
  * (do bộ nhớ theo dạng array, nên ở đây cập nhật dưới dạng spread, thay vì pop/push)
@@ -17,15 +17,20 @@ export async function addSource(source = {}) {
   const sources = (await getSources());
   // Lấy danh sách nguồn đã có để kiểm tra trùng lặp (hàm getSources đã fallback array trống)
   if (sources.some(item => item.url === source.url)) {
-    // Kiểm tra nếu nguồn trùng lặp, báo lại
+    // Kiểm tra nếu nguồn trùng lặp, báo lại và dừng
     throw new Error("Nguồn này đã tồn tại trong danh sách");
   }  
   const createdSource = {
     ...source,
     savedAt: Date.now()
   };
-  const updated = [...sources, newSource];
+  const updated = [...sources, createdSource];
   await chrome.storage.local.set({ [SUBTITLE_SOURCES_KEY]: updated });
+  console.log(
+		`%c[ASS-CEE]%c storage: Đã thêm nguồn: ${source.name} (${createdSource.savedAt}).`, 
+		"font-weight: bold;",
+		""
+	);
   return createdSource;
 }
 /**
@@ -46,8 +51,14 @@ export async function getSources() {
 export async function removeSource(time) {
   const sources = await getSources();
   const updated = sources.filter(s => s.savedAt !== time);
+  const deleted = sources.filter(s => s.savedAt == time);
   await chrome.storage.local.set({ [SUBTITLE_SOURCES_KEY]: updated });
   return true;
+  console.log(
+		`%c[ASS-CEE]%c storage: Đã xóa ${deleted.length} nguồn:\n   ${deleted.map(item => item.url).join('\n   ')}`, 
+		"font-weight: bold;",
+		""
+	);
 }
 /**
  * Hàm lấy dữ liệu file sub (obj) dựa trên videoId
@@ -74,4 +85,9 @@ export async function saveSubtitleCache(videoId, subtitleObj = {}) {
     const data = storageData[SUBTITLE_DATA_KEY] || {};
     const updated = { ...data, [videoId]: subtitleObj };
     await chrome.storage.local.set({ [SUBTITLE_DATA_KEY]: updated }); 
+    console.log(
+      `%c[ASS-CEE]%c storage: Đã lưu cache sub obj cho vid: ${videoId}.`, 
+      "font-weight: bold;",
+      ""
+    );
 }
