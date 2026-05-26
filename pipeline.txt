@@ -37,14 +37,13 @@ Cấu trúc dữ liệu:
   }
 - Của nguồn folder chứa file sub (quy định trong file storage.js)
   folderData = {
+    time,
     url,
     folderName,
     folderId
   }
 - Của danh sách các nguồn folder chứa file sub (quy định trong file storage.js)
-  SUBTITLE_SOURCES_KEY = { 
-    "time" : folderData
-  }
+  SUBTITLE_SOURCES_KEY = [folderData, ...]
   
 
 
