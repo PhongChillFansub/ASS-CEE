@@ -42,11 +42,16 @@ export async function fetchSubtitleText(candidate) {
 		`%c[ASS-CEE]%c fetcher: Không tìm thấy thông tin dung lượng file sub ${candidate.id}, ${candidate.fileName}`, 
 		"color: orange; font-weight: bold;",
 		""
-	);
+	    );
 	}
 	// Lấy text của file sub.
     validateSubtitleContent(text);
 	// Kiểm tra tính hợp lệ của file sub (check tồn tại các dòng đánh dấu như [Script Info], [V4+ Styles], [Events])
+    console.log(
+		`%c[ASS-CEE]%c fetcher: Đã fetch text của file ${fileName} xong.`, 
+		"font-weight: bold;",
+		""
+	);
     return text;
 }
 /**
@@ -62,7 +67,7 @@ function validateSubtitleContent(text) {
  * Hàm quét DANH SÁCH thư mục GitHub/GDrive (thông qua 2 hàm scanGitHub và scanGoogleDrive)
  * @param {*} sources array các string URL thư mục GitHub/GDrive
  * @param {*} videoId id YT video cần tìm
- * @returns DANH SÁCH các file theo cấu trúc candidate {
+ * @returns DANH SÁCH (array) các file theo cấu trúc candidate {
     id,
     fileName,
     url,
@@ -71,7 +76,6 @@ function validateSubtitleContent(text) {
   } 
  */
 export async function fetchSubtitleFile(sources, videoId) {
-
     const scanPromises = sources.map(source => {
         // Tạo một đối tượng source đơn giản để truyền vào hàm quét
         if (source.type === 'github') {
@@ -94,8 +98,13 @@ export async function fetchSubtitleFile(sources, videoId) {
 
     // 4. Sắp xếp file theo thứ tự bảng chữ cái ABC
 	candidates.sort((a, b) => a.groupName.localeCompare(b.groupName) || a.fileName.localeCompare(b.fileName));
-	// So sánh theo groupName trước, sau đó là theo fileName. Cả 2 đều theo dạng numeric (vd: file10 đứng sau file2)
-    return { candidates: candidates };
+	// So sánh theo groupName trước, sau đó là theo fileName. 
+    console.log(
+		`%c[ASS-CEE]%c fetcher: Đã tìm xong các file tương ứng. (${videoId}, trả về ${candidates.length})`, 
+		"font-weight: bold;",
+		""
+	);
+    return candidates;
 }
 /**
  * Hàm quét 1 thư mục GitHub
@@ -169,6 +178,11 @@ async function scanGitHub(source, videoId, folderName = { groupName:'',id:'' }) 
 			""
 		);
     }
+    console.log(
+		`%c[ASS-CEE]%c fetcher: Đã quét xong folder ${folderName.groupName}(${folderName.id})`, 
+		"font-weight: bold;",
+		""
+	);
     return results;
     // phụ thuộc các hàm ngoài là fetchWithTimeout() và isMatchingSubtitle()
 }
@@ -246,6 +260,11 @@ async function scanGoogleDrive(source, videoId, folderName = { groupName: '',id:
 			""
 		);
     }
+    console.log(
+		`%c[ASS-CEE]%c fetcher: Đã quét xong folder ${folderName.groupName}(${folderName.id})`, 
+		"font-weight: bold;",
+		""
+	);
     return results;
 	// Như vậy cấu trúc của results là array với các phần tử là obj gồm {id, fileName, url, sourceType, groupName}
 	// phụ thuộc các hàm ngoài là fetchWithTimeout() và isMatchingSubtitle()
