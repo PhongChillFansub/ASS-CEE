@@ -75,22 +75,3 @@ export async function saveSubtitle(videoId, subtitleObj = {}) {
     const updated = { ...data, [videoId]: subtitleObj };
     await chrome.storage.local.set({ [SUBTITLE_DATA_KEY]: updated }); 
 }
-
-// vibe coding (Gemini)
-// v0.0.0.6 17may26 (chưa thể review do chưa đủ TRÌNH.)
-// Cập nhật: Gemini sửa tiếp
-// well, bạn mong chờ gì ở 1 thằng mù JS nhỉ :v
-// to-do: chắc sẽ đem đi hỏi Copilot sau.
-// storage.js - Lớp quản lý lưu trữ dữ liệu bền vững (Chrome Storage)
-
-/**
- * Lấy dữ liệu subtitle đã cache theo videoId.
- * Đảm bảo trả về null nếu không tìm thấy thay vì lỗi undefined[cite: 5].
- */
-
-// Thêm hàm lấy cấu hình người dùng
-export async function getSettings() {
-    const data = await chrome.storage.local.get("asscee_settings");
-    // Mặc định là BACKGROUND nếu người dùng chưa chỉnh gì
-    return data["asscee_settings"] || { parseMode: "BACKGROUND" }; 
-}
