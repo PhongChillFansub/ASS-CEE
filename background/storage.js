@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.0.1 26may26
+// v0.0.0.1 27may26
 // Lưu 2 key khác nhau trên chrome.storage.local.
 const SUBTITLE_SOURCES_KEY = "ASSCEE_sourceList";
 const SUBTITLE_DATA_KEY = "ASSCEE_dataFile";
@@ -73,11 +73,11 @@ export async function getSubtitleCache(videoId) {
 /**
  * Hàm lưu dữ liệu file sub (obj) dựa trên videoId
  * @param {*} videoId đầu vào
- * @param {*} subtitleObj đầu vào
+ * @param {*} subtitleObj đầu vào dạng subObj (quy định trong file background.js, xem pipeline.txt)
  */
 export async function saveSubtitleCache(videoId, subtitleObj = {}) {
-    // Chỉ lưu dữ liệu subtitleObj dạng parsedData (xem pipeline.txt)
-    if (!videoId || !subtitleObj || typeof subtitleObj !== "object" || Array.isArray(subtitleObj)) { 
+    // Chỉ lưu dữ liệu subtitleObj chứa parsedData (xem pipeline.txt)
+    if (!videoId || typeof subtitleObj.parsedData !== "object") { 
         throw new Error("Dữ liệu file sub lưu cache không hợp lệ"); 
     }
     subtitleObj.cachedAt = Date.now()

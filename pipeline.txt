@@ -45,6 +45,12 @@ Cấu trúc dữ liệu:
   SUBTITLE_SOURCES_KEY = [folderData, ...]
   (obj SUBTITLE_SOURCES_KEY được lưu trong chrome.storage.local)
   (tên được đặt theo hàm hằng SUBTITLE_SOURCES_KEY)
+- Của file sub đã đóng gói (quy định trong file background.js)
+  subObj = {
+    videoId,
+    fileObj: candidate hoặc results.push
+    parsedData: parsedData 
+  }
   
 
 
