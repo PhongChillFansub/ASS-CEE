@@ -8,12 +8,17 @@
   "host_permissions": [
     "https://www.youtube.com/*"
   ],
+  "optional_host_permissions": [
+    "https://*.bilibili.com/*",
+    "https://*/*",
+    "file:///*"
+  ],
   "background": {
     "service_worker": "background/background.js",
     "type": "module"
   },
   "action": { 
-    "default_title": "[PhongChillFansub] ASS-CEE"
+    "default_title": "[PhongChillFansub] ASS-CEE. Click để kích hoạt phụ đề cho trang này"
   },
   "content_scripts": [{
     "matches": ["https://www.youtube.com/*"],

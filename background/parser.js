@@ -174,9 +174,9 @@ export default function parseAegisubRaw(rawText) {
 				// Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 				// Chú ý: Name = Actor (trong giao diện Aegisub), Name đã đc Aegisub can thiệp, cấm dấu ","
 				// Tuy nhiên, Text sẽ có dấu "," tự do.
-            } else if (line.startsWith('Dialogue:')) { // Dòng Dialogue. (Sẽ không xét các dòng Comment)
-				lineData = line.substring('Dialogue: '.length);
-			// Bỏ qua chỗ 'Dialogue: ' đầu line.
+      } else if (line.startsWith('Dialogue:')) { // Dòng Dialogue. (Sẽ không xét các dòng Comment)
+				const lineData = line.substring('Dialogue: '.length);
+				// Bỏ qua chỗ 'Dialogue: ' đầu line.
 				const eventValues = [];
 				// Array lưu các giá trị của line (tương tự styleValues ở phần Values)
 				// Thay vì chạy thẳng .split().map() như styleValues, eventValues tách "từ từ" để giữ nguyên phần Text.
@@ -184,7 +184,7 @@ export default function parseAegisubRaw(rawText) {
 				// Lưu vị trí dấu phẩy liền trước để bỏ qua
 				for (let i = 0; i < eventFormat.length - 1; i++) {
 					// i < .length -1, hay chạy từ 0 đến .len -2, tức là chạy tất cả format của Events trừ Text.
-					const latestCommaPos = lineData.indexOf('');
+					const latestCommaPos = lineData.indexOf(',', lastCommaPos);
 					// Lưu vị trí dấu phẩy mới nhất để tách lấy dữ liệu
 					if (latestCommaPos === -1) break;
 					// Nếu ko có dấu phẩy nào nữa thì thoát (do thiếu dấu phẩy? Ko do Aegisub đã chuẩn hóa)
@@ -193,7 +193,7 @@ export default function parseAegisubRaw(rawText) {
 					// Nên là dùng .trim() không cần thiết (lắm?).
 					lastCommaPos = latestCommaPos + 1;
 				}
-				values.push(lineData.substring(lastCommaPos)); // Phần text.
+				eventValues.push(lineData.substring(lastCommaPos)); // Phần text.
 				const orgline = {}; // Đặt tên để tương đồng với orgline của Lua Automation trong Aegisub.
 				eventFormat.forEach((eventField, eventIndex) => {
 					// Tương tự phần styles, xét với mỗi index (eventIndex) - value (eventField) trong array eventFormat
@@ -201,7 +201,7 @@ export default function parseAegisubRaw(rawText) {
 					// Đặt biến tạm thời styleValue lấy bằng styleValues[eventIndex] (hoặc trống nếu eventIndex vượt quá. Có thể vượt quá à?)
 					if (eventField === 'Start' || eventField === 'End') {
 						// Nếu là thời gian (định dạng h:mm:ss.cs thì convert)
-						orgline[eventField.toLowerCase + 'Time'] = convertTimeStringToMs(eventValue)
+						orgline[eventField.toLowerCase() + 'Time'] = convertTimeStringToMs(eventValue)
 						// Và lưu dưới dạng orgline.startTime/endTime (ở Aegisub là orgline.start_time)
 					}
 					orgline[toCamelCase(eventField)] = eventValue;

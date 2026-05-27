@@ -48,7 +48,7 @@ export async function fetchSubtitleText(candidate) {
     validateSubtitleContent(text);
 	// Kiểm tra tính hợp lệ của file sub (check tồn tại các dòng đánh dấu như [Script Info], [V4+ Styles], [Events])
     console.log(
-		`%c[ASS-CEE]%c fetcher: Đã fetch text của file ${fileName} xong.`, 
+		`%c[ASS-CEE]%c fetcher: Đã fetch text của file ${candidate.fileName} xong.`, 
 		"font-weight: bold;",
 		""
 	);

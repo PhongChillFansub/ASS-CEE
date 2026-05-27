@@ -6,6 +6,26 @@ import { addSource, getSources, removeSource, getSubtitleCache, saveSubtitleCach
 // addSource, getSources, removeSource, getSubtitleCache, saveSubtitleCache
 import parseAegisubRaw from './parser.js';
 // parseAegisubRaw
+chrome.action.onClicked.addListener(async (tab) => {
+  // Nếu là YouTube thì có thể đã chạy tự động, nhưng với các nền tảng khác:
+  if (!tab.url.includes("youtube.com")) {
+    try {
+      // Bơm các file kịch bản dựng hình và điều khiển vào tab hiện tại
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: [
+          "content/styles.js",
+          "content/ui.js",
+          "content/renderer.js",
+          "content/content.js"
+        ]
+      }); // Gọi cả 4 file để không phải import phức tạp (và 3 file đầu chỉ để định nghĩa hàm)
+      console.log("[ASS-CEE] background: Đã kích hoạt extension thành công trên trang này!");
+    } catch (err) {
+      console.error("[ASS-CEE] background: Inject thất bại:", err);
+    }
+  }
+});
 const handlers = {
   // Nhận yêu cầu quét tìm kiếm phụ đề từ phía Content Script gửi lên
   'SUBTITLE.SEARCH': async (payload) => {
@@ -29,6 +49,29 @@ const handlers = {
   'SOURCE.REMOVE': async (payload) => {
     return await removeSource(payload.savedAt);
   } // Kết thúc xử lý hành động SOURCE.REMOVE (Chú ý: nhận dạng theo thời gian)
+  // Handler mới: Chuyên tiếp nhận dữ liệu chuỗi thô từ thiết bị của user và parse lập tức
+  'SUBTITLE.PARSE_RAW': async (payload) => {
+    const { rawText } = payload;
+    if (!rawText) {
+      throw new Error("Dữ liệu tệp gửi lên không hợp lệ");
+    }
+    // Parse tệp thô trực tiếp bằng công cụ phân tích đã viết sẵn
+    const parsedData = parseAegisubRaw(rawText);
+    return { 
+      status: 'HIT', 
+      data: {
+        videoId: 'local', // Định danh tạm cho video cục bộ để tương thích luồng vẽ
+        fileObj: {
+          id: 'local',
+          fileName: 'local', // to-do: lấy tên
+          url: 'local', // to-do: lấy link để users có thể tự truy cập
+          sourceType: 'local',
+          groupName: 'local'
+        }
+        parsedData: parsedData
+      } 
+    };
+  }
 };
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   const handler = handlers[msg.type];

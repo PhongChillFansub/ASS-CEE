@@ -67,7 +67,7 @@ export async function removeSource(time) {
  */
 export async function getSubtitleCache(videoId) {
   const data = await chrome.storage.local.get(SUBTITLE_DATA_KEY);
-  const cache = data[STORAGE_KEY_SUBTITLES] || {};
+  const cache = data[SUBTITLE_DATA_KEY] || {};
   return cache[videoId] || null;
 }
 /**
