@@ -51,7 +51,8 @@ Cấu trúc dữ liệu:
     fileObj: candidate hoặc results.push
     parsedData: parsedData 
   }
-  
+
+Cấu trúc dữ liệu đóng gói (quy định trong file background.js)
 
 
 
