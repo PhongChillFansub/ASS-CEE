@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.0.1 27may26
+// v0.0.0.1 28may26
 import { fetchSubtitleText, fetchSubtitleFile } from './fetcher.js';
 // fetchSubtitleText, fetchSubtitleFile
 import { addSource, getSources, removeSource, getSubtitleCache, saveSubtitleCache } from './storage.js';
@@ -48,7 +48,7 @@ const handlers = {
   // Xóa một nguồn cụ thể ra khỏi danh sách bộ nhớ cấu hình lưu trữ
   'SOURCE.REMOVE': async (payload) => {
     return await removeSource(payload.savedAt);
-  } // Kết thúc xử lý hành động SOURCE.REMOVE (Chú ý: nhận dạng theo thời gian)
+  }, // Kết thúc xử lý hành động SOURCE.REMOVE (Chú ý: nhận dạng theo thời gian)
   // Handler mới: Chuyên tiếp nhận dữ liệu chuỗi thô từ thiết bị của user và parse lập tức
   'SUBTITLE.PARSE_RAW': async (payload) => {
     const { rawText } = payload;
@@ -67,7 +67,7 @@ const handlers = {
           url: 'local', // to-do: lấy link để users có thể tự truy cập
           sourceType: 'local',
           groupName: 'local'
-        }
+        },
         parsedData: parsedData
       } 
     };
