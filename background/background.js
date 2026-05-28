@@ -52,7 +52,7 @@ chrome.action.onClicked.addListener(async (tab) => {
 // Hàm giao tiếp với content.js
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   // Chạy đọc log trước khi sang handler
-  if (msg && msg.action === 'LOG_FROM_CONTENT') {
+  if (msg && msg.type === 'LOG_FROM_CONTENT') {
     const { type, text, url, timestamp } = msg.payload;
     const tabId = sender.tab ? `Tab ${sender.tab.id}` : 'Unknown Tab';
     const logPrefix = `[ASS-CEE][${timestamp}][${tabId}][${url}]`;
