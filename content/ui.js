@@ -1,4 +1,4 @@
-// Code bằng tay
+// Code bằng tay (thực ra vẫn còn nhiều chỗ vibe coding)
 // v0.0.0.2 28may26
 // Phần chạy chính của ui.js
 (function() {
