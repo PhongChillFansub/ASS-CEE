@@ -1,30 +1,33 @@
-// Thử nghiệm ui.js
-/**
- * Content Script: content.js
- * 
- * Đây là file ĐIỀU PHỐI CHUNG (Dispatcher) duy nhất.
- * Nhiệm vụ duy nhất của file này là:
- * 1. Kiểm tra sự tồn tại của giao diện (với ID: `chrome-extension-overlay-root`).
- * 2. Nếu đã tồn tại -> Chỉ Toggle (Ẩn/Hiện) hiển thị của container, KHÔNG tải lại ui.js.
- * 3. Nếu chưa tồn tại -> Thực hiện inject động tập tin giao diện chính `ui.js` vào trang web của người dùng.
- */
-
+// Code bằng tay
+// v0.0.0.2 28may26
+// Hàm gửi log từ content.js về background.js
+function sendLogToBackground(message, type = 'info') {
+  chrome.runtime.sendMessage({
+    type: 'LOG_FROM_CONTENTS',
+    payload: {
+      type: type,
+      text: message,
+      url: window.location.href,
+      timestamp: new Date().toISOString()
+    }
+  }).catch(err => {
+    console.warn("[ASS-CEE] content: Không thể gửi log về background:", err);
+  });
+}
+// Phần chạy chính của content.js (tạm thời chỉ đảm nhận việc ẩn/hiện UI)
 (function() {
   const containerId = 'chrome-extension-overlay-root';
   const container = document.getElementById(containerId);
-
-  // --- 1. KIỂM TRA SỰ TỒN TẠI VÀ TOGGLE ---
-  if (container) {
-    if (container.style.display === 'none') {
-      container.style.display = 'block';
-    } else {
-      container.style.display = 'none';
-    }
+  if (!container) return;
+  // Lấy giá trị display thực tế mà mắt người dùng đang nhìn thấy trên màn hình
+  const computedDisplay = window.getComputedStyle(container).display;
+  // Nếu CSS thực tế là none, tiến hành HIỆN nó lên
+  if (computedDisplay === 'none') {
+    container.style.setProperty('display', 'block', 'important');
+    sendLogToBackground("Đã hiện giao diện UI.", "info");
   } else {
-    // --- 2. ĐIỀU PHỐI: NẠP ĐỘNG FILE UI.JS ---
-    const script = document.createElement('script');
-    script.src = chrome.runtime.getURL('ui.js');
-    script.id = 'chrome-extension-ui-script';
-    (document.head || document.documentElement).appendChild(script);
+    // Nếu CSS thực tế khác none (đang hiện), tiến hành ẨN nó đi
+    container.style.setProperty('display', 'none', 'important');
+    sendLogToBackground("Đã ẩn giao diện UI.", "info");
   }
 })();
