@@ -1,30 +1,88 @@
 // Code bằng tay
-// v0.0.0.1 28may26
+// v0.0.0.2 28may26
 import { fetchSubtitleText, fetchSubtitleFile } from './fetcher.js';
 // fetchSubtitleText, fetchSubtitleFile
 import { addSource, getSources, removeSource, getSubtitleCache, saveSubtitleCache } from './storage.js';
 // addSource, getSources, removeSource, getSubtitleCache, saveSubtitleCache
 import parseAegisubRaw from './parser.js';
 // parseAegisubRaw
+// Phần xử lí của background khi nhấn vào icon extension (content.js gửi cho)
 chrome.action.onClicked.addListener(async (tab) => {
-  // Nếu là YouTube thì có thể đã chạy tự động, nhưng với các nền tảng khác:
-  if (!tab.url.includes("youtube.com")) {
-    try {
-      // Bơm các file kịch bản dựng hình và điều khiển vào tab hiện tại
+  if (!tab.url || tab.url.startsWith("chrome://") || tab.url.startsWith("edge://")) return;
+  // Bảo vệ extension tránh crash khi chạy các trang nội bộ trình duyệt (hoặc tab trống)
+  const tabId = tab.id;
+  // Định danh tab cần chạy, tránh xung đột với các tab khác
+  try {
+    // Kiểm tra xem extension đã từng nạp file core (ui.js) vào tab này chưa
+    const [result] = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => typeof window.__ASS_CEE_INJECTED__ !== 'undefined'
+    });
+    const isAlreadyInjected = result?.result;
+    // Lấy kết quả kiểm tra
+    if (!isAlreadyInjected) {
+      // LẦN ĐẦU CLICK: Nạp tất cả các file để định nghĩa cấu trúc
       await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
+        target: { tabId },
         files: [
-          "content/styles.js",
+          // "content/styles.js",
           "content/ui.js",
-          "content/renderer.js",
+          // "content/renderer.js",
           "content/content.js"
         ]
-      }); // Gọi cả 4 file để không phải import phức tạp (và 3 file đầu chỉ để định nghĩa hàm)
-      console.log("[ASS-CEE] background: Đã kích hoạt extension thành công trên trang này!");
-    } catch (err) {
-      console.error("[ASS-CEE] background: Inject thất bại:", err);
+      }); // Tạm thời chỉ sử dụng ui.js (thử nghiệm) và content.js
+      // Đánh dấu đã nạp file thành công vào tab
+      await chrome.scripting.executeScript({
+        target: { tabId },
+        func: () => { window.__ASS_CEE_INJECTED__ = true; }
+      });
+      console.log("[ASS-CEE] Lần đầu: Đã nạp toàn bộ file content.");
+    } else {
+      // CÁC LẦN CLICK SAU: CHỈ nạp đúng file điều khiển content.js để toggle
+      await chrome.scripting.executeScript({
+        target: { tabId },
+        files: ["content/content.js"]
+      });
+      console.log("[ASS-CEE] Các lần sau: Chỉ chạy lệnh Toggle.");
     }
+  } catch (err) {
+    console.error("[ASS-CEE] Lỗi kích hoạt onClicked:", err);
   }
+});
+// Hàm giao tiếp với content.js
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  // Chạy đọc log trước khi sang handler
+  if (msg && msg.action === 'LOG_FROM_CONTENT') {
+    const { type, text, url, timestamp } = msg.payload;
+    const tabId = sender.tab ? `Tab ${sender.tab.id}` : 'Unknown Tab';
+    const logPrefix = `[ASS-CEE][${timestamp}][${tabId}][${url}]`;
+    switch (type) {
+      case 'error':
+        console.error(`${logPrefix} ❌ Lỗi:`, text);
+        break;
+      case 'warn':
+        console.warn(`${logPrefix} ⚠️ Cảnh báo:`, text);
+        break;
+      default:
+        console.log(`${logPrefix} ℹ️ Info:`, text);
+    }
+    sendResponse({ status: 'DEBUG' });
+    return true; 
+  }
+  // Phần đọc handler
+  const handler = handlers[msg.type];
+  if (handler) {
+    handler(msg.payload)
+      .then(result => sendResponse({ id: msg.id, ...result }))
+      .catch(err => {
+        console.error(`[ASS-CEE] background: [RPC Error] ${msg.type}:`, err);
+        sendResponse({ id: msg.id, status: 'ERROR', message: err.message });
+      });
+  } else {
+    console.warn(`[ASS-CEE] background: [Unknown Message] ${msg.type}`);
+    sendResponse({ status: 'ERROR', message: 'Unknown action' });
+  } // Kết thúc cấu trúc rẽ nhánh kiểm tra handler hoạt động
+  return true; // Kích hoạt cơ chế giữ kênh kết nối mở phục vụ cho các tiến trình xử lý bất đồng bộ
 });
 const handlers = {
   // Nhận yêu cầu quét tìm kiếm phụ đề từ phía Content Script gửi lên
@@ -73,21 +131,6 @@ const handlers = {
     };
   }
 };
-chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  const handler = handlers[msg.type];
-  if (handler) {
-    handler(msg.payload)
-      .then(result => sendResponse({ id: msg.id, ...result }))
-      .catch(err => {
-        console.error(`[ASS-CEE] background: [RPC Error] ${msg.type}:`, err);
-        sendResponse({ id: msg.id, status: 'ERROR', message: err.message });
-      });
-  } else {
-    console.warn(`[ASS-CEE] background: [Unknown Message] ${msg.type}`);
-    sendResponse({ status: 'ERROR', message: 'Unknown action' });
-  } // Kết thúc cấu trúc rẽ nhánh kiểm tra handler hoạt động
-  return true; // Kích hoạt cơ chế giữ kênh kết nối mở phục vụ cho các tiến trình xử lý bất đồng bộ
-});
 /**
  * Hàm xử lý và điều phối tìm kiếm phụ đề dựa trên videoId (từ content.js?)
  * @param {*} videoId 
