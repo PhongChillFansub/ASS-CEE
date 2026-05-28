@@ -46,15 +46,27 @@ Cấu trúc dữ liệu:
   (obj SUBTITLE_SOURCES_KEY được lưu trong chrome.storage.local)
   (tên được đặt theo hàm hằng SUBTITLE_SOURCES_KEY)
 - Của file sub đã đóng gói (quy định trong file background.js)
-  subObj = {
+  subObj hoặc cached = {
     videoId,
     fileObj: candidate hoặc results.push
     parsedData: parsedData 
   }
 
 Cấu trúc dữ liệu đóng gói (quy định trong file background.js)
+  1. handlers[msg.type] = { 
+    status: 'HIT' / 'EMPTY' / 'ERROR' / 'MULTIPLE', 
+    data ('HIT') / message ('ERROR') / candidates ('MULTIPLE') đi kèm (ko có nếu status là 'EMPTY')
+    }
+  2. sendResponse({ id: msg.id, ...handlers[msg.type] hoặc có message riêng })
 
 
+
+
+
+
+
+
+  
 
 Bản cũ (vibe coding) ở dưới.
 
