@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "ASS-CEE",
   "author": "PhongChillFansub",
-  "version": "0.0.0.x",
+  "version": "0.0.0.1",
   "description": "Hiển thị phụ đề Aegisub trên YouTube",
   "permissions": ["storage", "activeTab", "scripting", "unlimitedStorage"],
   "host_permissions": [
@@ -18,9 +18,7 @@
   "content_scripts": [{
     "matches": ["https://www.youtube.com/*"],
     "js": [
-      "content/styles.js",
       "content/ui.js",
-      "content/renderer.js",
       "content/content.js"
     ],
     "run_at": "document_idle"
