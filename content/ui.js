@@ -174,10 +174,11 @@
       height: 100% !important;
     }
     .ext-tab-pane.active {
-      display: none !important;
+      display: block !important;
     }
     /* Footer Trạng Thái */
     .ext-footer {
+      display: none !important;
       padding: 10px 12px !important;
       border-top: 1px solid rgba(60, 64, 67, 0.4) !important;
       background-color: #17191c !important;
@@ -187,6 +188,7 @@
       height: 34px !important;
     }
     .ext-footer-info {
+      display: none !important;
       font-size: 9px !important;
       font-family: monospace !important;
       color: #5f6368 !important;
@@ -194,6 +196,7 @@
       text-transform: uppercase !important;
     }
     .ext-footer-res {
+      display: none !important;
       font-size: 9px !important;
       font-family: monospace !important;
       color: #9aa0a6 !important;
