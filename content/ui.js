@@ -2,6 +2,7 @@
 // v0.0.0.2 29may26
 // Phần chạy chính của ui.js
 (async function() {
+  'use strict';
   const containerId = 'chrome-extension-overlay-root';
   // Khai báo chung containerId để 2 file cùng nhận diện đc và giao tiếp. 
   // Tuy nhiên, do ko chạy ở background nên có tính độc lập theo tab (tab isolation)
@@ -20,20 +21,39 @@
       console.warn("[ASS-CEE] ui: Không thể gửi log về background:", err);
     });
   }
-  sendLogToBackground("[ASS-CEE] ui: Đang nạp tài nguyên ui.css và ui.html...");
+  sendLogToBackground("[ASS-CEE] ui: Đang khởi tạo giao diện nội bộ...");
   try {
-    // --- 1. NHÚNG STYLE CSS TỪ content/ui.css ---
-    const styleNode = document.createElement('link');
-    styleNode.id = 'chrome-ext-ui-styles';
-    styleNode.rel = 'stylesheet';
-    styleNode.href = chrome.runtime.getURL('content/ui.css');
-    document.head.appendChild(styleNode);
-    // --- 2. TẢI VÀ NHÚNG HTML TỪ content/ui.html ---
-    const response = await fetch(chrome.runtime.getURL('content/ui.html'));
-    const htmlText = await response.text();
+    // --- 1. ĐỊNH NGHĨA KHUNG HTML ---
     const container = document.createElement('div');
     container.id = containerId;
-    container.innerHTML = htmlText;
+    container.innerHTML = `
+      <div class="chrome-ext-container">
+      <div class="ext-title-bar">
+      <div class="ext-left-section">
+        <button id="ext-menu-btn" class="ext-menu-btn" title="Danh sách các Tab">☰</button>
+        <span id="ext-tab-title" class="ext-title-text">ASS-CEE</span>
+      </div>
+      <button id="ext-close-btn" class="ext-close-btn" title="Ẩn Extension">✕</button>
+      </div>
+
+      <div id="ext-menu-dropdown" class="ext-menu-dropdown">
+      <button class="ext-dropdown-item active" data-tab-target="tab-1">Quản lí nguồn</button>
+      <button class="ext-dropdown-item" data-tab-target="tab-2">Quản lí phụ đề</button>
+      <button class="ext-dropdown-item" data-tab-target="tab-3">Thông tin extension</button>
+      </div>
+
+      <div class="ext-workspace">
+      <div id="ext-tab-1-content" class="ext-tab-pane active"></div>
+      <div id="ext-tab-2-content" class="ext-tab-pane"></div>
+      <div id="ext-tab-3-content" class="ext-tab-pane"></div>
+      </div>
+
+      <div class="ext-footer">
+      <span id="ext-footer-status" class="ext-footer-info">GitHub link</span>
+      <span id="ext-footer-tab-indicator" class="ext-footer-res">Quản lí nguồn</span>
+      </div>
+      </div>
+    `;
     document.body.appendChild(container);
     sendLogToBackground("[ASS-CEE] ui: Khởi tạo DOM thành công.", "info");
     // --- 3. ĐĂNG KÝ CÁC SỰ KIỆN TƯƠNG TÁC ---
