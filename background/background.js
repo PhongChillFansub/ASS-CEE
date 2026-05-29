@@ -1,12 +1,12 @@
 // Code bằng tay
-// v0.0.0.2 28may26
+// v0.0.0.2 29may26
 import { fetchSubtitleText, fetchSubtitleFile } from './fetcher.js';
 // fetchSubtitleText, fetchSubtitleFile
 import { addSource, getSources, removeSource, getSubtitleCache, saveSubtitleCache } from './storage.js';
 // addSource, getSources, removeSource, getSubtitleCache, saveSubtitleCache
 import parseAegisubRaw from './parser.js';
 // parseAegisubRaw
-// Phần xử lí của background khi nhấn vào icon extension (content.js gửi cho)
+// Phần xử lí của background khi nhấn vào icon extension
 chrome.action.onClicked.addListener(async (tab) => {
   if (!tab.url || tab.url.startsWith("chrome://") || tab.url.startsWith("edge://")) return;
   // Bảo vệ extension tránh crash khi chạy các trang nội bộ trình duyệt (hoặc tab trống)
@@ -49,13 +49,13 @@ chrome.action.onClicked.addListener(async (tab) => {
     console.error("[ASS-CEE] Lỗi kích hoạt onClicked:", err);
   }
 });
-// Hàm giao tiếp với content.js
+// Hàm giao tiếp với content.js và ui.js
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   // Chạy đọc log trước khi sang handler
   if (msg && msg.type === 'LOG_FROM_CONTENTS') {
     const { type, text, url, timestamp } = msg.payload;
     const tabId = sender.tab ? `Tab ${sender.tab.id}` : 'Unknown Tab';
-    const logPrefix = `[ASS-CEE][${timestamp}][${tabId}][${url}]`;
+    const logPrefix = `[ASS-CEE][${timestamp}][${tabId}]\n[${url}]\n`;
     switch (type) {
       case 'error':
         console.error(`${logPrefix} ❌ Lỗi:`, text);
