@@ -16,6 +16,7 @@ function sendLogToBackground(message, type = 'info') {
 }
 // Phần chạy chính của content.js (tạm thời chỉ đảm nhận việc ẩn/hiện UI)
 (function() {
+  'use strict';
   const containerId = 'chrome-extension-overlay-root';
   const container = document.getElementById(containerId);
   if (!container) return;
