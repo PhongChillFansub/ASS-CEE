@@ -1,5 +1,5 @@
 // Code bằng tay (thực ra vẫn còn nhiều chỗ vibe coding)
-// v0.0.0.2 28may26
+// v0.0.0.2 29may26
 // Phần chạy chính của ui.js
 (function() {
   const containerId = 'chrome-extension-overlay-root';
@@ -55,7 +55,7 @@
       flex-direction: column !important;
       overflow: hidden !important;
       position: relative !important;
-      color: #e8eaed !important;
+      color: #ffffff !important;
     }
     /* Thanh tiêu đề. to-do: thử các giá trị khác? */
     .ext-title-bar {
