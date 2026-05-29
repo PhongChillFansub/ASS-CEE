@@ -1,5 +1,23 @@
 // Code bằng tay (thực ra vẫn còn nhiều chỗ vibe coding)
 // v0.0.0.2 29may26
+/**
+ * Hàm gửi log về background.js
+ * @param {*} message nội dung
+ * @param {*} type loại nội dung (default: "info" -> log, "warn" -> warn, "error" -> error)
+ */
+function sendLogToBackground(message, type = 'info') {
+  chrome.runtime.sendMessage({
+    type: 'LOG_FROM_CONTENTS',
+    payload: {
+      type: type,
+      text: message,
+      url: window.location.href,
+      timestamp: new Date().toISOString()
+    }
+  }).catch(err => {
+    console.warn("[ASS-CEE] ui: Không thể gửi log về background:", err);
+  });
+}
 // Phần chạy chính của ui.js
 (async function() {
   'use strict';
@@ -7,55 +25,46 @@
   // Khai báo chung containerId để 2 file cùng nhận diện đc và giao tiếp. 
   // Tuy nhiên, do ko chạy ở background nên có tính độc lập theo tab (tab isolation)
   if (document.getElementById(containerId)) return; // Nếu trùng lặp thì thoát
-  // Hàm gửi log về background.js
-  function sendLogToBackground(message, type = 'info') {
-    chrome.runtime.sendMessage({
-      type: 'LOG_FROM_CONTENTS',
-      payload: {
-        type: type,
-        text: message,
-        url: window.location.href,
-        timestamp: new Date().toISOString()
-      }
-    }).catch(err => {
-      console.warn("[ASS-CEE] ui: Không thể gửi log về background:", err);
-    });
-  }
   sendLogToBackground("[ASS-CEE] ui: Đang khởi tạo giao diện nội bộ...");
   try {
-    // --- 1. ĐỊNH NGHĨA KHUNG HTML ---
+    // Phần định nghĩa khung HTML
     const container = document.createElement('div');
     container.id = containerId;
     container.innerHTML = `
       <div class="chrome-ext-container">
-      <div class="ext-title-bar">
-      <div class="ext-left-section">
-        <button id="ext-menu-btn" class="ext-menu-btn" title="Danh sách các Tab">☰</button>
-        <span id="ext-tab-title" class="ext-title-text">ASS-CEE</span>
-      </div>
-      <button id="ext-close-btn" class="ext-close-btn" title="Ẩn Extension">✕</button>
-      </div>
+        <div class="ext-title-bar">
+          <div class="ext-left-section">
+            <button id="ext-menu-btn" class="ext-menu-btn" title="Danh sách các Tab">☰</button>
+            <span id="ext-tab-title" class="ext-title-text">ASS-CEE</span>
+          </div>
+          <button id="ext-close-btn" class="ext-close-btn" title="Ẩn Extension">✕</button>
+        </div>
 
-      <div id="ext-menu-dropdown" class="ext-menu-dropdown">
-      <button class="ext-dropdown-item active" data-tab-target="tab-1">Quản lí nguồn</button>
-      <button class="ext-dropdown-item" data-tab-target="tab-2">Quản lí phụ đề</button>
-      <button class="ext-dropdown-item" data-tab-target="tab-3">Thông tin extension</button>
-      </div>
+        <div id="ext-menu-dropdown" class="ext-menu-dropdown">
+          <button class="ext-dropdown-item active" data-tab-target="tab-1">Quản lí nguồn</button>
+          <button class="ext-dropdown-item" data-tab-target="tab-2">Quản lí phụ đề</button>
+          <button class="ext-dropdown-item" data-tab-target="tab-3">Thông tin extension</button>
+        </div>
 
-      <div class="ext-workspace">
-      <div id="ext-tab-1-content" class="ext-tab-pane active"></div>
-      <div id="ext-tab-2-content" class="ext-tab-pane"></div>
-      <div id="ext-tab-3-content" class="ext-tab-pane"></div>
-      </div>
+        <div class="ext-workspace">
+          <div id="ext-tab-1-content" class="ext-tab-pane active"></div>
+          <div id="ext-tab-2-content" class="ext-tab-pane"></div>
+          <div id="ext-tab-3-content" class="ext-tab-pane"></div>
+        </div>
 
-      <div class="ext-footer">
-      <span id="ext-footer-status" class="ext-footer-info">GitHub link</span>
-      <span id="ext-footer-tab-indicator" class="ext-footer-res">Quản lí nguồn</span>
-      </div>
+        <div class="ext-footer">
+          <span id="ext-footer-status" class="ext-footer-info">GitHub link</span>
+          <span id="ext-footer-tab-indicator" class="ext-footer-res">Quản lí nguồn</span>
+        </div>
       </div>
     `;
     document.body.appendChild(container);
-    sendLogToBackground("[ASS-CEE] ui: Khởi tạo DOM thành công.", "info");
+    sendLogToBackground("[ASS-CEE] ui: Khởi tạo khung HTML thành công.", "info");
+  } catch (error) {
+    sendLogToBackground(`[ASS-CEE] ui: Lỗi khởi tạo khung HTML: ${error.message}`, "error");
+    console.error("[ASS-CEE] ui: Lỗi khởi tạo khung HTML:", error);
+  }
+  try {
     // --- 3. ĐĂNG KÝ CÁC SỰ KIỆN TƯƠNG TÁC ---
     const menuBtn = container.querySelector('#ext-menu-btn');
     const menuDropdown = container.querySelector('#ext-menu-dropdown');
@@ -69,7 +78,7 @@
       let tabLabel = 'Tab 1';
       if (tabId === 'tab-2') tabLabel = 'Tab 2';
       if (tabId === 'tab-3') tabLabel = 'Tab 3';
-      tabTitle.textContent = `no title (${tabLabel})`;
+      tabTitle.textContent = `ASS-CEE (${tabLabel})`;
       sendLogToBackground(`Người dùng chuyển sang tab: ${tabLabel}`);
       tabButtons.forEach(btn => {
         const target = btn.getAttribute('data-tab-target');
