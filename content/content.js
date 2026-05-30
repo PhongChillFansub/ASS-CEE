@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.0.2 28may26
+// v0.0.0.2 30may26
 // Hàm gửi log từ content.js về background.js
 function sendLogToBackground(message, type = 'info') {
   chrome.runtime.sendMessage({
@@ -25,10 +25,10 @@ function sendLogToBackground(message, type = 'info') {
   // Nếu CSS thực tế là none, tiến hành HIỆN nó lên
   if (computedDisplay === 'none') {
     container.style.setProperty('display', 'block', 'important');
-    sendLogToBackground("Đã hiện giao diện UI.", "info");
+    sendLogToBackground("[ASS-CEE] content: Đã hiện giao diện UI.");
   } else {
     // Nếu CSS thực tế khác none (đang hiện), tiến hành ẨN nó đi
     container.style.setProperty('display', 'none', 'important');
-    sendLogToBackground("Đã ẩn giao diện UI.", "info");
+    sendLogToBackground("[ASS-CEE] content: Đã ẩn giao diện UI.");
   }
 })();

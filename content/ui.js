@@ -1,5 +1,5 @@
 // Code bằng tay (thực ra vẫn còn nhiều chỗ vibe coding)
-// v0.0.0.2 29may26
+// v0.0.0.2 30may26
 /**
  * Hàm gửi log về background.js
  * @param {*} message nội dung
@@ -107,14 +107,14 @@ function sendLogToBackground(message, type = 'info') {
       e.stopPropagation();
       menuDropdown.classList.toggle('show');
       const isShowing = menuDropdown.classList.contains('show');
-      sendLogToBackground(`Người dùng ${isShowing ? "mở" : "đóng"} danh mục menu lựa chọn Tab`);
+      sendLogToBackground(`[ASS-CEE] ui: Người dùng ${isShowing ? "mở" : "đóng"} danh mục menu lựa chọn Tab`);
     });
 
     // Tự động đóng menu nếu click bên ngoài vùng menu
     document.addEventListener('click', () => {
       if (menuDropdown.classList.contains('show')) {
         menuDropdown.classList.remove('show');
-        sendLogToBackground("Tự động đóng menu lựa chọn Tab khi click vùng trống");
+        sendLogToBackground("[ASS-CEE] ui: Tự động đóng menu lựa chọn Tab khi click vùng trống");
       }
     });
 
@@ -193,7 +193,7 @@ function sendLogToBackground(message, type = 'info') {
         document.removeEventListener('touchmove', onTouchMove);
         document.removeEventListener('touchend', onStop);
 
-        sendLogToBackground(`Đã dời vị trí Extension tới tọa độ mới: left=${container.style.left}, top=${container.style.top}`);
+        sendLogToBackground(`[ASS-CEE] ui: Đã dời vị trí Extension tới tọa độ mới: left=${container.style.left}, top=${container.style.top}`);
       }
     }
 
@@ -202,7 +202,7 @@ function sendLogToBackground(message, type = 'info') {
       if (e.target.closest('#ext-menu-btn') || e.target.closest('#ext-close-btn') || e.target.closest('#ext-menu-dropdown')) return;
       
       onStart(e.clientX, e.clientY);
-      sendLogToBackground("Bắt đầu di chuyển giao diện Extension UI (chuột)");
+      sendLogToBackground("[ASS-CEE] ui: Bắt đầu di chuyển giao diện Extension UI (chuột)");
     });
 
     titleBar.addEventListener('touchstart', (e) => {
@@ -210,18 +210,18 @@ function sendLogToBackground(message, type = 'info') {
       
       const touch = e.touches[0];
       onStart(touch.clientX, touch.clientY);
-      sendLogToBackground("Bắt đầu di chuyển giao diện Extension UI (cảm ứng)");
+      sendLogToBackground("[ASS-CEE] ui: Bắt đầu di chuyển giao diện Extension UI (cảm ứng)");
     }, { passive: true });
     
     document.addEventListener('touchend', () => {
       if (isDragging) {
         isDragging = false;
-        sendLogToBackground(`Đã dời vị trí Extension (cảm ứng) tới tọa độ mới: left=${container.style.left}, top=${container.style.top}`);
+        sendLogToBackground(`[ASS-CEE] ui: Đã dời vị trí Extension (cảm ứng) tới tọa độ mới: left=${container.style.left}, top=${container.style.top}`);
       }
     });
 
   } catch (error) {
-    sendLogToBackground(`Lỗi nghiêm trọng khi load UI: ${error.message}`, "error");
-    console.error("[ASS-CEE] Không thể khởi tạo extension UI:", error);
+    sendLogToBackground(`[ASS-CEE] ui: Lỗi nghiêm trọng khi load UI: ${error.message}`, "error");
+    console.error("[ASS-CEE] ui Không thể khởi tạo extension UI:", error);
   }
 })();
