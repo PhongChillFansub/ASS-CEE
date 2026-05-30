@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.0.1 26may26
+// v0.0.0.2 30may26
 // Mẫu text của các line [Events] trong file sub
 // [Events]
 // Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -209,6 +209,15 @@ export default function parseAegisubRaw(rawText) {
 				parsedData.events.push(orgline);
       }
 		}
+	}
+	// Phần sắp xếp (để thuận tiện cho renderer). Quy tắc: theo .startTime tăng dần, theo .endTime giảm dần
+	if (parsedData.events && parsedData.events.length > 0) {
+			parsedData.events.sort((lineA, lineB) => {
+					// Tầng 1: So sánh Start Time tăng dần
+					if (lineA.startTime !== lineB.startTime) return lineA.startTime - lineB.startTime;
+					// Tầng 2: Nếu trùng Start Time -> So sánh End Time GIẢM DẦN
+					return lineB.endTime - lineA.endTime;
+			});
 	}
 	console.log(
 		"%c[ASS-CEE]%c parser: Đã xử lí xong.", 
