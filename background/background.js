@@ -206,11 +206,11 @@ async function resolveSubtitles(videoId) {
         "color: red, font-weight: bold;",
         ""
       );
-      return { status: 'ERROR', message: err.message };
+      return { status: 'ERROR', data: err.message };
     }
   }
   // Trường hợp 3: Có nhiều kết quả phụ đề trùng khớp (Ambiguity)
-  return { status: 'MULTIPLE', candidates: candidates };
+  return { status: 'MULTIPLE', data: candidates };
 }
 /**
  * Hàm xử lý bóc tách định dạng dữ liệu dựa trên parseMode và lưu Cache
