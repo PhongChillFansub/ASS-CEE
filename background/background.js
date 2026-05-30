@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.0.2 29may26
+// v0.0.0.2 30may26
 import { fetchSubtitleText, fetchSubtitleFile } from './fetcher.js';
 // fetchSubtitleText, fetchSubtitleFile
 import { addSource, getSources, removeSource, getSubtitleCache, saveSubtitleCache } from './storage.js';
@@ -16,7 +16,7 @@ chrome.action.onClicked.addListener(async (tab) => {
     // Kiểm tra xem extension đã từng nạp file core (ui.js) vào tab này chưa
     const [result] = await chrome.scripting.executeScript({
       target: { tabId },
-      func: () => typeof window.__ASS_CEE_INJECTED__ !== 'undefined'
+      func: () => typeof window.__ASS_CEE_UI_INJECTED__ !== 'undefined'
     });
     const isAlreadyInjected = result?.result;
     // Lấy kết quả kiểm tra
@@ -34,7 +34,7 @@ chrome.action.onClicked.addListener(async (tab) => {
       // Đánh dấu đã nạp file thành công vào tab
       await chrome.scripting.executeScript({
         target: { tabId },
-        func: () => { window.__ASS_CEE_INJECTED__ = true; }
+        func: () => { window.__ASS_CEE_UI_INJECTED__ = true; }
       });
       console.log("[ASS-CEE] Lần đầu: Đã nạp toàn bộ file content.");
     } else {
