@@ -50,21 +50,35 @@ chrome.action.onClicked.addListener(async (tab) => {
   }
 });
 // Hàm giao tiếp với content.js và ui.js
+let lastLogLocation = { tabId: "", url: "" };
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   // Chạy đọc log trước khi sang handler
   if (msg && msg.type === 'LOG_FROM_CONTENTS') {
     const { type, text, url, timestamp } = msg.payload;
     const tabId = sender.tab ? `Tab ${sender.tab.id}` : 'Unknown Tab';
-    const logPrefix = `[ASS-CEE][${timestamp}][${tabId}]\n[${url}]\n`;
+    const isSameLocation = (tabId === lastLogLocation.tabId && url === lastLogLocation.url);
+    lastLogLocation = { tabId, url };
+    const logPrefix = isSameLocation 
+        ? "\n" 
+        : `[${timestamp}][${tabId}]\n[${url}]\n`;
     switch (type) {
       case 'error':
-        console.error(`${logPrefix} ❌ Lỗi:`, text);
+        console.error(`${logPrefix} %c[ASS-CEE]%c ${text}`, 
+          "color: red, font-weight: bold;",
+          ""
+        );
         break;
       case 'warn':
-        console.warn(`${logPrefix} ⚠️ Cảnh báo:`, text);
+        console.warn(`${logPrefix} %c[ASS-CEE]%c ${text}`, 
+          "color: orange, font-weight: bold;",
+          ""
+        );
         break;
       default:
-        console.log(`${logPrefix} ℹ️ Info:`, text);
+        console.log(`${logPrefix} %c[ASS-CEE]%c ${text}`, 
+          "font-weight: bold;",
+          ""
+        );
     }
     sendResponse({ status: 'DEBUG' });
     return true; 
