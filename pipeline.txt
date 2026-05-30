@@ -1,3 +1,4 @@
+v0.0.0.2 30may26
 Cấu trúc extension:
 - manifest.JSON
 - background
@@ -54,54 +55,56 @@ Cấu trúc dữ liệu:
     parsedData: parsedData 
   }
 
-Cấu trúc dữ liệu đóng gói (quy định trong file background.js)
-  1. handlers[msg.type]:
-    'SOURCE.ADD': payload = {
-      url
-    } => {
-      status: 'ADDED'
-    }
-    'SUBTITLE.SEARCH': resolveSubtitles(payload.videoId): payload = {
-      videoId
-    } => {
-      status: 'HIT' / 'EMPTY' / 'ERROR' / 'MULTIPLE',
-      data:   với 'HIT': cached = getSubtitleCache(videoId) hoặc subObj = processAndCacheSubtitle(videoId, candidate, fetchSubtitleText(candidate))
-              với 'EMPTY': undefined (không định nghĩa dữ liệu nào khác đi kèm)
-              với 'MULTIPLE': candidates = fetchSubtitleFile(sources, videoId)
-              với 'ERROR': err.message
-    }
-    'SUBTITLE.SELECT': payload = {
-      videoId,
-      candidate
-    } => {
-      status: 'HIT', 
-      data: subObj = processAndCacheSubtitle(videoId, candidate, fetchSubtitleText(candidate))
-    }
-    'SOURCE.GET_ALL': payload = undefined (ko cần) => getSources() trong storage.js (trả về array các obj folderData)
-    'SOURCE.REMOVE': payload = {
-      savedAt (folderData.savedAt)
-    } => removeSource(payload.savedAt) trong storage.js (trả về boolean true)
-    'SUBTITLE.PARSE_RAW' (đối với file người dùng tải lên): payload = {
-      rawText, 
-      fileName
-    } => { 
-      status: 'HIT', 
-      data: {
-        videoId: 'local',
-        fileObj: {
-          id: 'local',
-          fileName:
-          url: 'local',
-          sourceType: 'local',
-          groupName: 'local'
-        },
-        parsedData: parsedData
-      } 
-    };
-  2. sendResponse(): dựa trên msg.type:
+Cấu trúc dữ liệu đóng gói (quy định trong file background.js) handlers[msg.type]:
+  'SOURCE.ADD': payload = {
+    url
+  } => {
+    status: 'ADDED'
+  }
+  'SUBTITLE.SEARCH': resolveSubtitles(payload.videoId): payload = {
+    videoId
+  } => {
+    status: 'HIT' / 'EMPTY' / 'ERROR' / 'MULTIPLE',
+    data:   với 'HIT': cached = getSubtitleCache(videoId) hoặc subObj = processAndCacheSubtitle(videoId, candidate, fetchSubtitleText(candidate))
+            với 'EMPTY': undefined (không định nghĩa dữ liệu nào khác đi kèm)
+            với 'MULTIPLE': candidates = fetchSubtitleFile(sources, videoId)
+            với 'ERROR': err.message
+  }
+  'SUBTITLE.SELECT': payload = {
+    videoId,
+    candidate
+  } => {
+    status: 'HIT', 
+    data: subObj = processAndCacheSubtitle(videoId, candidate, fetchSubtitleText(candidate))
+  }
+  'SOURCE.GET_ALL': payload = undefined (ko cần) => getSources() trong storage.js (trả về array các obj folderData)
+  'SOURCE.REMOVE': payload = {
+    savedAt (folderData.savedAt)
+  } => removeSource(payload.savedAt) trong storage.js (trả về boolean true)
+  'SUBTITLE.PARSE_RAW' (đối với file người dùng tải lên): payload = {
+    rawText, 
+    fileName
+  } => { 
+    status: 'HIT', 
+    data: {
+      videoId: 'local',
+      fileObj: {
+        id: 'local',
+        fileName:
+        url: 'local',
+        sourceType: 'local',
+        groupName: 'local'
+      },
+      parsedData: parsedData
+    } 
+  };
+
+Cấu trúc giao thức (đi từ background.js) sendResponse(): dựa trên msg.type:
     'LOG_FROM_CONTENTS' => { status: "DEBUG" }
-    (có trong handlers) => handlers[msg.type](msg.payload)
+    (có trong handlers) => handlers[msg.type](msg.payload) dạng { status, data }
     (khác) => { status, message }
+
+Cấu trúc giao thức (đến từ background.js): msg = { type, payload } 
 
      
 
