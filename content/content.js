@@ -25,10 +25,10 @@ function sendLogToBackground(message, type = 'info') {
   // Nếu CSS thực tế là none, tiến hành HIỆN nó lên
   if (computedDisplay === 'none') {
     container.style.setProperty('display', 'block', 'important');
-    sendLogToBackground("[ASS-CEE] content: Đã hiện giao diện UI.");
+    sendLogToBackground("content: Đã hiện giao diện UI.");
   } else {
     // Nếu CSS thực tế khác none (đang hiện), tiến hành ẨN nó đi
     container.style.setProperty('display', 'none', 'important');
-    sendLogToBackground("[ASS-CEE] content: Đã ẩn giao diện UI.");
+    sendLogToBackground("content: Đã ẩn giao diện UI.");
   }
 })();

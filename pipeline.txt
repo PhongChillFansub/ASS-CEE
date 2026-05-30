@@ -38,7 +38,7 @@ Cấu trúc dữ liệu:
   }
 - Của nguồn folder chứa file sub (quy định trong file storage.js)
   folderData = {
-    time,         // xử lí trong file storage.js
+    savedAt,         // xử lí trong file storage.js
     url,          // xử lí trong file background.js
     folderName,   // xử lí trong file background.js
     folderId      // xử lí trong file background.js
@@ -55,11 +55,51 @@ Cấu trúc dữ liệu:
   }
 
 Cấu trúc dữ liệu đóng gói (quy định trong file background.js)
-  1. handlers[msg.type] = { 
-    status: 'HIT' / 'EMPTY' / 'ERROR' / 'MULTIPLE', 
-    data ('HIT') / message ('ERROR') / candidates ('MULTIPLE') đi kèm (ko có nếu status là 'EMPTY')
+  1. handlers[msg.type]:
+    'SOURCE.ADD': payload = {
+      url
+    } => {
+      status: 'ADDED'
     }
-  2. sendResponse({ id: msg.id, ...handlers[msg.type] hoặc có message riêng })
+    'SUBTITLE.SEARCH': resolveSubtitles(payload.videoId): payload = {
+      videoId
+    } => {
+      status: 'HIT' / 'EMPTY' / 'ERROR' / 'MULTIPLE',
+      data:   với 'HIT': cached = getSubtitleCache(videoId) hoặc subObj = processAndCacheSubtitle(videoId, candidate, fetchSubtitleText(candidate))
+              với 'EMPTY': undefined (không định nghĩa dữ liệu nào khác đi kèm)
+              với 'MULTIPLE': candidates = fetchSubtitleFile(sources, videoId)
+              với 'ERROR': err.message
+    }
+    'SUBTITLE.SELECT': payload = {
+      videoId,
+      candidate
+    } => {
+      status: 'HIT', 
+      data: subObj = processAndCacheSubtitle(videoId, candidate, fetchSubtitleText(candidate))
+    }
+    'SOURCE.GET_ALL': payload = undefined (ko cần) => getSources() trong storage.js (trả về array các obj folderData)
+    'SOURCE.REMOVE': payload = {
+      savedAt (folderData.savedAt)
+    } => removeSource(payload.savedAt) trong storage.js (trả về boolean true)
+    'SUBTITLE.PARSE_RAW' (đối với file người dùng tải lên): payload = {
+      rawText, 
+      fileName
+    } => { 
+      status: 'HIT', 
+      data: {
+        videoId: 'local',
+        fileObj: {
+          id: 'local',
+          fileName:
+          url: 'local',
+          sourceType: 'local',
+          groupName: 'local'
+        },
+        parsedData: parsedData
+      } 
+    };
+  2. sendResponse({ id: msg.id, ...handlers[msg.type]}) với các lệnh xử lí
+     
 
 
 

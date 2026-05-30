@@ -25,7 +25,7 @@ function sendLogToBackground(message, type = 'info') {
   // Khai báo chung containerId để 2 file cùng nhận diện đc và giao tiếp. 
   // Tuy nhiên, do ko chạy ở background nên có tính độc lập theo tab (tab isolation)
   if (document.getElementById(containerId)) return; // Nếu trùng lặp thì thoát
-  sendLogToBackground("[ASS-CEE] ui: Đang khởi tạo giao diện nội bộ...");
+  sendLogToBackground("ui: Đang khởi tạo giao diện nội bộ...");
   try {
     // Phần định nghĩa khung HTML
     const container = document.createElement('div');
@@ -59,9 +59,9 @@ function sendLogToBackground(message, type = 'info') {
       </div>
     `;
     document.body.appendChild(container);
-    sendLogToBackground("[ASS-CEE] ui: Khởi tạo khung HTML thành công.", "info");
+    sendLogToBackground("ui: Khởi tạo khung HTML thành công.", "info");
   } catch (error) {
-    sendLogToBackground(`[ASS-CEE] ui: Lỗi khởi tạo khung HTML: ${error.message}`, "error");
+    sendLogToBackground(`ui: Lỗi khởi tạo khung HTML: ${error.message}`, "error");
     console.error("[ASS-CEE] ui: Lỗi khởi tạo khung HTML:", error);
   }
   try {
@@ -107,21 +107,21 @@ function sendLogToBackground(message, type = 'info') {
       e.stopPropagation();
       menuDropdown.classList.toggle('show');
       const isShowing = menuDropdown.classList.contains('show');
-      sendLogToBackground(`[ASS-CEE] ui: Người dùng ${isShowing ? "mở" : "đóng"} danh mục menu lựa chọn Tab`);
+      sendLogToBackground(`ui: Người dùng ${isShowing ? "mở" : "đóng"} danh mục menu lựa chọn Tab`);
     });
 
     // Tự động đóng menu nếu click bên ngoài vùng menu
     document.addEventListener('click', () => {
       if (menuDropdown.classList.contains('show')) {
         menuDropdown.classList.remove('show');
-        sendLogToBackground("[ASS-CEE] ui: Tự động đóng menu lựa chọn Tab khi click vùng trống");
+        sendLogToBackground("ui: Tự động đóng menu lựa chọn Tab khi click vùng trống");
       }
     });
 
     // Sự kiện nút đóng
     closeBtn.addEventListener('click', () => {
       container.style.setProperty('display', 'none', 'important');
-      sendLogToBackground("Người dùng nhấp nút [✕] đóng/ẩn giao diện Extension");
+      sendLogToBackground("ui: Người dùng nhấp nút [✕] đóng/ẩn giao diện Extension");
     });
 
     // Chuyển tab
@@ -193,7 +193,7 @@ function sendLogToBackground(message, type = 'info') {
         document.removeEventListener('touchmove', onTouchMove);
         document.removeEventListener('touchend', onStop);
 
-        sendLogToBackground(`[ASS-CEE] ui: Đã dời vị trí Extension tới tọa độ mới: left=${container.style.left}, top=${container.style.top}`);
+        sendLogToBackground(`ui: Đã dời vị trí Extension tới tọa độ mới: left=${container.style.left}, top=${container.style.top}`);
       }
     }
 
@@ -202,7 +202,7 @@ function sendLogToBackground(message, type = 'info') {
       if (e.target.closest('#ext-menu-btn') || e.target.closest('#ext-close-btn') || e.target.closest('#ext-menu-dropdown')) return;
       
       onStart(e.clientX, e.clientY);
-      sendLogToBackground("[ASS-CEE] ui: Bắt đầu di chuyển giao diện Extension UI (chuột)");
+      sendLogToBackground("ui: Bắt đầu di chuyển giao diện Extension UI (chuột)");
     });
 
     titleBar.addEventListener('touchstart', (e) => {
@@ -210,18 +210,18 @@ function sendLogToBackground(message, type = 'info') {
       
       const touch = e.touches[0];
       onStart(touch.clientX, touch.clientY);
-      sendLogToBackground("[ASS-CEE] ui: Bắt đầu di chuyển giao diện Extension UI (cảm ứng)");
+      sendLogToBackground("ui: Bắt đầu di chuyển giao diện Extension UI (cảm ứng)");
     }, { passive: true });
     
     document.addEventListener('touchend', () => {
       if (isDragging) {
         isDragging = false;
-        sendLogToBackground(`[ASS-CEE] ui: Đã dời vị trí Extension (cảm ứng) tới tọa độ mới: left=${container.style.left}, top=${container.style.top}`);
+        sendLogToBackground(`ui: Đã dời vị trí Extension (cảm ứng) tới tọa độ mới: left=${container.style.left}, top=${container.style.top}`);
       }
     });
 
   } catch (error) {
-    sendLogToBackground(`[ASS-CEE] ui: Lỗi nghiêm trọng khi load UI: ${error.message}`, "error");
+    sendLogToBackground(`ui: Lỗi nghiêm trọng khi load UI: ${error.message}`, "error");
     console.error("[ASS-CEE] ui Không thể khởi tạo extension UI:", error);
   }
 })();

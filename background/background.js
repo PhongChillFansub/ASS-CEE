@@ -99,6 +99,26 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   return true; // Kích hoạt cơ chế giữ kênh kết nối mở phục vụ cho các tiến trình xử lý bất đồng bộ
 });
 const handlers = {
+  'SOURCE.ADD': async (payload) => {
+    const { url } = payload;
+    if (!url) {
+      throw new Error("Đường dẫn URL nguồn không hợp lệ");
+    }
+    const folderGet = {} // Lấy dữ liệu bằng Tham chiếu (reference)
+    await fetchSubtitleFile([url], "", folderGet); // Gọi fetchSubtitleFile với videoId = "" (có chủ ý)
+    if (!folderGet.groupName || !folderGet.id) {
+      throw new Error("Không thể trích xuất thông tin cấu trúc từ URL nguồn này");
+    }
+    const sourceData = {
+      url,
+      folderName: folderExtractor.groupName,
+      folderId: folderExtractor.id
+    };
+    const result = await addSource(sourceData);
+    return {
+      status: 'ADDED'
+    };
+  }, // Kết thúc xử lý hành động SOURCE.ADD
   // Nhận yêu cầu quét tìm kiếm phụ đề từ phía Content Script gửi lên
   'SUBTITLE.SEARCH': async (payload) => {
     return await resolveSubtitles(payload.videoId);
@@ -123,7 +143,7 @@ const handlers = {
   }, // Kết thúc xử lý hành động SOURCE.REMOVE (Chú ý: nhận dạng theo thời gian)
   // Handler mới: Chuyên tiếp nhận dữ liệu chuỗi thô từ thiết bị của user và parse lập tức
   'SUBTITLE.PARSE_RAW': async (payload) => {
-    const { rawText } = payload;
+    const { rawText, fileName } = payload;
     if (!rawText) {
       throw new Error("Dữ liệu tệp gửi lên không hợp lệ");
     }
@@ -135,8 +155,8 @@ const handlers = {
         videoId: 'local', // Định danh tạm cho video cục bộ để tương thích luồng vẽ
         fileObj: {
           id: 'local',
-          fileName: 'local', // to-do: lấy tên
-          url: 'local', // to-do: lấy link để users có thể tự truy cập
+          fileName,
+          url: 'local',
           sourceType: 'local',
           groupName: 'local'
         },
@@ -178,7 +198,7 @@ async function resolveSubtitles(videoId) {
     );
     return { status: 'EMPTY' };
   }
-  const candidates = await fetchSubtitleFile(sources, videoId);
+  const candidates = await fetchSubtitleFile(sources, videoId, {});
   // --- BƯỚC 3: Xử lý kết quả quét (Decision Layer) ---
   if (candidates.length === 0) {
     // Trường hợp 1: Không tìm thấy file phụ đề nào trên hệ thống
@@ -202,9 +222,10 @@ async function resolveSubtitles(videoId) {
       return { status: 'HIT', data: subObj };
     } catch (err) {
       console.error(
-        `%c[ASS-CEE]%c background: Tự động xử lí bị lỗi (${videoId}: ${candidate.fileName}).`, err, 
+        `%c[ASS-CEE]%c background: Tự động xử lí bị lỗi (${videoId}: ${candidate.fileName}).`, 
         "color: red, font-weight: bold;",
-        ""
+        "",
+        err
       );
       return { status: 'ERROR', data: err.message };
     }
