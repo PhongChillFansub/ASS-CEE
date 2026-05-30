@@ -30,7 +30,13 @@ function sendLogToBackground(message, type = 'info') {
     // Phần định nghĩa khung HTML
     const container = document.createElement('div');
     container.id = containerId;
-    container.innerHTML = `
+    container.innerHTML = ``
+
+
+
+
+
+    oldContainer.innerHTML = `
       <div class="chrome-ext-container">
         <div class="ext-title-bar">
           <div class="ext-left-section">

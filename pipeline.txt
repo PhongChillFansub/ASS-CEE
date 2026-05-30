@@ -106,6 +106,17 @@ Cấu trúc giao thức (đi từ background.js) sendResponse(): dựa trên msg
 
 Cấu trúc giao thức (đến từ background.js): msg = { type, payload } 
 
+Cấu trúc khung HTML của UI: (.innerHTML trong file ui.js)
+  (để tiện chỉnh sửa, sử dụng file ui_bea… à nhầm ui_work.html)
+- class="asscee_ui": khung giao diện
+  - class="asscee_barTitle": thanh tiêu đề: hiển thị tên, nút chọn tab, nút ẩn/đóng UI
+    - class="asscee_titleLeftGrp": phần góc trái tiêu đề (nút chọn tab và tên)
+      - button id/class="asscee_tabBtn": nút đổi trang hiển thị trong giao diện
+      - span id/class="asscee_title": dòng tiêu đề, cùng khối với button Danh sách trang
+    - button id/class="asscee_closeBtn": nút tạm ẩn giao diện (góc phải tiêu đề)
+  - id/class="asscee_menuExpand": danh sách thả các trang hiển thị
+    -
+
      
 
 
