@@ -36,17 +36,17 @@ chrome.action.onClicked.addListener(async (tab) => {
         target: { tabId },
         func: () => { window.__ASS_CEE_UI_INJECTED__ = true; }
       });
-      console.log("[ASS-CEE] Lần đầu: Đã nạp toàn bộ file content.");
+      console.log("[ASS-CEE] background: Đã nạp toàn bộ file content lần đầu.");
     } else {
       // CÁC LẦN CLICK SAU: CHỈ nạp đúng file điều khiển content.js để toggle
       await chrome.scripting.executeScript({
         target: { tabId },
         files: ["content/content.js"]
       });
-      console.log("[ASS-CEE] Các lần sau: Chỉ chạy lệnh Toggle.");
+      console.log("[ASS-CEE] background: Các lần sau: Chỉ chạy lệnh Toggle.");
     }
   } catch (err) {
-    console.error("[ASS-CEE] Lỗi kích hoạt onClicked:", err);
+    console.error("[ASS-CEE] background: Lỗi kích hoạt onClicked:", err);
   }
 });
 // Hàm giao tiếp với content.js và ui.js
