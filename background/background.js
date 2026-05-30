@@ -87,7 +87,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   const handler = handlers[msg.type];
   if (handler) {
     handler(msg.payload)
-      .then(result => sendResponse({ id: msg.id, ...result }))
+      .then(result => sendResponse(result))
       .catch(err => {
         console.error(`[ASS-CEE] background: [RPC Error] ${msg.type}:`, err);
         sendResponse({ id: msg.id, status: 'ERROR', message: err.message });

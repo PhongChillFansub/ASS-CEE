@@ -98,7 +98,11 @@ Cấu trúc dữ liệu đóng gói (quy định trong file background.js)
         parsedData: parsedData
       } 
     };
-  2. sendResponse({ id: msg.id, ...handlers[msg.type]}) với các lệnh xử lí
+  2. sendResponse(): dựa trên msg.type:
+    'LOG_FROM_CONTENTS' => { status: "DEBUG" }
+    (có trong handlers) => handlers[msg.type](msg.payload)
+    (khác) => { status, message }
+
      
 
 
