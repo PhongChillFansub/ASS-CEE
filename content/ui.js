@@ -1,5 +1,5 @@
 // Code bằng tay (thực ra vẫn còn nhiều chỗ vibe coding)
-// v0.0.0.2 31may26
+// v0.0.0.2 01jun26
 /**
  * Hàm gửi log về background.js
  * @param {*} message nội dung
@@ -25,7 +25,7 @@ function sendLogToBackground(message, type = 'info') {
   // Khai báo chung containerId để 2 file cùng nhận diện đc và giao tiếp. 
   // Tuy nhiên, do ko chạy ở background nên có tính độc lập theo tab (tab isolation)
   if (document.getElementById(containerId)) return; // Nếu trùng lặp thì thoát
-  sendLogToBackground("ui: Đang khởi tạo giao diện nội bộ...");
+  sendLogToBackground("ui: Đang khởi tạo giao diện nội bộ.");
   try {
     // Phần định nghĩa khung HTML
     const container = document.createElement('div');
@@ -69,29 +69,60 @@ function sendLogToBackground(message, type = 'info') {
     </div>
     `
     document.body.appendChild(container);
-    sendLogToBackground("ui: Khởi tạo khung HTML thành công.", "info");
+    sendLogToBackground("ui: Khởi tạo khung HTML thành công.");
   } catch (error) {
     sendLogToBackground(`ui: Lỗi khởi tạo khung HTML: ${error.message}`, "error");
     console.error("[ASS-CEE] ui: Lỗi khởi tạo khung HTML:", error);
   }
   try {
-    // --- 3. ĐĂNG KÝ CÁC SỰ KIỆN TƯƠNG TÁC ---
-    const menuBtn = container.querySelector('#ext-menu-btn');
-    const menuDropdown = container.querySelector('#ext-menu-dropdown');
-    const closeBtn = container.querySelector('#ext-close-btn');
-    const tabTitle = container.querySelector('#ext-tab-title');
-    const footerStatus = container.querySelector('#ext-footer-status');
-    const tabButtons = container.querySelectorAll('[data-tab-target]');
-    const tabContents = container.querySelectorAll('.ext-tab-pane');
-    // --- 4. Phần xử lí thuật toán ---
+    // Phần định nghĩa các thực -mộng- thể tương tác
+    const tabBtn = container.querySelector('#asscee_tabBtn');
+    // Cho nút đổi trang hiển thị
+    const menuExpand = container.querySelector('#asscee_menuExpand') 
+    // Cho phần danh sách trang hiển thị
+    const closeBtn = container.querySelector('#asscee_closeBtn');
+    // Cho nút tạm ẩn giao diện
+    const titleText = container.querySelector('#asscee_title');
+    // Cho tiêu đề
+    const footerInfo = container.querySelector('#asscee_footerInfo');
+    // Cho phần thông tin ở footer
+    const footerMisc = container.querySelector('#asscee_footerMisc');
+    // Cho phần thông tin ở footer
+    const tabButtons = container.querySelectorAll('[data-asscee_tab-target]');
+    const tabContents = container.querySelectorAll('.asscee_tabPane');
+    // Cho các nút chọn trang hiển thị và nội dung tương ứng
+
+    // const menuBtn = container.querySelector('#ext-menu-btn');
+    // const menuDropdown = container.querySelector('#ext-menu-dropdown');
+    // const closeBtn = container.querySelector('#ext-close-btn');
+    // const tabTitle = container.querySelector('#ext-tab-title');
+    // const footerStatus = container.querySelector('#ext-footer-status');
+    // const tabButtons = container.querySelectorAll('[data-tab-target]');
+    // const tabContents = container.querySelectorAll('.ext-tab-pane');
+
+
+    // Phần xử lí thuật toán
+    const extensionName = 'ASS-CEE'
+    const tabMap = {
+      'tab-1': 'Quản lý nguồn',
+      'tab-2': 'Quản lý phụ đề',
+      'tab-3': 'Thông tin chung'
+    };
+    /**
+     * Hàm xử lí lựa chọn trang
+     * @param {*} tabId ở đây là giá trị của thuộc tính data-asscee_tab-target
+     * Kết quả: thay đổi thuộc tính active của tab
+     */
     function selectTab(tabId) {
-      let tabLabel = 'Tab 1';
-      if (tabId === 'tab-2') tabLabel = 'Tab 2';
-      if (tabId === 'tab-3') tabLabel = 'Tab 3';
-      tabTitle.textContent = `ASS-CEE (${tabLabel})`;
+      const tabLabel = tabMap[tabId] || 'Tab không xác định';
+      // Lấy tên trang
+      tabTitle.textContent = `${extensionName} (${tabLabel})`;
+      // Thay đổi tiêu đề để chứa tên extension và tab đang sử dụng
       sendLogToBackground(`Người dùng chuyển sang tab: ${tabLabel}`);
+      // Gửi log cho background để theo dõi
       tabButtons.forEach(btn => {
-        const target = btn.getAttribute('data-tab-target');
+        // Quét từng 
+        const target = btn.getAttribute('data-asscee_tab-target');
         if (target === tabId) {
           btn.classList.add('active');
         } else {
