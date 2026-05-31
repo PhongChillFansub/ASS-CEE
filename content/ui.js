@@ -1,5 +1,5 @@
 // Code bằng tay (thực ra vẫn còn nhiều chỗ vibe coding)
-// v0.0.0.2 30may26
+// v0.0.0.2 31may26
 /**
  * Hàm gửi log về background.js
  * @param {*} message nội dung
@@ -68,39 +68,6 @@ function sendLogToBackground(message, type = 'info') {
       
     </div>
     `
-
-
-
-
-
-    oldContainer.innerHTML = `
-      <div class="chrome-ext-container">
-        <div class="ext-title-bar">
-          <div class="ext-left-section">
-            <button id="ext-menu-btn" class="ext-menu-btn" title="Danh sách các Tab">☰</button>
-            <span id="ext-tab-title" class="ext-title-text">ASS-CEE</span>
-          </div>
-          <button id="ext-close-btn" class="ext-close-btn" title="Ẩn Extension">✕</button>
-        </div>
-
-        <div id="ext-menu-dropdown" class="ext-menu-dropdown">
-          <button class="ext-dropdown-item active" data-tab-target="tab-1">Quản lí nguồn</button>
-          <button class="ext-dropdown-item" data-tab-target="tab-2">Quản lí phụ đề</button>
-          <button class="ext-dropdown-item" data-tab-target="tab-3">Thông tin extension</button>
-        </div>
-
-        <div class="ext-workspace">
-          <div id="ext-tab-1-content" class="ext-tab-pane active"></div>
-          <div id="ext-tab-2-content" class="ext-tab-pane"></div>
-          <div id="ext-tab-3-content" class="ext-tab-pane"></div>
-        </div>
-
-        <div class="ext-footer">
-          <span id="ext-footer-status" class="ext-footer-info">GitHub link</span>
-          <span id="ext-footer-tab-indicator" class="ext-footer-res">Quản lí nguồn</span>
-        </div>
-      </div>
-    `;
     document.body.appendChild(container);
     sendLogToBackground("ui: Khởi tạo khung HTML thành công.", "info");
   } catch (error) {
