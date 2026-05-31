@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.0.2 30may26
+// v0.0.0.2 31may26
 // Hàm gửi log từ content.js về background.js
 function sendLogToBackground(message, type = 'info') {
   chrome.runtime.sendMessage({
@@ -17,7 +17,7 @@ function sendLogToBackground(message, type = 'info') {
 // Phần chạy chính của content.js (tạm thời chỉ đảm nhận việc ẩn/hiện UI)
 (function() {
   'use strict';
-  const containerId = 'chrome-extension-overlay-root';
+  const containerId = 'asscee_overlayRoot';
   const container = document.getElementById(containerId);
   if (!container) return;
   // Lấy giá trị display thực tế mà mắt người dùng đang nhìn thấy trên màn hình

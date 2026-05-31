@@ -21,7 +21,7 @@ function sendLogToBackground(message, type = 'info') {
 // Phần chạy chính của ui.js
 (async function() {
   'use strict';
-  const containerId = 'chrome-extension-overlay-root';
+  const containerId = 'asscee_overlayRoot';
   // Khai báo chung containerId để 2 file cùng nhận diện đc và giao tiếp. 
   // Tuy nhiên, do ko chạy ở background nên có tính độc lập theo tab (tab isolation)
   if (document.getElementById(containerId)) return; // Nếu trùng lặp thì thoát
