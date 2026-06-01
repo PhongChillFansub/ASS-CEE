@@ -76,7 +76,7 @@ function sendLogToBackground(message, type = 'info') {
   }
   try {
     // Phần định nghĩa các thực -mộng- thể tương tác
-    const tabBtn = container.querySelector('#asscee_tabBtn');
+    const tabListBtn = container.querySelector('#asscee_tabBtn');
     // Cho nút đổi trang hiển thị
     const menuExpand = container.querySelector('#asscee_menuExpand') 
     // Cho phần danh sách trang hiển thị
@@ -88,7 +88,7 @@ function sendLogToBackground(message, type = 'info') {
     // Cho phần thông tin ở footer
     const footerMisc = container.querySelector('#asscee_footerMisc');
     // Cho phần thông tin ở footer
-    const tabButtons = container.querySelectorAll('[data-asscee_tab-target]');
+    const tabItemBtns = container.querySelectorAll('[data-asscee_tab-target]');
     const tabContents = container.querySelectorAll('.asscee_tabPane');
     // Cho các nút chọn trang hiển thị và nội dung tương ứng
 
@@ -120,8 +120,8 @@ function sendLogToBackground(message, type = 'info') {
       // Thay đổi tiêu đề để chứa tên extension và tab đang sử dụng
       sendLogToBackground(`Người dùng chuyển sang tab: ${tabLabel}`);
       // Gửi log cho background để theo dõi
-      tabButtons.forEach(btn => {
-        // Quét từng 
+      tabItemBtns.forEach(btn => {
+        // Quét từng cái tabItemBtns và thay đổi thuộc tính active của chúng
         const target = btn.getAttribute('data-asscee_tab-target');
         if (target === tabId) {
           btn.classList.add('active');
@@ -129,32 +129,28 @@ function sendLogToBackground(message, type = 'info') {
           btn.classList.remove('active');
         }
       });
-
       tabContents.forEach(content => {
+        // Tương tự với tabContents
         if (content.id === `ext-${tabId}-content`) {
           content.classList.add('active');
         } else {
           content.classList.remove('active');
         }
       });
-
-      if (footerStatus) {
-        footerStatus.textContent = `Active: ${tabLabel}`;
-      }
     }
 
-    // Toggle Menu ☰
-    menuBtn.addEventListener('click', (e) => {
+    // Toggle tabListBtn
+    tabListBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      menuDropdown.classList.toggle('show');
+      menuExpand.classList.toggle('show');
       const isShowing = menuDropdown.classList.contains('show');
       sendLogToBackground(`ui: Người dùng ${isShowing ? "mở" : "đóng"} danh mục menu lựa chọn Tab`);
     });
 
     // Tự động đóng menu nếu click bên ngoài vùng menu
     document.addEventListener('click', () => {
-      if (menuDropdown.classList.contains('show')) {
-        menuDropdown.classList.remove('show');
+      if (menuExpand.classList.contains('show')) {
+        menuExpand.classList.remove('show');
         sendLogToBackground("ui: Tự động đóng menu lựa chọn Tab khi click vùng trống");
       }
     });
@@ -162,11 +158,11 @@ function sendLogToBackground(message, type = 'info') {
     // Sự kiện nút đóng
     closeBtn.addEventListener('click', () => {
       container.style.setProperty('display', 'none', 'important');
-      sendLogToBackground("ui: Người dùng nhấp nút [✕] đóng/ẩn giao diện Extension");
+      sendLogToBackground("ui: Người dùng nhấp nút tạm ẩn giao diện Extension");
     });
 
     // Chuyển tab
-    tabButtons.forEach(btn => {
+    tabItemBtns.forEach(btn => {
       btn.addEventListener('click', () => {
         const tabId = btn.getAttribute('data-tab-target');
         selectTab(tabId);
