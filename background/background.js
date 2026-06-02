@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.0.2 30may26
+// v0.0.0.2 02jun26
 import { fetchSubtitleText, fetchSubtitleFile } from './fetcher.js';
 // fetchSubtitleText, fetchSubtitleFile
 import { addSource, getSources, removeSource, getSubtitleCache, saveSubtitleCache } from './storage.js';
@@ -59,7 +59,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     const isSameLocation = (tabId === lastLogLocation.tabId && url === lastLogLocation.url);
     lastLogLocation = { tabId, url };
     const logPrefix = isSameLocation 
-        ? "\n" 
+        ? "" 
         : `[${timestamp}][${tabId}]\n[${url}]\n`;
     switch (type) {
       case 'error':
