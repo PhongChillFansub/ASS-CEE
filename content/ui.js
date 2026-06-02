@@ -1,5 +1,5 @@
 // Code bằng tay (thực ra vẫn còn nhiều chỗ vibe coding)
-// v0.0.0.2 01jun26
+// v0.0.0.2 02jun26
 /**
  * Hàm gửi log về background.js
  * @param {*} message nội dung
@@ -76,21 +76,26 @@ function sendLogToBackground(message, type = 'info') {
   }
   try {
     // Phần định nghĩa các thực -mộng- thể tương tác
-    const tabListBtn = container.querySelector('#asscee_tabBtn');
-    // Cho nút đổi trang hiển thị
-    const menuExpand = container.querySelector('#asscee_menuExpand') 
-    // Cho phần danh sách trang hiển thị
-    const closeBtn = container.querySelector('#asscee_closeBtn');
-    // Cho nút tạm ẩn giao diện
+    const barTitle = container.querySelector('.asscee_barTitle');
+    // Cho toàn bộ thanh tiêu đề
+    const tabListBtn = container.querySelector('#asscee_tabListBtn');
+    // Cho nút đổi trang hiển thị (thanh tiêu đề)
     const titleText = container.querySelector('#asscee_title');
-    // Cho tiêu đề
+    // Cho tiêu đề (thanh tiêu đề)
+    const closeBtn = container.querySelector('#asscee_closeBtn');
+    // Cho nút tạm ẩn giao diện (thanh tiêu đề)
+    const tabListExpand = container.querySelector('#asscee_tabListExpand') 
+    // Cho phần danh sách trang hiển thị
+    const tabItemBtns = container.querySelectorAll('[data-asscee_tab-target]');
+    // Cho các nút chọn trang (danh sách trang hiển thị). 
+    // Ở đây chọn theo tag data để thuận cho việc chèn các nút chuyển tab bên trong tab khác, chứ ko chỉ có trong danh sách.
+    const tabContents = container.querySelectorAll('.asscee_tabPane');
+    // Cho các nút chọn trang hiển thị và nội dung tương ứng
+    
     const footerInfo = container.querySelector('#asscee_footerInfo');
     // Cho phần thông tin ở footer
     const footerMisc = container.querySelector('#asscee_footerMisc');
     // Cho phần thông tin ở footer
-    const tabItemBtns = container.querySelectorAll('[data-asscee_tab-target]');
-    const tabContents = container.querySelectorAll('.asscee_tabPane');
-    // Cho các nút chọn trang hiển thị và nội dung tương ứng
 
     // const menuBtn = container.querySelector('#ext-menu-btn');
     // const menuDropdown = container.querySelector('#ext-menu-dropdown');
@@ -104,9 +109,9 @@ function sendLogToBackground(message, type = 'info') {
     // Phần xử lí thuật toán
     const extensionName = 'ASS-CEE'
     const tabMap = {
-      'tab-1': 'Quản lý nguồn',
-      'tab-2': 'Quản lý phụ đề',
-      'tab-3': 'Thông tin chung'
+      'tab1': 'Quản lý nguồn',
+      'tab2': 'Quản lý phụ đề',
+      'tab3': 'Thông tin chung'
     };
     /**
      * Hàm xử lí lựa chọn trang
@@ -116,7 +121,7 @@ function sendLogToBackground(message, type = 'info') {
     function selectTab(tabId) {
       const tabLabel = tabMap[tabId] || 'Tab không xác định';
       // Lấy tên trang
-      tabTitle.textContent = `${extensionName} (${tabLabel})`;
+      titleText.textContent = `${extensionName} (${tabLabel})`;
       // Thay đổi tiêu đề để chứa tên extension và tab đang sử dụng
       sendLogToBackground(`Người dùng chuyển sang tab: ${tabLabel}`);
       // Gửi log cho background để theo dõi
@@ -131,7 +136,7 @@ function sendLogToBackground(message, type = 'info') {
       });
       tabContents.forEach(content => {
         // Tương tự với tabContents
-        if (content.id === `ext-${tabId}-content`) {
+        if (content.id === `asscee_${tabId}_content`) {
           content.classList.add('active');
         } else {
           content.classList.remove('active');
@@ -139,29 +144,30 @@ function sendLogToBackground(message, type = 'info') {
       });
     }
 
-    // Toggle tabListBtn
+    // Xử lí thao tác bấm nút tabListBtn
     tabListBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      menuExpand.classList.toggle('show');
-      const isShowing = menuDropdown.classList.contains('show');
+      tabListExpand.classList.toggle('show');
+      const isShowing = tabListExpand.classList.contains('show');
       sendLogToBackground(`ui: Người dùng ${isShowing ? "mở" : "đóng"} danh mục menu lựa chọn Tab`);
     });
 
-    // Tự động đóng menu nếu click bên ngoài vùng menu
+    // Xử lí thao tác bấm vào toàn trang (kể cả những vùng đã định dạng khác)
     document.addEventListener('click', () => {
-      if (menuExpand.classList.contains('show')) {
-        menuExpand.classList.remove('show');
+      if (tabListExpand.classList.contains('show')) {
+        // Đóng phần tabListExpand
+        tabListExpand.classList.remove('show');
         sendLogToBackground("ui: Tự động đóng menu lựa chọn Tab khi click vùng trống");
       }
     });
 
-    // Sự kiện nút đóng
+    // Xử lí thao tác bấm nút closeBtn
     closeBtn.addEventListener('click', () => {
       container.style.setProperty('display', 'none', 'important');
       sendLogToBackground("ui: Người dùng nhấp nút tạm ẩn giao diện Extension");
     });
 
-    // Chuyển tab
+    // Xử lí thao tác bấm nút tabItemBtns
     tabItemBtns.forEach(btn => {
       btn.addEventListener('click', () => {
         const tabId = btn.getAttribute('data-tab-target');
@@ -170,93 +176,114 @@ function sendLogToBackground(message, type = 'info') {
     });
 
     // --- 4. TÍNH NĂNG DI CHUYỂN KHUNG GIAO DIỆN (DRAGGABLE) ---
-    const titleBar = container.querySelector('.ext-title-bar');
-    let isDragging = false;
-    let offsetX = 0;
-    let offsetY = 0;
-
+    let isDragging = false; // Trạng thái kéo thả UI
+    let offsetX = 0; // Vị trí của chuột so với góc trên bên trái của UI, chiều X
+    let offsetY = 0; // Vị trí tương tự, chiều Y
+    /**
+     * Hàm xử lí tọa độ UI khi di chuyển
+     * @param {*} clientX vị trí con trỏ (x)
+     * @param {*} clientY vị trí con trỏ (y)
+     * Đầu ra newLeft, newTop: vị trí mới của góc trên bên trái UI
+     */
     function handleMove(clientX, clientY) {
       let newLeft = clientX - offsetX;
       let newTop = clientY - offsetY;
-
+      // Tính toán tọa độ thô của UI
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
       const extWidth = 400; 
       const extHeight = 400;
-
+      // Lấy kích thước khung UI và của cửa sổ trình duyệt
       newLeft = Math.max(0, Math.min(newLeft, viewportWidth - extWidth));
       newTop = Math.max(0, Math.min(newTop, viewportHeight - extHeight));
-
+      // Bảo vệ tọa độ UI (tránh UI bay ra ngoài cửa sổ)
       container.style.right = 'auto';
+      container.style.bottom = 'auto';
+      // Cài đặt lại UI, lấy góc trên bên trái làm gốc
       container.style.left = `${newLeft}px`;
       container.style.top = `${newTop}px`;
+      // Áp dụng tọa độ
     }
-
-    function onStart(clientX, clientY) {
-      isDragging = true;
-      titleBar.style.cursor = 'grabbing';
-
-      const rect = container.getBoundingClientRect();
-      offsetX = clientX - rect.left;
-      offsetY = clientY - rect.top;
-
-      document.addEventListener('mousemove', onMove, { passive: false });
-      document.addEventListener('mouseup', onStop);
-      
-      document.addEventListener('touchmove', onTouchMove, { passive: false });
-      document.addEventListener('touchend', onStop);
+    /**
+     * Hàm chuyển trạng thái UI sang kéo thả (chuyển vị trí), khi bấm vào thanh tiêu đề
+     * @param {*} clientX vị trí con trỏ (x)
+     * @param {*} clientY vị trí con trỏ (y)
+     * @returns Đầu ra: mở thao tác di chuyển UI (addEventListener) bằng chuột
+     */
+    function barTitleOnClick(clientX, clientY) {
+      isDragging = true; // Bật trạng thái kéo thả UI
+      barTitle.style.cursor = 'grabbing'; // Đổi icon của con trỏ sang 'grabbing' (tay nắm)
+      const rect = container.getBoundingClientRect(); // Lấy tọa độ 4 góc của UI để tính offset
+      offsetX = clientX - rect.left; // Tính toán offsetX
+      offsetY = clientY - rect.top; // Tính toán offsetY
+      document.addEventListener('mousemove', barTitleOnClickHold, { passive: false });
+      document.addEventListener('mouseup', barTitleOnRelease);
+      // Mở cặp thao tác di chuyển khi nhấn giữ + di chuyển, và thả chuột.
+      document.addEventListener('touchmove', barTitleOnTouchHold, { passive: false });
+      document.addEventListener('touchend', barTitleOnRelease);
+      // Tương tự với màn hình cảm ứng (chưa test)
     }
-
-    function onMove(e) {
+    /**
+     * Hàm xử lí nhấn giữ + di chuyển chuột
+     * @param {*} e (ko rõ)
+     * @returns chạy handleMove()
+     */
+    function barTitleOnClickHold(e) {
       if (!isDragging) return;
       e.preventDefault();
       handleMove(e.clientX, e.clientY);
     }
-
-    function onTouchMove(e) {
+    /**
+     * Hàm xử lí nhấn giữ + di chuyển chạm (chưa test)
+     * @param {*} e (ko rõ)
+     * @returns chạy handleMove()
+     */
+    function barTitleOnTouchHold(e) {
       if (!isDragging) return;
       e.preventDefault();
       const touch = e.touches[0];
       handleMove(touch.clientX, touch.clientY);
     }
-
-    function onStop() {
+    /**
+     * Hàm xử lí thả chuột/chạm
+     */
+    function barTitleOnRelease() {
       if (isDragging) {
-        isDragging = false;
-        titleBar.style.cursor = 'grab';
-        
-        document.removeEventListener('mousemove', onMove);
-        document.removeEventListener('mouseup', onStop);
-        document.removeEventListener('touchmove', onTouchMove);
-        document.removeEventListener('touchend', onStop);
-
+        isDragging = false; // Tắt trạng thái kéo thả UI
+        barTitle.style.cursor = 'grab'; // Đưa icon con trỏ về 'grab'
+        document.removeEventListener('mousemove', barTitleClickHold);
+        document.removeEventListener('mouseup', barTitleRelease);
+        document.removeEventListener('touchmove', barTitleTouchHold);
+        document.removeEventListener('touchend', barTitleRelease);
+        // Đóng các thao tác kéo thả UI
         sendLogToBackground(`ui: Đã dời vị trí Extension tới tọa độ mới: left=${container.style.left}, top=${container.style.top}`);
       }
     }
-
-    titleBar.addEventListener('mousedown', (e) => {
+    // Xử lí thao tác bấm chuột vào thanh tiêu đề 
+    barTitle.addEventListener('mousedown', (e) => {
       if (e.button !== 0) return;
-      if (e.target.closest('#ext-menu-btn') || e.target.closest('#ext-close-btn') || e.target.closest('#ext-menu-dropdown')) return;
-      
-      onStart(e.clientX, e.clientY);
+      if (e.target.closest('#asscee_tabListBtn') || e.target.closest('#asscee_closeBtn') || e.target.closest('#asscee_tabListExpand')) return;
+      // Bỏ qua trường hợp bấm vào nút tabListBtn, closeBtn và tabListExpand (???)
+      // Khi này, vẫn tính khi bấm vào title (dòng tiêu đề)
+      barTitleOnClick(e.clientX, e.clientY);
       sendLogToBackground("ui: Bắt đầu di chuyển giao diện Extension UI (chuột)");
     });
-
-    titleBar.addEventListener('touchstart', (e) => {
-      if (e.target.closest('#ext-menu-btn') || e.target.closest('#ext-close-btn') || e.target.closest('#ext-menu-dropdown')) return;
-      
+    // Xử lí thao tác bấm chạm vào thanh tiêu đề
+    barTitle.addEventListener('touchstart', (e) => {
+      if (e.target.closest('#asscee_tabListBtn') || e.target.closest('#asscee_closeBtn') || e.target.closest('#asscee_tabListExpand')) return;
+      // Bỏ qua trường hợp bấm vào nút tabListBtn, closeBtn và tabListExpand (???)
+      // Khi này, vẫn tính khi bấm vào title (dòng tiêu đề)
       const touch = e.touches[0];
-      onStart(touch.clientX, touch.clientY);
+      barTitleOnClick(touch.clientX, touch.clientY);
       sendLogToBackground("ui: Bắt đầu di chuyển giao diện Extension UI (cảm ứng)");
     }, { passive: true });
-    
+    // Xử lí thao tác nhả chạm (fallback trên toàn cửa sổ do touchstart có passive: true)
     document.addEventListener('touchend', () => {
       if (isDragging) {
         isDragging = false;
         sendLogToBackground(`ui: Đã dời vị trí Extension (cảm ứng) tới tọa độ mới: left=${container.style.left}, top=${container.style.top}`);
       }
     });
-
   } catch (error) {
     sendLogToBackground(`ui: Lỗi nghiêm trọng khi load UI: ${error.message}`, "error");
     console.error("[ASS-CEE] ui Không thể khởi tạo extension UI:", error);
