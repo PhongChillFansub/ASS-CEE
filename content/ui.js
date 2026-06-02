@@ -1,5 +1,11 @@
 // Code bằng tay (thực ra vẫn còn nhiều chỗ vibe coding)
 // v0.0.0.2 02jun26
+const extensionName = 'ASS-CEE'
+const tabMap = {
+  'tab1': 'Quản lý nguồn',
+  'tab2': 'Quản lý phụ đề',
+  'tab3': 'Thông tin chung'
+};
 /**
  * Hàm gửi log về background.js
  * @param {*} message nội dung
@@ -17,6 +23,31 @@ function sendLogToBackground(message, type = 'info') {
   }).catch(err => {
     console.warn("[ASS-CEE] ui: Không thể gửi log về background:", err);
   });
+}
+/**
+ * Hàm trung tâm, xử lí tọa độ UI khi di chuyển
+ * @param {*} clientX vị trí con trỏ (x)
+ * @param {*} clientY vị trí con trỏ (y)
+ * Đầu ra newLeft, newTop: vị trí mới của góc trên bên trái UI
+ */
+function handleMove(clientX, clientY) {
+  let newLeft = clientX - offsetX;
+  let newTop = clientY - offsetY;
+  // Tính toán tọa độ thô của UI
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const extWidth = 400; 
+  const extHeight = 400;
+  // Lấy kích thước khung UI và của cửa sổ trình duyệt
+  newLeft = Math.max(0, Math.min(newLeft, viewportWidth - extWidth));
+  newTop = Math.max(0, Math.min(newTop, viewportHeight - extHeight));
+  // Bảo vệ tọa độ UI (tránh UI bay ra ngoài cửa sổ)
+  container.style.right = 'auto';
+  container.style.bottom = 'auto';
+  // Cài đặt lại UI, lấy góc trên bên trái làm gốc
+  container.style.left = `${newLeft}px`;
+  container.style.top = `${newTop}px`;
+  // Áp dụng tọa độ
 }
 // Phần chạy chính của ui.js
 (async function() {
@@ -75,7 +106,7 @@ function sendLogToBackground(message, type = 'info') {
     console.error("[ASS-CEE] ui: Lỗi khởi tạo khung HTML:", error);
   }
   try {
-    // Phần định nghĩa các thực -mộng- thể tương tác
+    // Phần định nghĩa các thực -mộng- thể tương tác (xử lí khung HTML)
     const barTitle = container.querySelector('.asscee_barTitle');
     // Cho toàn bộ thanh tiêu đề
     const tabListBtn = container.querySelector('#asscee_tabListBtn');
@@ -104,15 +135,12 @@ function sendLogToBackground(message, type = 'info') {
     // const footerStatus = container.querySelector('#ext-footer-status');
     // const tabButtons = container.querySelectorAll('[data-tab-target]');
     // const tabContents = container.querySelectorAll('.ext-tab-pane');
-
-
-    // Phần xử lí thuật toán
-    const extensionName = 'ASS-CEE'
-    const tabMap = {
-      'tab1': 'Quản lý nguồn',
-      'tab2': 'Quản lý phụ đề',
-      'tab3': 'Thông tin chung'
-    };
+    } catch (error) {
+    sendLogToBackground(`ui: Lỗi xử lí khung HTML: ${error.message}`, "error");
+    console.error("[ASS-CEE] ui: Lỗi xử lí khung HTML:", error);
+  }
+  try {
+    // Phần xử lí các nút giao diện
     /**
      * Hàm xử lí lựa chọn trang
      * @param {*} tabId ở đây là giá trị của thuộc tính data-asscee_tab-target
@@ -143,7 +171,6 @@ function sendLogToBackground(message, type = 'info') {
         }
       });
     }
-
     // Xử lí thao tác bấm nút tabListBtn
     tabListBtn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -151,7 +178,6 @@ function sendLogToBackground(message, type = 'info') {
       const isShowing = tabListExpand.classList.contains('show');
       sendLogToBackground(`ui: Người dùng ${isShowing ? "mở" : "đóng"} danh mục menu lựa chọn Tab`);
     });
-
     // Xử lí thao tác bấm vào toàn trang (kể cả những vùng đã định dạng khác)
     document.addEventListener('click', () => {
       if (tabListExpand.classList.contains('show')) {
@@ -160,13 +186,11 @@ function sendLogToBackground(message, type = 'info') {
         sendLogToBackground("ui: Tự động đóng menu lựa chọn Tab khi click vùng trống");
       }
     });
-
     // Xử lí thao tác bấm nút closeBtn
     closeBtn.addEventListener('click', () => {
       container.style.setProperty('display', 'none', 'important');
       sendLogToBackground("ui: Người dùng nhấp nút tạm ẩn giao diện Extension");
     });
-
     // Xử lí thao tác bấm nút tabItemBtns
     tabItemBtns.forEach(btn => {
       btn.addEventListener('click', () => {
@@ -174,36 +198,15 @@ function sendLogToBackground(message, type = 'info') {
         selectTab(tabId);
       });
     });
-
-    // --- 4. TÍNH NĂNG DI CHUYỂN KHUNG GIAO DIỆN (DRAGGABLE) ---
+    } catch (error) {
+    sendLogToBackground(`ui: Lỗi xử lí nút giao diện: ${error.message}`, "error");
+    console.error("[ASS-CEE] ui: Lỗi xử lí nút giao diện:", error);
+  }
+  try {
+    // Phần xử lí tính năng di chuyển giao diện
     let isDragging = false; // Trạng thái kéo thả UI
     let offsetX = 0; // Vị trí của chuột so với góc trên bên trái của UI, chiều X
     let offsetY = 0; // Vị trí tương tự, chiều Y
-    /**
-     * Hàm xử lí tọa độ UI khi di chuyển
-     * @param {*} clientX vị trí con trỏ (x)
-     * @param {*} clientY vị trí con trỏ (y)
-     * Đầu ra newLeft, newTop: vị trí mới của góc trên bên trái UI
-     */
-    function handleMove(clientX, clientY) {
-      let newLeft = clientX - offsetX;
-      let newTop = clientY - offsetY;
-      // Tính toán tọa độ thô của UI
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-      const extWidth = 400; 
-      const extHeight = 400;
-      // Lấy kích thước khung UI và của cửa sổ trình duyệt
-      newLeft = Math.max(0, Math.min(newLeft, viewportWidth - extWidth));
-      newTop = Math.max(0, Math.min(newTop, viewportHeight - extHeight));
-      // Bảo vệ tọa độ UI (tránh UI bay ra ngoài cửa sổ)
-      container.style.right = 'auto';
-      container.style.bottom = 'auto';
-      // Cài đặt lại UI, lấy góc trên bên trái làm gốc
-      container.style.left = `${newLeft}px`;
-      container.style.top = `${newTop}px`;
-      // Áp dụng tọa độ
-    }
     /**
      * Hàm chuyển trạng thái UI sang kéo thả (chuyển vị trí), khi bấm vào thanh tiêu đề
      * @param {*} clientX vị trí con trỏ (x)
@@ -251,10 +254,10 @@ function sendLogToBackground(message, type = 'info') {
       if (isDragging) {
         isDragging = false; // Tắt trạng thái kéo thả UI
         barTitle.style.cursor = 'grab'; // Đưa icon con trỏ về 'grab'
-        document.removeEventListener('mousemove', barTitleClickHold);
-        document.removeEventListener('mouseup', barTitleRelease);
-        document.removeEventListener('touchmove', barTitleTouchHold);
-        document.removeEventListener('touchend', barTitleRelease);
+        document.removeEventListener('mousemove', barTitleOnClickHold);
+        document.removeEventListener('mouseup', barTitleOnRelease);
+        document.removeEventListener('touchmove', barTitleOnTouchHold);
+        document.removeEventListener('touchend', barTitleOnRelease);
         // Đóng các thao tác kéo thả UI
         sendLogToBackground(`ui: Đã dời vị trí Extension tới tọa độ mới: left=${container.style.left}, top=${container.style.top}`);
       }
@@ -285,7 +288,7 @@ function sendLogToBackground(message, type = 'info') {
       }
     });
   } catch (error) {
-    sendLogToBackground(`ui: Lỗi nghiêm trọng khi load UI: ${error.message}`, "error");
-    console.error("[ASS-CEE] ui Không thể khởi tạo extension UI:", error);
+    sendLogToBackground(`ui: Lỗi xử lí tính năng di chuyển: ${error.message}`, "error");
+    console.error("[ASS-CEE] ui: Lỗi xử lí tính năng di chuyển:", error);
   }
 })();
