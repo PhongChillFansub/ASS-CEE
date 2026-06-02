@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.0.2 31may26
+// v0.0.0.2 02jun26
 // Hàm gửi log từ content.js về background.js
 function sendLogToBackground(message, type = 'info') {
   chrome.runtime.sendMessage({
@@ -15,6 +15,8 @@ function sendLogToBackground(message, type = 'info') {
   });
 }
 // Phần chạy chính của content.js (tạm thời chỉ đảm nhận việc ẩn/hiện UI)
+// Thực tế, phần ẩn/hiện UI có thể chuyển hẳn sang ui.js. 
+// Tuy nhiên, do chưa đủ TRÌNH (chuyển sang bị lỗi ko hiện UI luôn) nên để lại ở đây.
 (function() {
   'use strict';
   const containerId = 'asscee_overlayRoot';
