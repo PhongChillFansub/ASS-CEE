@@ -1,6 +1,5 @@
 // Code bằng tay (thực ra vẫn còn nhiều chỗ vibe coding)
 // v0.0.0.2 02jun26
-
 /**
  * Hàm gửi log về background.js
  * @param {*} message nội dung
@@ -31,6 +30,9 @@ function sendLogToBackground(message, type = 'info') {
     'tab2': 'Quản lý phụ đề',
     'tab3': 'Thông tin chung'
   };
+  const tabListBtnIcon = '☰';
+  const closeBtnIcon = '✕';
+  // Các nội dung hiển thị ban đầu
   const containerId = 'asscee_overlayRoot';
   // Khai báo chung containerId để 2 file cùng nhận diện đc và giao tiếp. 
   // Tuy nhiên, do ko chạy ở background nên có tính độc lập theo tab (tab isolation)
@@ -44,7 +46,6 @@ function sendLogToBackground(message, type = 'info') {
     container.innerHTML = `
       <div class="asscee_ui">
         <!-- Khung giao diện -->
-
         <div class="asscee_barTitle">
           <!-- Thanh tiêu đề -->  
           <div class="asscee_titleLeftGrp">
@@ -56,75 +57,57 @@ function sendLogToBackground(message, type = 'info') {
           <button id="asscee_closeBtn" class="asscee_closeBtn"></button>
           <!-- Hết thanh tiêu đề -->
         </div>
-        
         <div id="asscee_tabListExpand" class="asscee_tabListExpand">
           <!-- Phần Danh sách trang (mở khi bấm tabBtn)-->
           <button class="asscee_tabListItem active" data-asscee_tab-target="tab1"></button>
           <button class="asscee_tabListItem" data-asscee_tab-target="tab2"></button>
           <button class="asscee_tabListItem" data-asscee_tab-target="tab3"></button>
         </div>
-
         <div class="asscee_workspace">
           <!-- Phần nội dung các trang-->
           <div id="asscee_tab1_content" class="asscee_tabPane active"></div>
           <div id="asscee_tab2_content" class="asscee_tabPane"></div>
           <div id="asscee_tab3_content" class="asscee_tabPane"></div>
         </div>
-
         <div class="asscee_footer">
           <!-- Phần footer-->
           <span id="asscee_footerInfo" class="asscee_footerInfo"></span>
           <span id="asscee_footerMisc" class="asscee_footerMisc"></span>
         </div>
-
       </div>
     `
     document.body.appendChild(container);
     sendLogToBackground("ui: Khởi tạo khung HTML thành công.");
     // Phần xử lí các nút giao diện
-    // const barTitle = container.querySelector('.asscee_barTitle');
-    // Cho toàn bộ thanh tiêu đề [đang nằm ở phần xử lí tính năng di chuyển giao diện]
-    // const tabListBtn = container.querySelector('#asscee_tabListBtn');
+    const barTitle = container.querySelector('.asscee_barTitle');
+    // Cho toàn bộ thanh tiêu đề
+	  const tabListBtn = container.querySelector('#asscee_tabListBtn');
     // Cho nút đổi trang hiển thị (thanh tiêu đề) 
-    // const titleText = container.querySelector('#asscee_title');
+    const titleText = container.querySelector('#asscee_title');
     // Cho tiêu đề (thanh tiêu đề)
-    // const closeBtn = container.querySelector('#asscee_closeBtn');
+    const closeBtn = container.querySelector('#asscee_closeBtn');
     // Cho nút tạm ẩn giao diện (thanh tiêu đề)
-    // const tabListExpand = container.querySelector('#asscee_tabListExpand') 
+    const tabListExpand = container.querySelector('#asscee_tabListExpand') 
     // Cho phần danh sách trang hiển thị
-    // const tabItemBtns = container.querySelectorAll('[data-asscee_tab-target]');
+    const tabItemBtns = container.querySelectorAll('[data-asscee_tab-target]');
     // Cho các nút chọn trang (danh sách trang hiển thị). 
     // Ở đây chọn theo tag data để thuận cho việc chèn các nút chuyển tab bên trong tab khác, chứ ko chỉ có trong danh sách.
-    // const tabContents = container.querySelectorAll('.asscee_tabPane');
+    const tabContents = container.querySelectorAll('.asscee_tabPane');
     // Cho các nút chọn trang hiển thị và nội dung tương ứng
     // const footerInfo = container.querySelector('#asscee_footerInfo');
     // Cho phần thông tin ở footer
     // const footerMisc = container.querySelector('#asscee_footerMisc');
     // Cho phần thông tin ở footer
+    tabListBtn.textContent = tabListBtnIcon; 
+    closeBtn.textContent = closeBtnIcon;
+    tabItemBtns.forEach(btn => {
+      const targetId = btn.getAttribute('data-asscee_tab-target');
+      btn.textContent = tabMap[targetId] || 'Trang';
+    });
     sendLogToBackground("ui: Xử lí giao thức với các thực thể trong khung HTML thành công.");
-    // const menuBtn = container.querySelector('#ext-menu-btn');
-    // const menuDropdown = container.querySelector('#ext-menu-dropdown');
-    // const closeBtn = container.querySelector('#ext-close-btn');
-    // const tabTitle = container.querySelector('#ext-tab-title');
-    // const footerStatus = container.querySelector('#ext-footer-status');
-    // const tabButtons = container.querySelectorAll('[data-tab-target]');
-    // const tabContents = container.querySelectorAll('.ext-tab-pane');
     try {
       // try..catch tầng 2
       // 1.1. Phần xử lí các thao tác chọn trang hiển thị
-      const tabListBtn = container.querySelector('#asscee_tabListBtn');
-      // Cho nút đổi trang hiển thị (thanh tiêu đề) 
-      const titleText = container.querySelector('#asscee_title');
-      // Cho tiêu đề (thanh tiêu đề)
-      const closeBtn = container.querySelector('#asscee_closeBtn');
-      // Cho nút tạm ẩn giao diện (thanh tiêu đề)
-      const tabListExpand = container.querySelector('#asscee_tabListExpand') 
-      // Cho phần danh sách trang hiển thị
-      const tabItemBtns = container.querySelectorAll('[data-asscee_tab-target]');
-      // Cho các nút chọn trang (danh sách trang hiển thị). 
-      // Ở đây chọn theo tag data để thuận cho việc chèn các nút chuyển tab bên trong tab khác, chứ ko chỉ có trong danh sách.
-      const tabContents = container.querySelectorAll('.asscee_tabPane');
-      // Cho các nút chọn trang hiển thị và nội dung tương ứng
       /**
        * Hàm xử lí lựa chọn trang
        * @param {*} tabId ở đây là giá trị của thuộc tính data-asscee_tab-target
@@ -178,10 +161,11 @@ function sendLogToBackground(message, type = 'info') {
       // Xử lí thao tác bấm nút tabItemBtns
       tabItemBtns.forEach(btn => {
         btn.addEventListener('click', () => {
-          const tabId = btn.getAttribute('data-tab-target');
+          const tabId = btn.getAttribute('data-asscee_tab-target');
           selectTab(tabId);
         });
       });
+	  selectTab('tab1'); // Chạy selectTab lần đầu để hiển thị nội dung đầu tiên
       } catch (error) {
       sendLogToBackground(`ui: Lỗi xử lí nút giao diện (1.1): ${error.message}`, "error");
       console.error("[ASS-CEE] ui: Lỗi xử lí nút giao diện (1.1):", error);
@@ -189,8 +173,6 @@ function sendLogToBackground(message, type = 'info') {
     try {
       // try..catch tầng 2
       // 1.2. Phần xử lí tính năng di chuyển giao diện
-      const barTitle = container.querySelector('.asscee_barTitle');
-      // Cho toàn bộ thanh tiêu đề
       let isDragging = false; // Trạng thái kéo thả UI
       let offsetX = 0; // Vị trí của chuột so với góc trên bên trái của UI, chiều X
       let offsetY = 0; // Vị trí tương tự, chiều Y
