@@ -60,6 +60,8 @@ Cấu trúc dữ liệu đóng gói (quy định trong file background.js) handl
     url
   } => {
     status: 'ADDED'
+  } hoặc {
+    status: 'NOT_ADDED' // (do ko fetch đc hoặc do link ko chuẩn)
   }
   'SUBTITLE.SEARCH': resolveSubtitles(payload.videoId): payload = {
     videoId

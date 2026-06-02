@@ -28,7 +28,7 @@ chrome.action.onClicked.addListener(async (tab) => {
           // "content/styles.js",
           "content/ui.js",
           // "content/renderer.js",
-          "content/content.js"
+          // "content/content.js"
         ]
       }); // Tạm thời chỉ sử dụng ui.js (thử nghiệm) và content.js
       // Đánh dấu đã nạp file thành công vào tab
@@ -41,7 +41,7 @@ chrome.action.onClicked.addListener(async (tab) => {
       // CÁC LẦN CLICK SAU: CHỈ nạp đúng file điều khiển content.js để toggle
       await chrome.scripting.executeScript({
         target: { tabId },
-        files: ["content/content.js"]
+        files: ["content/ui.js"]
       });
       console.log("[ASS-CEE] background: Các lần sau: Chỉ chạy lệnh Toggle.");
     }
@@ -107,7 +107,9 @@ const handlers = {
     const folderGet = {} // Lấy dữ liệu bằng Tham chiếu (reference)
     await fetchSubtitleFile([url], "", folderGet); // Gọi fetchSubtitleFile với videoId = "" (có chủ ý)
     if (!folderGet.groupName || !folderGet.id) {
-      throw new Error("Không thể trích xuất thông tin cấu trúc từ URL nguồn này");
+      return {
+        status: 'NOT_ADDED' // Có thể do ko fetch đc, hoặc link ko chuẩn
+      };
     }
     const sourceData = {
       url,

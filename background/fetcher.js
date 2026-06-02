@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.0.2 30may26
+// v0.0.0.2 02jun26
 const FETCH_TIMEOUT = 60000; // Tối đa 60 giây kết nối và nhận dữ liệu. Dùng cho hàm fetchWithTimeout().
 const VALID_FILE_SIGNATURE = ["[Script Info]", "[V4+ Styles]", "[Events]"];
 // Danh sách các nội dung mà parser dùng để đánh dấu. Dùng cho hàm validateSubtitleContent().
@@ -84,7 +84,7 @@ export async function fetchSubtitleFile(sources, videoId, folderName) {
             return scanGoogleDrive(source, videoId, folderName);
         } 
         console.warn(
-            `%c[ASS-CEE]%c fetcher: Link chuẩn chưa em? (GitHub: ${source})`, 
+            `%c[ASS-CEE]%c fetcher: Link chuẩn chưa em? (${source})`, 
             "color: orange; font-weight: bold;",
             ""
         );
