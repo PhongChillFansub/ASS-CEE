@@ -41,37 +41,42 @@ function sendLogToBackground(message, type = 'info') {
     const container = document.createElement('div');
     container.id = containerId;
     container.innerHTML = `
-    <div class="asscee_ui">
-      <!-- Khung giao diện -->
-      <div class="asscee_barTitle">
-        <!-- Thanh tiêu đề -->  
-        <div class="asscee_titleLeftGrp">
-          <!-- Chia thanh tiêu đề thành 2 phần: nút Danh sách trang và Tiêu đề ở trái -->
-          <button id="asscee_tabBtn" class="asscee_tabBtn"></button>
-          <span id="asscee_title" class="asscee_title"></span>
+      <div class="asscee_ui">
+        <!-- Khung giao diện -->
+
+        <div class="asscee_barTitle">
+          <!-- Thanh tiêu đề -->  
+          <div class="asscee_titleLeftGrp">
+            <!-- Chia thanh tiêu đề thành 2 phần: nút Danh sách trang và Tiêu đề ở trái -->
+            <button id="asscee_tabListBtn" class="asscee_tabListBtn"></button>
+            <span id="asscee_title" class="asscee_title"></span>
+          </div>
+            <!-- Nút ẩn giao diện ở bên phải -->
+          <button id="asscee_closeBtn" class="asscee_closeBtn"></button>
+          <!-- Hết thanh tiêu đề -->
         </div>
-          <!-- Nút ẩn giao diện ở bên phải -->
-        <button id="asscee_closeBtn" class="asscee_closeBtn"></button>
-        <!-- Hết thanh tiêu đề -->
+        
+        <div id="asscee_tabListExpand" class="asscee_tabListExpand">
+          <!-- Phần Danh sách trang (mở khi bấm tabBtn)-->
+          <button class="asscee_tabListItem active" data-asscee_tab-target="tab1"></button>
+          <button class="asscee_tabListItem" data-asscee_tab-target="tab2"></button>
+          <button class="asscee_tabListItem" data-asscee_tab-target="tab3"></button>
+        </div>
+
+        <div class="asscee_workspace">
+          <!-- Phần nội dung các trang-->
+          <div id="asscee_tab1_content" class="asscee_tabPane active"></div>
+          <div id="asscee_tab2_content" class="asscee_tabPane"></div>
+          <div id="asscee_tab3_content" class="asscee_tabPane"></div>
+        </div>
+
+        <div class="asscee_footer">
+          <!-- Phần footer-->
+          <span id="asscee_footerInfo" class="asscee_footerInfo"></span>
+          <span id="asscee_footerMisc" class="asscee_footerMisc"></span>
+        </div>
+
       </div>
-      <div id="asscee_menuExpand" class="asscee_menuExpand">
-        <!-- Phần Danh sách trang (mở khi bấm tabBtn)-->
-        <button class="asscee_menuItem active" data-asscee_tab-target="tab-1"></button>
-        <button class="asscee_menuItem" data-asscee_tab-target="tab-2"></button>
-        <button class="asscee_menuItem" data-asscee_tab-target="tab-3"></button>
-      </div>
-      <div class="asscee_workspace">
-        <!-- Phần nội dung các trang-->
-        <div id="asscee_tab1_content" class="asscee_tabPane active"></div>
-        <div id="asscee_tab2_content" class="asscee_tabPane"></div>
-        <div id="asscee_tab3_content" class="asscee_tabPane"></div>
-      </div>
-      <div class="asscee_footer">
-        <!-- Phần footer-->
-        <span id="asscee_footerInfo" class="asscee_footerInfo"></span>
-        <span id="asscee_footerMisc" class="asscee_footerMisc"></span>
-      </div>
-    </div>
     `
     document.body.appendChild(container);
     sendLogToBackground("ui: Khởi tạo khung HTML thành công.");
