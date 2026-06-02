@@ -1,4 +1,4 @@
-v0.0.0.2 31may26
+v0.0.0.2 02jun26
 Cấu trúc extension:
 - manifest.JSON
 - background
@@ -116,16 +116,19 @@ Cấu trúc khung HTML của UI: (.innerHTML trong file ui.js và ui_work.html)
     - button id/class="asscee_closeBtn": nút tạm ẩn giao diện (góc phải tiêu đề)
   - id/class="asscee_menuExpand": danh sách thả các trang hiển thị
     - class="asscee_menuItem" data-asscee_tab-target=:
-      - "tab-1": quản lí nguồn
-      - "tab-2": quản lí phụ đề 
-      - "tab-3": thông tin chung
+      - "tab1": quản lí nguồn
+      - "tab2": quản lí phụ đề 
+      - "tab3": thông tin chung
   - class="asscee_workspace": phần nội dung các trang
     - id="asscee_tab<i>_content" class="asscee_tabPane active": phần nội dung các trang i tương ứng (đang trống)
   - class="asscee_footer": phần footer
     - span id/class="asscee_footerInfo": phần hiển thị thông tin thêm (vd: khi di chuột đến vị trí nút/dòng cần chú thích)
     - span id/class="asscee_footerMisc": hiển thị thông tin khác (tạm thời trống)
      
-
+Cấu trúc phần chạy chính ui.js
+1. Phần định nghĩa khung HTML và giao thức với các Thực thể của nó
+1.1. Phần xử lí các thao tác chọn trang hiển thị
+1.2. Phần xử lí tính năng di chuyển giao diện
 
 
 
