@@ -268,7 +268,7 @@ function sendLogToBackground(message, type = 'info') {
       barTitleOnClick(e.clientX, e.clientY);
       sendLogToBackground("ui: Bắt đầu di chuyển giao diện Extension UI (chuột)");
     });
-    // Xử lí thao tác bấm chạm vào thanh tiêu đề
+    // Xử lí thao tác bấm chạm vào thanh tiêu đề (chưa test)
     barTitle.addEventListener('touchstart', (e) => {
       if (e.target.closest('#asscee_tabListBtn') || e.target.closest('#asscee_closeBtn') || e.target.closest('#asscee_tabListExpand')) return;
       // Bỏ qua trường hợp bấm vào nút tabListBtn, closeBtn và tabListExpand (???)
@@ -277,7 +277,7 @@ function sendLogToBackground(message, type = 'info') {
       barTitleOnClick(touch.clientX, touch.clientY);
       sendLogToBackground("ui: Bắt đầu di chuyển giao diện Extension UI (cảm ứng)");
     }, { passive: true });
-    // Xử lí thao tác nhả chạm (fallback trên toàn cửa sổ do touchstart có passive: true)
+    // Xử lí thao tác nhả chạm (fallback trên toàn cửa sổ do touchstart có passive: true. Gemini bảo thế. chưa test)
     document.addEventListener('touchend', () => {
       if (isDragging) {
         isDragging = false;
