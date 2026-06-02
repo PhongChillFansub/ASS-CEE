@@ -28,7 +28,7 @@ chrome.action.onClicked.addListener(async (tab) => {
           // "content/styles.js",
           "content/ui.js",
           // "content/renderer.js",
-          // "content/content.js"
+          "content/content.js"
         ]
       }); // Tạm thời chỉ sử dụng ui.js (thử nghiệm) và content.js
       // Đánh dấu đã nạp file thành công vào tab
@@ -41,7 +41,7 @@ chrome.action.onClicked.addListener(async (tab) => {
       // CÁC LẦN CLICK SAU: CHỈ nạp đúng file điều khiển content.js để toggle
       await chrome.scripting.executeScript({
         target: { tabId },
-        files: ["content/ui.js"]
+        files: ["content/content.js"]
       });
       console.log("[ASS-CEE] background: Các lần sau: Chỉ chạy lệnh Toggle.");
     }
