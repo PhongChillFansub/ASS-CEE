@@ -1,11 +1,6 @@
 // Code bằng tay (thực ra vẫn còn nhiều chỗ vibe coding)
 // v0.0.0.2 02jun26
-const extensionName = 'ASS-CEE'
-const tabMap = {
-  'tab1': 'Quản lý nguồn',
-  'tab2': 'Quản lý phụ đề',
-  'tab3': 'Thông tin chung'
-};
+
 /**
  * Hàm gửi log về background.js
  * @param {*} message nội dung
@@ -30,6 +25,12 @@ function sendLogToBackground(message, type = 'info') {
 // 1.x. (tầng 2) các tính năng độc lập
 (async function() {
   'use strict';
+  const extensionName = 'ASS-CEE'
+  const tabMap = {
+    'tab1': 'Quản lý nguồn',
+    'tab2': 'Quản lý phụ đề',
+    'tab3': 'Thông tin chung'
+  };
   const containerId = 'asscee_overlayRoot';
   // Khai báo chung containerId để 2 file cùng nhận diện đc và giao tiếp. 
   // Tuy nhiên, do ko chạy ở background nên có tính độc lập theo tab (tab isolation)
