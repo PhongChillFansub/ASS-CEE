@@ -1,5 +1,5 @@
-/* v0.0.0.2 29may26 */
-#chrome-extension-overlay-root {
+/* v0.0.0.2 02jun26 */
+#asscee_overlayRoot {
   /* Phần quy định UI cho "khung UI" */
   position: fixed !important;
   right: 20px;
@@ -14,14 +14,14 @@
 }
 
 /* Phần quy định UI cho các mục con của mục "khung UI" */
-#chrome-extension-overlay-root * {
+#asscee_overlayRoot * {
   box-sizing: border-box !important;
   margin: 0px !important;
   padding: 5px !important;
 }
 
 /* Khung giao diện chính */
-.chrome-ext-container {
+.asscee_ui {
   width: 100% !important;
   height: 100% !important;
   background-color: #1e2024 !important;
@@ -36,7 +36,7 @@
 }
 
 /* Thanh tiêu đề */
-.ext-title-bar {
+.asscee_barTitle {
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
@@ -47,14 +47,14 @@
   cursor: grab !important;
 }
 
-.ext-left-section {
+.asscee_titleLeftGrp {
   display: flex !important;
   align-items: center !important;
   gap: 12px !important;
 }
 
 /* Nút Menu Hamburger ☰ */
-.ext-menu-btn {
+.asscee_tabListBtn {
   background: none !important;
   border: none !important;
   color: #9aa0a6 !important;
@@ -68,17 +68,17 @@
   transition: all 0.2s ease !important;
 }
 
-.ext-menu-btn:hover {
+.asscee_tabListBtn:hover {
   color: #e8eaed !important;
   background-color: #2a2d32 !important;
 }
 
-.ext-menu-btn:active {
+.asscee_tabListBtn:active {
   transform: scale(0.92) !important;
 }
 
 /* Chữ hiển thị tab đang chạy */
-.ext-title-text {
+.asscee_title {
   font-size: 12px !important;
   color: #9aa0a6 !important;
   letter-spacing: 0.5px !important;
@@ -86,7 +86,7 @@
 }
 
 /* Nút đóng ✕ */
-.ext-close-btn {
+.asscee_closeBtn {
   background: none !important;
   border: none !important;
   color: #9aa0a6 !important;
@@ -101,17 +101,17 @@
   transition: all 0.2s ease !important;
 }
 
-.ext-close-btn:hover {
+.asscee_closeBtn:hover {
   color: #ff6b6b !important;
   background-color: rgba(255, 107, 107, 0.1) !important;
 }
 
-.ext-close-btn:active {
+.asscee_closeBtn:active {
   transform: scale(0.9) !important;
 }
 
 /* Hộp thoại Menu Dropdown danh sách Tab */
-.ext-menu-dropdown {
+.asscee_tabListExpand {
   position: absolute !important;
   top: 36px !important;
   left: 8px !important;
@@ -125,11 +125,11 @@
   display: none;
 }
 
-.ext-menu-dropdown.show {
+.asscee_tabListExpand.show {
   display: block !important;
 }
 
-.ext-dropdown-item {
+.asscee_tabListItem {
   width: 100% !important;
   text-align: left !important;
   background: none !important;
@@ -142,37 +142,37 @@
   display: block !important;
 }
 
-.ext-dropdown-item:hover {
+.asscee_tabListItem:hover {
   color: #e8eaed !important;
   background-color: #2a2d32 !important;
 }
 
-.ext-dropdown-item.active {
+.asscee_tabListItem.active {
   color: #f2994a !important;
   background-color: rgba(242, 153, 74, 0.08) !important;
   font-weight: 600 !important;
 }
 
 /* Workspace Content Areas */
-.ext-workspace {
+.asscee_workspace {
   flex: 1 !important;
   background-color: #1e2024 !important;
   position: relative !important;
   overflow: hidden !important;
 }
 
-.ext-tab-pane {
+.asscee_tabPane {
   display: none !important;
   width: 100% !important;
   height: 100% !important;
 }
 
-.ext-tab-pane.active {
+.asscee_tabPane.active {
   display: block !important;
 }
 
 /* Footer Trạng Thái */
-.ext-footer {
+.asscee_footer {
   display: none !important;
   padding: 10px 12px !important;
   border-top: 1px solid rgba(60, 64, 67, 0.4) !important;
@@ -183,7 +183,7 @@
   height: 34px !important;
 }
 
-.ext-footer-info {
+.asscee_footerInfo {
   display: none !important;
   font-size: 9px !important;
   font-family: monospace !important;
@@ -192,7 +192,7 @@
   text-transform: uppercase !important;
 }
 
-.ext-footer-res {
+.asscee_footerMisc {
   display: none !important;
   font-size: 9px !important;
   font-family: monospace !important;
