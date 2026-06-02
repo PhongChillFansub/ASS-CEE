@@ -78,22 +78,22 @@ function sendLogToBackground(message, type = 'info') {
     // Phần xử lí các nút giao diện
     // const barTitle = container.querySelector('.asscee_barTitle');
     // Cho toàn bộ thanh tiêu đề [đang nằm ở phần xử lí tính năng di chuyển giao diện]
-    const tabListBtn = container.querySelector('#asscee_tabListBtn');
+    // const tabListBtn = container.querySelector('#asscee_tabListBtn');
     // Cho nút đổi trang hiển thị (thanh tiêu đề) 
-    const titleText = container.querySelector('#asscee_title');
+    // const titleText = container.querySelector('#asscee_title');
     // Cho tiêu đề (thanh tiêu đề)
-    const closeBtn = container.querySelector('#asscee_closeBtn');
+    // const closeBtn = container.querySelector('#asscee_closeBtn');
     // Cho nút tạm ẩn giao diện (thanh tiêu đề)
-    const tabListExpand = container.querySelector('#asscee_tabListExpand') 
+    // const tabListExpand = container.querySelector('#asscee_tabListExpand') 
     // Cho phần danh sách trang hiển thị
-    const tabItemBtns = container.querySelectorAll('[data-asscee_tab-target]');
+    // const tabItemBtns = container.querySelectorAll('[data-asscee_tab-target]');
     // Cho các nút chọn trang (danh sách trang hiển thị). 
     // Ở đây chọn theo tag data để thuận cho việc chèn các nút chuyển tab bên trong tab khác, chứ ko chỉ có trong danh sách.
-    const tabContents = container.querySelectorAll('.asscee_tabPane');
+    // const tabContents = container.querySelectorAll('.asscee_tabPane');
     // Cho các nút chọn trang hiển thị và nội dung tương ứng
-    const footerInfo = container.querySelector('#asscee_footerInfo');
+    // const footerInfo = container.querySelector('#asscee_footerInfo');
     // Cho phần thông tin ở footer
-    const footerMisc = container.querySelector('#asscee_footerMisc');
+    // const footerMisc = container.querySelector('#asscee_footerMisc');
     // Cho phần thông tin ở footer
     sendLogToBackground("ui: Xử lí giao thức với các thực thể trong khung HTML thành công.");
     // const menuBtn = container.querySelector('#ext-menu-btn');
@@ -106,6 +106,19 @@ function sendLogToBackground(message, type = 'info') {
     try {
       // try..catch tầng 2
       // 1.1. Phần xử lí các thao tác chọn trang hiển thị
+      const tabListBtn = container.querySelector('#asscee_tabListBtn');
+      // Cho nút đổi trang hiển thị (thanh tiêu đề) 
+      const titleText = container.querySelector('#asscee_title');
+      // Cho tiêu đề (thanh tiêu đề)
+      const closeBtn = container.querySelector('#asscee_closeBtn');
+      // Cho nút tạm ẩn giao diện (thanh tiêu đề)
+      const tabListExpand = container.querySelector('#asscee_tabListExpand') 
+      // Cho phần danh sách trang hiển thị
+      const tabItemBtns = container.querySelectorAll('[data-asscee_tab-target]');
+      // Cho các nút chọn trang (danh sách trang hiển thị). 
+      // Ở đây chọn theo tag data để thuận cho việc chèn các nút chuyển tab bên trong tab khác, chứ ko chỉ có trong danh sách.
+      const tabContents = container.querySelectorAll('.asscee_tabPane');
+      // Cho các nút chọn trang hiển thị và nội dung tương ứng
       /**
        * Hàm xử lí lựa chọn trang
        * @param {*} tabId ở đây là giá trị của thuộc tính data-asscee_tab-target
