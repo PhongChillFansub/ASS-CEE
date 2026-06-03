@@ -1,4 +1,4 @@
-/* v0.0.0.2 02jun26 */
+/* v0.0.0.2 03jun26 */
 #asscee_overlayRoot {
   /* Phần quy định UI cho "khung UI" */
   position: fixed !important;
@@ -13,15 +13,73 @@
   display: block;
 }
 
-/* Phần quy định UI cho các mục con của mục "khung UI" */
+/* Phần quy định UI cho "khung UI" và các mục con của "khung UI" */
 #asscee_overlayRoot * {
   box-sizing: border-box !important;
-  margin: 0px !important;
+  margin: 5px !important;
   padding: 5px !important;
 }
 
-/* Khung giao diện chính */
-.asscee_ui {
+/* Danh sách ID
+asscee_ui
+asscee_titleBar
+asscee_titleLeftGrp
+asscee_tabListBtn
+asscee_title
+asscee_closeBtn
+asscee_tabListExpand
+asscee_workspace
+asscee_tab1_content
+asscee_linkInputBar
+asscee_linkInput
+asscee_addFolderBtn
+asscee_dividerText
+asscee_linkList
+asscee_tab2_content
+asscee_tab3_content
+asscee_footerInfo
+asscee_footerMisc */
+
+/* Danh sách class
+asscee_UI
+asscee_BarTitle
+asscee_TitleLeftGrp
+asscee_BtnSqr
+asscee_Text
+asscee_ListExpand
+asscee_TextBtn
+asscee_Workspace
+asscee_TabPane
+asscee_InputBar
+asscee_Input
+asscee_Divider
+asscee_DividerLine
+asscee_ListContainer
+asscee_List
+asscee_Footer
+asscee_TextInBox */
+
+/* id asscee_closeBtn (class asscee_BtnSqr) */
+#asscee_closeBtn:hover {
+  color: #ff6b6b !important;
+}
+/* id asscee_tabListExpand (class asscee_ListExpand) */
+#asscee_tabListExpand {
+  position: absolute !important;
+  top: 36px !important;
+  left: 8px !important;
+  width: 144px !important;
+  display: none;
+}
+/* id asscee_addFolderBtn (class asscee_BtnSqr) */
+#asscee_addFolderBtn {
+  width: 36px !important;
+  height: 36px !important;
+  font-size: 18px !important;
+}
+
+/* class asscee_UI */
+.asscee_UI {
   width: 100% !important;
   height: 100% !important;
   background-color: #1e2024 !important;
@@ -34,9 +92,8 @@
   position: relative !important;
   color: #ffffff !important;
 }
-
-/* Thanh tiêu đề */
-.asscee_barTitle {
+/* class asscee_BarTitle */
+.asscee_BarTitle {
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
@@ -46,47 +103,14 @@
   height: 38px !important;
   cursor: grab !important;
 }
-
-.asscee_titleLeftGrp {
+/* class asscee_TitleLeftGrp */
+.asscee_TitleLeftGrp {
   display: flex !important;
   align-items: center !important;
   gap: 12px !important;
 }
-
-/* Nút Menu Hamburger ☰ */
-.asscee_tabListBtn {
-  background: none !important;
-  border: none !important;
-  color: #9aa0a6 !important;
-  font-size: 16px !important;
-  cursor: pointer !important;
-  padding: 4px !important;
-  border-radius: 4px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  transition: all 0.2s ease !important;
-}
-
-.asscee_tabListBtn:hover {
-  color: #e8eaed !important;
-  background-color: #2a2d32 !important;
-}
-
-.asscee_tabListBtn:active {
-  transform: scale(0.92) !important;
-}
-
-/* Chữ hiển thị tab đang chạy */
-.asscee_title {
-  font-size: 12px !important;
-  color: #9aa0a6 !important;
-  letter-spacing: 0.5px !important;
-  font-weight: 500 !important;
-}
-
-/* Nút đóng ✕ */
-.asscee_closeBtn {
+/* class asscee_BtnSqr */
+.asscee_BtnSqr {
   background: none !important;
   border: none !important;
   color: #9aa0a6 !important;
@@ -100,36 +124,34 @@
   justify-content: center !important;
   transition: all 0.2s ease !important;
 }
-
-.asscee_closeBtn:hover {
-  color: #ff6b6b !important;
-  background-color: rgba(255, 107, 107, 0.1) !important;
+.asscee_BtnSqr:hover {
+  color: #e8eaed !important;
+  background-color: #2a2d32 !important;
 }
-
-.asscee_closeBtn:active {
+.asscee_BtnSqr:active {
   transform: scale(0.9) !important;
 }
-
-/* Hộp thoại Menu Dropdown danh sách Tab */
-.asscee_tabListExpand {
-  position: absolute !important;
-  top: 36px !important;
-  left: 8px !important;
-  width: 144px !important;
+/* class asscee_Text */
+.asscee_Text {
+  font-size: 12px !important;
+  color: #9aa0a6 !important;
+  letter-spacing: 0.5px !important;
+  font-weight: 500 !important;
+}
+/* class asscee_ListExpand */
+.asscee_ListExpand {
   background-color: #17191c !important;
   border: 1px solid rgba(60, 64, 67, 0.8) !important;
   border-radius: 8px !important;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6) !important;
   z-index: 30 !important;
   padding: 4px 0 !important;
-  display: none;
 }
-
-.asscee_tabListExpand.show {
+.asscee_ListExpand.show {
   display: block !important;
 }
-
-.asscee_tabListItem {
+/* class asscee_TextBtn */
+.asscee_TextBtn {
   width: 100% !important;
   text-align: left !important;
   background: none !important;
@@ -141,38 +163,94 @@
   transition: all 0.15s ease !important;
   display: block !important;
 }
-
-.asscee_tabListItem:hover {
+.asscee_TextBtn:hover {
   color: #e8eaed !important;
   background-color: #2a2d32 !important;
 }
-
-.asscee_tabListItem.active {
+.asscee_TextBtn.active {
   color: #f2994a !important;
   background-color: rgba(242, 153, 74, 0.08) !important;
   font-weight: 600 !important;
 }
-
-/* Workspace Content Areas */
-.asscee_workspace {
+/* class asscee_Workspace */
+.asscee_Workspace {
   flex: 1 !important;
   background-color: #1e2024 !important;
   position: relative !important;
   overflow: hidden !important;
 }
-
-.asscee_tabPane {
+/* class asscee_TabPane */
+.asscee_TabPane {
   display: none !important;
   width: 100% !important;
   height: 100% !important;
 }
-
-.asscee_tabPane.active {
+.asscee_TabPane.active {
   display: block !important;
 }
-
-/* Footer Trạng Thái */
-.asscee_footer {
+/* class asscee_InputBar */
+.asscee_InputBar {
+  display: flex;
+  gap: 8px; /* Khoảng cách giữa ô input và nút bấm */
+  margin-bottom: 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+/* class asscee_Input */
+.asscee_Input {
+  flex-grow: 1; /* Ép ô input tự giãn rộng hết cỡ */
+  height: 36px;
+  padding: 0 12px;
+  font-size: 13px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  outline: none;
+  background-color: #fff;
+  color: #333;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease;
+}
+.asscee_Input:focus {
+  border-color: #065fd4;
+}
+/* class asscee_Divider */
+.asscee_Divider {
+  display: flex;
+  align-items: center;
+  margin: 12px 0;
+  width: 100%;
+}
+/* class asscee_DividerLine */
+.asscee_DividerLine {
+  flex-grow: 1;
+  height: 1px;
+  background-color: #e5e5e5; 
+}
+/* class asscee_ListContainer */
+.asscee_ListContainer {
+  flex-grow: 1;
+  overflow-y: auto; /* Tự động xuất hiện thanh cuộn đứng nếu danh sách quá dài */
+  max-height: 300px; /* Bạn có thể tùy chỉnh lại chiều cao này cho hợp UI */
+  padding-right: 4px; /* Tránh thanh cuộn đè vào nội dung */
+}
+/* class asscee_List */
+.asscee_List {
+  list-style-type: none; /* Xóa bỏ dấu chấm đầu dòng của ul */
+}
+/* class asscee_LinkText */
+.asscee_TextLink {
+  display: flex;
+  justify-content: space-between; /* Đẩy thông tin sang trái, thời gian sang phải */
+  align-items: center;
+  padding: 10px 8px;
+  border-bottom: 1px dashed #eee;
+  font-size: 13px;
+}
+.asscee_TextLink:hover {
+  background-color: #f9f9f9; /* Hiệu ứng highlight nhẹ khi di chuột vào dòng */
+}
+/* class asscee_Footer */
+.asscee_Footer {
   display: none !important;
   padding: 10px 12px !important;
   border-top: 1px solid rgba(60, 64, 67, 0.4) !important;
@@ -182,17 +260,8 @@
   justify-content: space-between !important;
   height: 34px !important;
 }
-
-.asscee_footerInfo {
-  display: none !important;
-  font-size: 9px !important;
-  font-family: monospace !important;
-  color: #5f6368 !important;
-  letter-spacing: 0.5px !important;
-  text-transform: uppercase !important;
-}
-
-.asscee_footerMisc {
+/* class asscee_TextInBox */
+.asscee_TextInBox {
   display: none !important;
   font-size: 9px !important;
   font-family: monospace !important;
@@ -202,3 +271,4 @@
   padding: 2px 6px !important;
   border-radius: 4px !important;
 }
+
