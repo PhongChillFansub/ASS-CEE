@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.0.2 02jun26
+// v0.0.0.2 03jun26
 // Hàm gửi log từ content.js về background.js
 function sendLogToBackground(message, type = 'info') {
   chrome.runtime.sendMessage({

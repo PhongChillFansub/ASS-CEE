@@ -5,11 +5,11 @@
     <!-- Thanh tiêu đề -->  
     <div class="asscee_titleLeftGrp">
       <!-- Chia thanh tiêu đề thành 2 phần: nút Danh sách trang và Tiêu đề ở trái -->
-      <button id="asscee_tabListBtn" class="asscee_tabListBtn"></button>
+      <button id="asscee_tabListBtn" class="asscee_SqrBtn"></button>
       <span id="asscee_title" class="asscee_title"></span>
     </div>
       <!-- Nút ẩn giao diện ở bên phải -->
-    <button id="asscee_closeBtn" class="asscee_closeBtn"></button>
+    <button id="asscee_closeBtn" class="asscee_SqrBtn"></button>
     <!-- Hết thanh tiêu đề -->
   </div>
   
@@ -22,7 +22,27 @@
 
   <div class="asscee_workspace">
     <!-- Phần nội dung các trang-->
-    <div id="asscee_tab1_content" class="asscee_tabPane active"></div>
+    <div id="asscee_tab1_content" class="asscee_tabPane active">
+      <!-- Tab 1: Quản lí nguồn (folder)-->
+      <div class="asscee_linkInputBar"> <!-- Thanh ghi thêm nguồn -->
+        <input 
+          type="text" 
+          id="asscee_linkInput" 
+          autocomplete="off"
+        />
+        <!-- placeholder="Thêm nguồn (link folder GitHub/GDrive)..."? -->
+        <button id="asscee_addFolderBtn" class="asscee_SqrBtn"></button>
+        <!-- Nút thêm nguồn -->
+      </div>
+      <div class="asscee_divider"> <!-- Phần ngăn cách-->
+        <span class="asscee_dividerText">Danh sách đã thêm</span>
+        <div class="asscee_dividerLine"></div>
+      </div>
+      <div class="asscee-list-container"> <!-- Phần danh sách nguồn -->
+        <ul id="asscee-link-list">
+          </ul>
+      </div>
+    </div>
     <div id="asscee_tab2_content" class="asscee_tabPane"></div>
     <div id="asscee_tab3_content" class="asscee_tabPane"></div>
   </div>

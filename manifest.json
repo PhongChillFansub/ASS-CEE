@@ -16,7 +16,7 @@
     "default_title": "[PhongChillFansub] ASS-CEE. Click để kích hoạt phụ đề cho trang này"
   },
   "content_scripts": [{
-    "matches": ["https://www.youtube.com/*"],
+    "matches": ["https://www.youtube.com/watch*"],
     "js": [
       "content/ui.js",
       "content/content.js"
