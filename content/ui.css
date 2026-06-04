@@ -1,4 +1,4 @@
-/* v0.0.0.2 03jun26 */
+/* v0.0.0.2 04jun26 */
 #asscee_overlayRoot {
   /* Phần quy định UI cho "khung UI" */
   position: fixed !important;
@@ -46,6 +46,7 @@ asscee_BarTitle
 asscee_TitleLeftGrp
 asscee_BtnSqr
 asscee_Text
+asscee_SubText
 asscee_ListExpand
 asscee_TextBtn
 asscee_Workspace
@@ -56,6 +57,9 @@ asscee_Divider
 asscee_DividerLine
 asscee_ListContainer
 asscee_List
+asscee_LinkText
+asscee_LinkItem
+asscee_ItemRow
 asscee_Footer
 asscee_TextInBox */
 
@@ -76,6 +80,22 @@ asscee_TextInBox */
   width: 36px !important;
   height: 36px !important;
   font-size: 18px !important;
+}
+/* Các thuộc tính chỉ áp dụng riêng cho ô ID/Url (Cắt chữ nếu quá dài) */
+#asscee_itemIdSub {
+  max-width: 70% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* Tùy biến riêng cho mốc thời gian nếu bạn muốn nó nhỏ hơn một chút nữa (10px) */
+#asscee_itemTimeSub {
+  font-size: 10px !important;
+}
+/* ID riêng cho nút xóa để đổi màu đỏ khi hover nếu bạn muốn */
+#asscee_itemDeleteBtn:hover {
+  color: #ff4d4f !important;
+  background-color: rgba(255, 77, 79, 0.1) !important;
 }
 
 /* class asscee_UI */
@@ -137,6 +157,12 @@ asscee_TextInBox */
   color: #9aa0a6 !important;
   letter-spacing: 0.5px !important;
   font-weight: 500 !important;
+}
+/* class asscee_SubText */
+.asscee_SubText {
+  font-size: 11px !important; /* Chữ nhỏ hơn font mặc định 12px */
+  color: #606060 !important;   /* Màu gần xám hơn */
+  white-space: nowrap !important;
 }
 /* class asscee_ListExpand */
 .asscee_ListExpand {
@@ -248,6 +274,27 @@ asscee_TextInBox */
 }
 .asscee_TextLink:hover {
   background-color: #f9f9f9; /* Hiệu ứng highlight nhẹ khi di chuột vào dòng */
+}
+/* class asscee_LinkItem */
+.asscee_LinkItem {
+  display: flex;
+  flex-direction: column; /* Xếp dọc dòng 1 và dòng 2 */
+  gap: 4px;              /* Khoảng cách giữa dòng 1 và dòng 2 */
+  padding: 10px 12px;
+  border-bottom: 1px dashed #e5e5e5;
+  cursor: pointer;       /* Tạo cảm giác đây là một nút bấm lớn */
+  transition: background-color 0.15s ease;
+  user-select: none;     /* Không cho bôi đen chữ khi click mở rộng */
+}
+.asscee_LinkItem:hover {
+  background-color: #f5f5f5;
+}
+/* class asscee_ItemRow */
+.asscee_ItemRow {
+  display: flex;
+  justify-content: space-between; /* Đẩy nội dung sang 2 đầu trái/phải */
+  align-items: center;
+  width: 100%;
 }
 /* class asscee_Footer */
 .asscee_Footer {
