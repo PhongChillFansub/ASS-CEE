@@ -1,5 +1,10 @@
 // Code bằng tay
-// v0.0.0.1 27may26
+// v0.0.0.2 04jun26
+// storage.js
+// Chức năng: chuyên xử lí lưu trữ trên chrome.storage.local.
+// 7 hàm export là:
+// addSource, getSourceList, removeSource
+// addSubData, getSubDataList, useSubData, removeSubData
 // Lưu 2 key khác nhau trên chrome.storage.local.
 const SUBTITLE_SOURCES_KEY = "ASSCEE_sourceList";
 const SUBTITLE_DATA_KEY = "ASSCEE_dataFile";
@@ -37,7 +42,7 @@ export async function addSource(source = {}) {
  * Hàm lấy danh sách nguồn
  * @returns danh sách URL folder (dạng array).
  */
-export async function getSources() {
+export async function getSourceList() {
   const data = await chrome.storage.local.get(SUBTITLE_SOURCES_KEY);
   const sources = data[SUBTITLE_SOURCES_KEY];
   // Nếu là mảng thì trả về mảng, nếu chưa có dữ liệu (undefined/null) thì trả về mảng rỗng []
@@ -61,21 +66,11 @@ export async function removeSource(time) {
   return true;
 }
 /**
- * Hàm lấy dữ liệu file sub (obj) dựa trên videoId
- * @param {*} videoId đầu vào
- * @returns 
- */
-export async function getSubtitleCache(videoId) {
-  const data = await chrome.storage.local.get(SUBTITLE_DATA_KEY);
-  const cache = data[SUBTITLE_DATA_KEY] || {};
-  return cache[videoId] || null;
-}
-/**
  * Hàm lưu dữ liệu file sub (obj) dựa trên videoId
  * @param {*} videoId đầu vào
  * @param {*} subtitleObj đầu vào dạng subObj (quy định trong file background.js, xem pipeline.txt)
  */
-export async function saveSubtitleCache(videoId, subtitleObj = {}) {
+export async function addSubData(videoId, subtitleObj = {}) {
     // Chỉ lưu dữ liệu subtitleObj chứa parsedData (xem pipeline.txt)
     if (!videoId || typeof subtitleObj.parsedData !== "object") { 
         throw new Error("Dữ liệu file sub lưu cache không hợp lệ"); 
@@ -90,4 +85,20 @@ export async function saveSubtitleCache(videoId, subtitleObj = {}) {
       "font-weight: bold;",
       ""
     );
+}
+/**
+ * Hàm lấy dữ liệu file sub (obj) dựa trên videoId
+ * @param {*} videoId đầu vào
+ * @returns 
+ */
+export async function useSubData(videoId) {
+  const data = await chrome.storage.local.get(SUBTITLE_DATA_KEY);
+  const cache = data[SUBTITLE_DATA_KEY] || {};
+  return cache[videoId] || null;
+}
+export async function getSourceList() {
+  const data = await chrome.storage.local.get(SUBTITLE_SOURCES_KEY);
+  const sources = data[SUBTITLE_SOURCES_KEY];
+  // Nếu là mảng thì trả về mảng, nếu chưa có dữ liệu (undefined/null) thì trả về mảng rỗng []
+  return Array.isArray(sources) ? sources : [];
 }
