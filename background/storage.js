@@ -19,7 +19,7 @@ export async function addSource(source = {}) {
     throw new Error("Dữ liệu nguồn không hợp lệ");
     // Kiểm tra cấu trúc dữ liệu
   }
-  const sources = (await getSources());
+  const sources = (await getSourceList());
   // Lấy danh sách nguồn đã có để kiểm tra trùng lặp (hàm getSources đã fallback array trống)
   if (sources.some(item => item.url === source.url)) {
     // Kiểm tra nếu nguồn trùng lặp, báo lại và dừng
@@ -101,4 +101,39 @@ export async function getSourceList() {
   const sources = data[SUBTITLE_SOURCES_KEY];
   // Nếu là mảng thì trả về mảng, nếu chưa có dữ liệu (undefined/null) thì trả về mảng rỗng []
   return Array.isArray(sources) ? sources : [];
+}
+
+
+// Phần vibe coding, cần check lại
+/**
+ * Hàm lấy toàn bộ danh sách dữ liệu sub đang được lưu cache
+ * @returns {Promise<Object>} Object chứa tất cả videoId và subtitleObj đi kèm
+ */
+export async function getSubDataList() {
+  const data = await chrome.storage.local.get(SUBTITLE_DATA_KEY);
+  const cache = data[SUBTITLE_DATA_KEY];
+  return cache && typeof cache === "object" ? cache : {};
+}
+/**
+ * Hàm loại bỏ dữ liệu sub của một videoId cụ thể khỏi cache
+ * @param {string} videoId 
+ * @returns {Promise<boolean>} true nếu xóa thành công
+ */
+export async function removeSubData(videoId) {
+  if (!videoId) return false;
+  const storageData = await chrome.storage.local.get(SUBTITLE_DATA_KEY);
+  const data = storageData[SUBTITLE_DATA_KEY] || {};
+  
+  if (!data[videoId]) return false;
+
+  // Tiến hành xóa key videoId khỏi object bằng cách phân rã (destructuring)
+  const { [videoId]: deletedVideo, ...updated } = data;
+  
+  await chrome.storage.local.set({ [SUBTITLE_DATA_KEY]: updated });
+  console.log(
+    `%c[ASS-CEE]%c storage: Đã xóa cache sub obj của vid: ${videoId}.`, 
+    "font-weight: bold;",
+    ""
+  );
+  return true;
 }
