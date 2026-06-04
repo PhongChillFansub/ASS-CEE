@@ -1,8 +1,12 @@
 // Code bằng tay
-// v0.0.0.2 02jun26
+// v0.0.0.2 04jun26
 const FETCH_TIMEOUT = 60000; // Tối đa 60 giây kết nối và nhận dữ liệu. Dùng cho hàm fetchWithTimeout().
 const VALID_FILE_SIGNATURE = ["[Script Info]", "[V4+ Styles]", "[Events]"];
 // Danh sách các nội dung mà parser dùng để đánh dấu. Dùng cho hàm validateSubtitleContent().
+// fetcher.js
+// Chức năng: xử lí ban đầu, giai đoạn từ danh sách link thư mục nguồn đến giai đoạn có file sub thô (rawText)
+// 2 hàm export là fetchSubtitleText (từ link file sub tới rawText)
+// và fetchSubtitleFile (từ danh sách link thư mục nguồn đến danh sách link file sub)
 /**
  * Hàm nhận URL GDrive của file sub qua cấu trúc obj URL file sub (candidate), tải về text của file sub
  * @param {*} candidate candidate (hoặc results.push) = {
