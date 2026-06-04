@@ -1,5 +1,8 @@
 // Code bằng tay
-// v0.0.0.2 30may26
+// v0.0.0.2 04jun26
+// parser.js
+// Chức năng: xử lí kế tiếp, giai đoạn từ giai đoạn có file sub thô (rawText) đến cấu trúc file sub JS (line.raw)
+// hàm export là parseAegisubRaw (từ rawText đến cấu trúc JS)
 // Mẫu text của các line [Events] trong file sub
 // [Events]
 // Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
