@@ -69,11 +69,11 @@ export async function fetchSubtitleFile(sources, videoId, folderName) {
         if (source.type === 'github') {
             return scanGitHub(source, videoId, folderName);
         } else if (source.type === 'gdrive') {
-            return scanGoogleDrive(source, videoId, folderName);
+            return scanGDrive(source, videoId, folderName);
         } 
         console.warn(`[ASS-CEE] fetcher: Link chuẩn chưa em? (${source})`);
         return [];
-		// Đã check, khớp đầu vào của scanGoogleDrive().
+		// Đã check, khớp đầu vào của scanGDrive().
     });
     // 2. Chờ tất cả các luồng quét kết thúc đồng thời
     const results = await Promise.allSettled(scanPromises);
@@ -172,7 +172,7 @@ async function scanGitHub(source, videoId, folderName = { groupName:'',id:'' }) 
     groupName
   } 
  */
-async function scanGoogleDrive(source, videoId, folderName = { groupName: '',id: '' }) {
+async function scanGDrive(source, videoId, folderName = { groupName: '',id: '' }) {
 	// Hàm quét thư mục GDrive (Gemini, đã check)
     // 1. Bóc tách lấy ID của thư mục từ URL
     const folderId = source.url.split('/folders/')[1]?.split('?')[0];
