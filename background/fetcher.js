@@ -53,33 +53,48 @@ function validateSubtitleContent(text) {
 }
 /**
  * Hàm quét DANH SÁCH thư mục GitHub/GDrive (thông qua 2 hàm scanGitHub và scanGoogleDrive)
- * @param {*} sources array các string URL thư mục GitHub/GDrive
+ * @param {*} sources folderData = { url, // bắt buộc
+        type, folderName, folderId, // chạy lần đầu sẽ được cấp
+        savedAt, // ko sử dụng, do storage.js cấp (addSource())
+    }
  * @param {*} videoId id YT video cần tìm
+ * @param {*} folderGet tham chiếu để lấy các thông tin { type, folderName, folderId }
  * @returns DANH SÁCH (array) các file theo cấu trúc candidate {
-    id,
-    fileName,
-    url,
-    sourceType: 'gdrive' hoặc 'github',
-    groupName
-  } 
+        id,
+        fileName,
+        url,
+        sourceType: 'gdrive' hoặc 'github',
+        groupName
+    }
  */
-export async function fetchSubtitleFile(sources, videoId, folderName) {
+export async function fetchSubtitleFile(sources, videoId, folderGet) {
     const scanPromises = sources.map(source => {
-        // Tạo một đối tượng source đơn giản để truyền vào hàm quét
-        if (source.type === 'github') {
-            return scanGitHub(source, videoId, folderName);
-        } else if (source.type === 'gdrive') {
-            return scanGDrive(source, videoId, folderName);
-        } 
-        console.warn(`[ASS-CEE] fetcher: Link chuẩn chưa em? (${source})`);
+        // Ưu tiên dùng source.type có sẵn, nếu chạy lần đầu chưa có thì check qua URL
+        const type = source.type || (
+            source.url?.includes('github.com') 
+                ? 'github' 
+                : (source.url?.includes('drive.google.com') && source.url?.includes('folders')) 
+                    ? 'gdrive' 
+                    : null
+        ); 
+        folderGet.type = type; // Chạy lần đầu được cấp .type ở đây
+        if (type === 'github') {
+            return scanGitHub(source, videoId, folderGet); // Chạy lần đầu được cấp .folderName, .Id ở đây
+        } else if (type === 'gdrive') {
+            return scanGDrive(source, videoId, folderGet); // Chạy lần đầu được cấp .folderName, .Id ở đây
+        } else {
+            console.warn(`[ASS-CEE] fetcher: Link chuẩn chưa em? (${source})`);
+            return [];
+        }
+    );
+    if (!videoId) {
+        console.log(`[ASS-CEE] fetcher: Coi như link folder chạy lần đầu (${source})`);
         return [];
-		// Đã check, khớp đầu vào của scanGDrive().
-    });
+    }
     // 2. Chờ tất cả các luồng quét kết thúc đồng thời
     const results = await Promise.allSettled(scanPromises);
     // 3. Gom và làm phẳng danh sách file sub tìm được
     const candidates = results.filter(r => r.status === 'fulfilled').flatMap(r => r.value);
-
     // 4. Sắp xếp file theo thứ tự bảng chữ cái ABC
 	candidates.sort((a, b) => a.groupName.localeCompare(b.groupName) || a.fileName.localeCompare(b.fileName));
 	// So sánh theo groupName trước, sau đó là theo fileName. 
@@ -88,9 +103,9 @@ export async function fetchSubtitleFile(sources, videoId, folderName) {
 }
 /**
  * Hàm quét 1 thư mục GitHub
- * @param {*} source string URL thư mục GitHub
+ * @param {*} source {url}, chứa string URL thư mục GitHub
  * @param {*} videoId id YT video cần tìm
- * @param {*} folderName {groupName: '',id:''} lưu tên folder lấy được trong quá trình fetch
+ * @param {*} folderGet { type, folderName, folderId } tham chiếu để lấy dữ liệu folder.
  * @returns DANH SÁCH các file theo cấu trúc candidate {
     id,
     fileName,
@@ -99,37 +114,35 @@ export async function fetchSubtitleFile(sources, videoId, folderName) {
     groupName
     }
  */
-async function scanGitHub(source, videoId, folderName = { groupName:'',id:'' }) {
-    // folderName
+async function scanGitHub(source, videoId, folderGet) {
     // 1. Kiểm tra cấu trúc URL
     const regex = /github\.com\/([^\/]+)\/([^\/]+)\/tree\/([^\/]+)\/?(.*)/;
     // Cấu trúc link GitHub folder chuẩn 
     const match = source.url.match(regex);
     if (!match) {
-        console.warn(`[ASS-CEE] fetcher: Link chuẩn chưa em? (GitHub: ${source})`);
-        return []
-        // Nếu URL không đúng chuẩn, báo lại
+        console.warn(`[ASS-CEE] fetcher: Link chuẩn chưa em?\n(GitHub: ${source.url})`);
+        return []; // Nếu URL không đúng chuẩn, báo lại
     }
     const [_, owner, repo, branch, path] = match;
-    folderName.groupName = `${path}`;
-    folderName.id = `${owner}/${repo}/${branch}`;
+    folderGet.groupName = `${path}`;
+    folderGet.id = `${owner}/${repo}/${branch}`;
     // Trích xuất các thông tin trong URL, lưu vào groupName để xử lí và hiển thị sau này
     const results = [];
     try {
         // 2. Tạo URL API và quét thư mục
         const url =`https://api.github.com/repos/${owner}/${repo}/contents/${path || ""}?ref=${branch}`;
-        const resp = await fetchWithTimeout(url, folderName.groupName, "folder");
+        const resp = await fetchWithTimeout(url, folderGet.groupName, "folder");
         // fetchWithTimeout()?
         if (!resp.ok) return [];
         const items = await resp.json();
         if (!Array.isArray(items)) {
-            console.warn(`[ASS-CEE] fetcher: Lag? (GitHub API ko trả về array, folder: ${groupName})`);
+            console.warn(`[ASS-CEE] fetcher: Lag? (GitHub API ko trả về array, folder: ${folderGet.groupName})`);
             return [];
             // Kiểm tra nếu trả về ko phải array các file
         }
         if (!videoId) {
-            // Nếu ko có videoId (có chủ ý: để lấy dữ liệu folderName.groupName và .id)
-            console.log(`[ASS-CEE] fetcher: Đang dò lấy dữ liệu thư mục GitHub: ${folderName.groupName})`)
+            // Nếu ko có videoId (có chủ ý: để lấy dữ liệu folderGet.groupName và .id)
+            console.log(`[ASS-CEE] fetcher: Đã lấy xong dữ liệu thư mục GitHub lần đầu: ${folderGet.groupName})`)
             return [];
         }
         for (const item of items) { // 3. Quét các file tìm được
@@ -143,7 +156,7 @@ async function scanGitHub(source, videoId, folderName = { groupName:'',id:'' }) 
                     // URL cấu hình tải trực tiếp file thô từ Drive mà không cần API Key
                     url: item.download_url,
                     sourceType: 'github',
-                    groupName: folderName.groupName
+                    groupName: folderGet.groupName
                 }); 
             }
         }
@@ -152,7 +165,7 @@ async function scanGitHub(source, videoId, folderName = { groupName:'',id:'' }) 
         console.error("[ASS-CEE] fetcher: Lỗi quét GitHub:", e);
     }
     console.log(
-		`[ASS-CEE] fetcher: Đã quét xong folder ${folderName.groupName}(${folderName.id})`, 
+		`[ASS-CEE] fetcher: Đã quét xong folder ${folderGet.groupName}(${folderGet.id})`, 
 		"font-weight: bold;",
 		""
 	);
@@ -161,9 +174,9 @@ async function scanGitHub(source, videoId, folderName = { groupName:'',id:'' }) 
 }
 /**
  * Hàm quét 1 thư mục GDrive
- * @param {*} source string URL thư mục GDrive
+ * @param {*} source {url}, chứa string URL thư mục GDrive
  * @param {*} videoId id YT video cần tìm
- * @param {*} folderName {groupName: '' } lưu tên folder lấy được trong quá trình fetch
+ * @param {*} folderGet { type, folderName, folderId } tham chiếu để lấy dữ liệu folder.
  * @returns DANH SÁCH các file theo cấu trúc candidate {
     id,
     fileName,
@@ -179,7 +192,7 @@ async function scanGDrive(source, videoId, folderName = { groupName: '',id: '' }
 	// URL folder GDrive dạng https://drive.google.com/drive/folders/1A2b3C4d5E6f?usp=sharing
 	// .split('/folder/')[1] để lấy 1A2b3C4d5E6f?usp=sharing; .split('?')[0] để lấy 1A2b3C4d5E6f
     if (!folderId) {
-        console.warn(`[ASS-CEE] fetcher: Link chuẩn chưa em? (GDrive: ${source})`);
+        console.warn(`[ASS-CEE] fetcher: Link chuẩn chưa em?\n(GDrive: ${source.url})`);
         return []
     }
 	// Nếu ko tìm thấy Id (vd: split('/folder/') ko hoạt động) thì trả về trống.
@@ -198,7 +211,6 @@ async function scanGDrive(source, videoId, folderName = { groupName: '',id: '' }
         // Nếu tìm thấy thì lấy nhóm 1 và xóa khoảng trắng, nếu không thấy thì để tên mặc định
         folderName.groupName = titleMatch ? titleMatch[1].trim() : "undefined_GDrive";
         folderName.id = folderId;
-        
         // 4. Regex bóc tách cặp [File ID, Tên File] từ đống dữ liệu JSON ẩn trong HTML
         const entryRegex = /\["([a-zA-Z0-9_-]{19,})","([^"]+)"/g;
         if (!videoId) {
