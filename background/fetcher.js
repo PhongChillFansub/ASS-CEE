@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.0.2 04jun26
+// v0.0.0.2 05jun26
 const FETCH_TIMEOUT = 60000; // Tối đa 60 giây kết nối và nhận dữ liệu. Dùng cho hàm fetchWithTimeout().
 const VALID_FILE_SIGNATURE = ["[Script Info]", "[V4+ Styles]", "[Events]"];
 // Danh sách các nội dung mà parser dùng để đánh dấu. Dùng cho hàm validateSubtitleContent().
@@ -23,11 +23,7 @@ export async function fetchSubtitleText(candidate) {
     const resp = await fetchWithTimeout(candidate.url, candidate.id, "file");
 	// Tải file từ nguồn
     if (!resp.ok) {
-		console.error(
-			`%c[ASS-CEE]%c fetcher: Không thể tải file từ nguồn ${candidate.id}, ${candidate.fileName}`, 
-			"color: red; font-weight: bold;",
-			""
-		);
+		console.error(`[ASS-CEE] fetcher: Không thể tải file từ nguồn ${candidate.id}, ${candidate.fileName}`);
 		throw new Error("Không thể tải file từ nguồn.")
 	}
     const text = await resp.text();
@@ -35,27 +31,15 @@ export async function fetchSubtitleText(candidate) {
 	if (contentLength) {
 		const byteSize = parseInt(contentLength, 10);
 		if (byteSize > 10*1024*1024) {
-            console.warn(
-                `%c[ASS-CEE]%c fetcher: Chú ý file sub ${candidate.id}, ${candidate.fileName} có dung lượng trên 10MB (${(byteSize / (1024 * 1024)).toFixed(2)} MB)`, 
-                "color: orange; font-weight: bold;", 
-                ""
-            );
+            console.warn(`[ASS-CEE] fetcher: Chú ý file sub ${candidate.id}, ${candidate.fileName} có dung lượng trên 10MB (${(byteSize / (1024 * 1024)).toFixed(2)} MB)`);
         }
 	} else {
-		console.warn(
-		`%c[ASS-CEE]%c fetcher: Không tìm thấy thông tin dung lượng file sub ${candidate.id}, ${candidate.fileName}`, 
-		"color: orange; font-weight: bold;",
-		""
-	    );
+		console.warn(`[ASS-CEE] fetcher: Không tìm thấy thông tin dung lượng file sub ${candidate.id}, ${candidate.fileName}`);
 	}
 	// Lấy text của file sub.
     validateSubtitleContent(text);
 	// Kiểm tra tính hợp lệ của file sub (check tồn tại các dòng đánh dấu như [Script Info], [V4+ Styles], [Events])
-    console.log(
-		`%c[ASS-CEE]%c fetcher: Đã fetch text của file ${candidate.fileName} xong.`, 
-		"font-weight: bold;",
-		""
-	);
+    console.log(`[ASS-CEE] fetcher: Đã fetch text của file ${candidate.fileName} xong.`);
     return text;
 }
 /**
@@ -87,11 +71,7 @@ export async function fetchSubtitleFile(sources, videoId, folderName) {
         } else if (source.type === 'gdrive') {
             return scanGoogleDrive(source, videoId, folderName);
         } 
-        console.warn(
-            `%c[ASS-CEE]%c fetcher: Link chuẩn chưa em? (${source})`, 
-            "color: orange; font-weight: bold;",
-            ""
-        );
+        console.warn(`[ASS-CEE] fetcher: Link chuẩn chưa em? (${source})`);
         return [];
 		// Đã check, khớp đầu vào của scanGoogleDrive().
     });
@@ -103,11 +83,7 @@ export async function fetchSubtitleFile(sources, videoId, folderName) {
     // 4. Sắp xếp file theo thứ tự bảng chữ cái ABC
 	candidates.sort((a, b) => a.groupName.localeCompare(b.groupName) || a.fileName.localeCompare(b.fileName));
 	// So sánh theo groupName trước, sau đó là theo fileName. 
-    console.log(
-		`%c[ASS-CEE]%c fetcher: Đã tìm xong các file tương ứng. (${videoId}, trả về ${candidates.length})`, 
-		"font-weight: bold;",
-		""
-	);
+    console.log(`[ASS-CEE] fetcher: Đã tìm xong các file tương ứng. (${videoId}, trả về ${candidates.length})`);
     return candidates;
 }
 /**
@@ -130,11 +106,7 @@ async function scanGitHub(source, videoId, folderName = { groupName:'',id:'' }) 
     // Cấu trúc link GitHub folder chuẩn 
     const match = source.url.match(regex);
     if (!match) {
-        console.warn(
-            `%c[ASS-CEE]%c fetcher: Link chuẩn chưa em? (GitHub: ${source})`, 
-            "color: orange; font-weight: bold;",
-            ""
-        );
+        console.warn(`[ASS-CEE] fetcher: Link chuẩn chưa em? (GitHub: ${source})`);
         return []
         // Nếu URL không đúng chuẩn, báo lại
     }
@@ -151,21 +123,13 @@ async function scanGitHub(source, videoId, folderName = { groupName:'',id:'' }) 
         if (!resp.ok) return [];
         const items = await resp.json();
         if (!Array.isArray(items)) {
-            console.warn(
-                `%c[ASS-CEE]%c fetcher: Lag? (GitHub API ko trả về array, folder: ${groupName})`, 
-                "color: orange; font-weight: bold;",
-                ""
-            );
+            console.warn(`[ASS-CEE] fetcher: Lag? (GitHub API ko trả về array, folder: ${groupName})`);
             return [];
             // Kiểm tra nếu trả về ko phải array các file
         }
         if (!videoId) {
             // Nếu ko có videoId (có chủ ý: để lấy dữ liệu folderName.groupName và .id)
-            console.log(
-                `%c[ASS-CEE]%c fetcher: Đang dò lấy dữ liệu thư mục GitHub: ${folderName.groupName})`, 
-                "font-weight: bold;",
-                ""
-            )
+            console.log(`[ASS-CEE] fetcher: Đang dò lấy dữ liệu thư mục GitHub: ${folderName.groupName})`)
             return [];
         }
         for (const item of items) { // 3. Quét các file tìm được
@@ -185,14 +149,10 @@ async function scanGitHub(source, videoId, folderName = { groupName:'',id:'' }) 
         }
 
     } catch (e) {
-        console.error(
-			"%c[ASS-CEE]%c fetcher: Lỗi quét GitHub:", e, 
-			"color: red; font-weight: bold;",
-			""
-		);
+        console.error("[ASS-CEE] fetcher: Lỗi quét GitHub:", e);
     }
     console.log(
-		`%c[ASS-CEE]%c fetcher: Đã quét xong folder ${folderName.groupName}(${folderName.id})`, 
+		`[ASS-CEE] fetcher: Đã quét xong folder ${folderName.groupName}(${folderName.id})`, 
 		"font-weight: bold;",
 		""
 	);
@@ -219,19 +179,11 @@ async function scanGoogleDrive(source, videoId, folderName = { groupName: '',id:
 	// URL folder GDrive dạng https://drive.google.com/drive/folders/1A2b3C4d5E6f?usp=sharing
 	// .split('/folder/')[1] để lấy 1A2b3C4d5E6f?usp=sharing; .split('?')[0] để lấy 1A2b3C4d5E6f
     if (!folderId) {
-        console.warn(
-            `%c[ASS-CEE]%c fetcher: Link chuẩn chưa em? (GDrive: ${source})`, 
-            "color: orange; font-weight: bold;",
-            ""
-        );
+        console.warn(`[ASS-CEE] fetcher: Link chuẩn chưa em? (GDrive: ${source})`);
         return []
     }
 	// Nếu ko tìm thấy Id (vd: split('/folder/') ko hoạt động) thì trả về trống.
-	console.log(
-		`%c[ASS-CEE]%c fetcher: Đang tìm thư mục GDrive ${folderId}`, 
-		"font-weight: bold;",
-		""
-	);
+	console.log(`[ASS-CEE] fetcher: Đang tìm thư mục GDrive ${folderId}`);
     const results = [];
     try {
         // 2. Tạo URL proxy giao diện nhúng và tải mã HTML về
@@ -251,11 +203,7 @@ async function scanGoogleDrive(source, videoId, folderName = { groupName: '',id:
         const entryRegex = /\["([a-zA-Z0-9_-]{19,})","([^"]+)"/g;
         if (!videoId) {
             // Nếu ko có videoId (có chủ ý: để lấy dữ liệu folderName.groupName và .id)
-            console.log(
-                `%c[ASS-CEE]%c fetcher: Đang dò lấy dữ liệu thư mục GDrive: ${folderName.groupName})`, 
-                "font-weight: bold;",
-                ""
-            )
+            console.log(`[ASS-CEE] fetcher: Đang dò lấy dữ liệu thư mục GDrive: ${folderName.groupName})`)
             return [];
         }
         let match;
@@ -276,17 +224,9 @@ async function scanGoogleDrive(source, videoId, folderName = { groupName: '',id:
             }
         }
     } catch (e) {
-        console.error(
-			"%c[ASS-CEE]%c fetcher: Lỗi quét Google Drive:", e, 
-			"color: red; font-weight: bold;",
-			""
-		);
+        console.error("[ASS-CEE] fetcher: Lỗi quét Google Drive:", e);
     }
-    console.log(
-		`%c[ASS-CEE]%c fetcher: Đã quét xong folder ${folderName.groupName}(${folderName.id})`, 
-		"font-weight: bold;",
-		""
-	);
+    console.log(`[ASS-CEE] fetcher: Đã quét xong folder ${folderName.groupName}(${folderName.id})`);
     return results;
 	// Như vậy cấu trúc của results là array với các phần tử là obj gồm {id, fileName, url, sourceType, groupName}
 	// phụ thuộc các hàm ngoài là fetchWithTimeout() và isMatchingSubtitle()
@@ -315,22 +255,14 @@ async function fetchWithTimeout(url, id = "undefined", type = "undefined") {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
     const logLabel = `[ASS-CEE] fetcher: ${id}`;
-    console.log(
-        `%c${logLabel}%c Đang tải ${type} ${id}.`, 
-        "color: orange; font-weight: bold;",
-        ""
-    );
+    console.log(`${logLabel} Đang tải ${type} ${id}.`);
 	console.time(logLabel);
     const progressInterval = setInterval(() => {console.timeLog(logLabel, `(Đang kết nối)`);}, 1000);
     try {
         return await fetch(url, { signal: controller.signal });
     } catch (error) {
         if (error.name === 'AbortError') {
-            console.warn(
-				`%c${logLabel}%c -> Quá thời gian chờ ${FETCH_TIMEOUT/1000}s (timeout)`, 
-				"color: orange; font-weight: bold;",
-                ""
-			);
+            console.warn(`${logLabel} -> Quá thời gian chờ ${FETCH_TIMEOUT/1000}s (timeout)`);
         }
         throw error;
     } finally {
