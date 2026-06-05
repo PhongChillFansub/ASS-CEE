@@ -1,14 +1,21 @@
 // Code bằng tay
 // v0.0.0.2 02jun26
 import { fetchSubtitleText, fetchSubtitleFile } from './fetcher.js';
-// fetchSubtitleText, fetchSubtitleFile
-import { addSource, getSources, removeSource, getSubtitleCache, saveSubtitleCache } from './storage.js';
-// addSource, getSources, removeSource, getSubtitleCache, saveSubtitleCache
-import parseAegisubRaw from './parser.js';
-// parseAegisubRaw
+// 2 hàm fetchSubtitleText, fetchSubtitleFile
+import { addSource, getSourceList, removeSource, addSubData, getSubDataList, useSubData, removeSubData } from './storage.js';
+// 3 hàm với link folder: addSource, getSourceList, removeSource
+// 4 hàm với file sub: addSubData, getSubDataList, useSubData, removeSubData
+import parser from './parser.js';
+// 1 hàm parser
 // Phần xử lí của background khi nhấn vào icon extension
 chrome.action.onClicked.addListener(async (tab) => {
-  if (!tab.url || tab.url.startsWith("chrome://") || tab.url.startsWith("edge://")) return;
+  if (!tab.url || tab.url.startsWith("chrome://")) {
+    await chrome.action.setTitle({
+      tabId: tab.id,
+      title: "[ASS-CEE] Extension sẽ không kích hoạt ở trang này."
+    });
+    return;
+  }
   // Bảo vệ extension tránh crash khi chạy các trang nội bộ trình duyệt (hoặc tab trống)
   const tabId = tab.id;
   // Định danh tab cần chạy, tránh xung đột với các tab khác
@@ -25,9 +32,7 @@ chrome.action.onClicked.addListener(async (tab) => {
       await chrome.scripting.executeScript({
         target: { tabId },
         files: [
-          // "content/styles.js",
           "content/ui.js",
-          // "content/renderer.js",
           "content/content.js"
         ]
       }); // Tạm thời chỉ sử dụng ui.js (thử nghiệm) và content.js
@@ -36,14 +41,14 @@ chrome.action.onClicked.addListener(async (tab) => {
         target: { tabId },
         func: () => { window.__ASS_CEE_UI_INJECTED__ = true; }
       });
-      console.log("[ASS-CEE] background: Đã nạp toàn bộ file content lần đầu.");
+      console.log("[ASS-CEE] background: Đã nạp toàn bộ file content lần đầu (ui.js) và ẩn (content.js).");
     } else {
       // CÁC LẦN CLICK SAU: CHỈ nạp đúng file điều khiển content.js để toggle
       await chrome.scripting.executeScript({
         target: { tabId },
         files: ["content/content.js"]
       });
-      console.log("[ASS-CEE] background: Các lần sau: Chỉ chạy lệnh Toggle.");
+      console.log("[ASS-CEE] background: Các lần sau: Chỉ chạy lệnh Toggle (trên content.js).");
     }
   } catch (err) {
     console.error("[ASS-CEE] background: Lỗi kích hoạt onClicked:", err);
@@ -52,6 +57,7 @@ chrome.action.onClicked.addListener(async (tab) => {
 // Hàm giao tiếp với content.js và ui.js
 let lastLogLocation = { tabId: "", url: "" };
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  
   // Chạy đọc log trước khi sang handler
   if (msg && msg.type === 'LOG_FROM_CONTENTS') {
     const { type, text, url, timestamp } = msg.payload;
@@ -59,7 +65,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     const isSameLocation = (tabId === lastLogLocation.tabId && url === lastLogLocation.url);
     lastLogLocation = { tabId, url };
     const logPrefix = isSameLocation 
-        ? "" 
+        ? `[${timestamp}]\n`
         : `[${timestamp}][${tabId}]\n[${url}]\n`;
     switch (type) {
       case 'error':
@@ -98,51 +104,68 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   } // Kết thúc cấu trúc rẽ nhánh kiểm tra handler hoạt động
   return true; // Kích hoạt cơ chế giữ kênh kết nối mở phục vụ cho các tiến trình xử lý bất đồng bộ
 });
+
+
+
+
 const handlers = {
-  'SOURCE.ADD': async (payload) => {
+  // Mặc định cấu trúc chuẩn là msg = { type, payload }. Ở đây lấy msg.type làm key của obj.
+  'LOG': async (payload, sender) => { // Log
+    const { type, text, url, timestamp } = payload;
+    // Mặc định cấu trúc chuẩn là payload = { type, text, url, timestamp }
+    const tabInfo = sender.tab ? `${sender.tab.id}: ${sender.tab.title}` : 'Unknown Tab';
+    const tabId = sender.tab?.id;
+    // Lấy thông tin tab
+    const isSameLocation = (tabId === lastLogLocation.tabId && url === lastLogLocation.url);
+    lastLogLocation = { tabId, url };
+    // Kiểm tra với log trước
+    const logPrefix = isSameLocation 
+      ? `[${timestamp}]\n`
+      : `[${timestamp}][${tabId}]\n[${url}]\n`;
+    console[type || "log"](`${logPrefix} [ASS-CEE] ${text}`);
+    return { type: 'LOGGED' }; // return là thứ được try..catch tổng gửi trong sendResponse.
+  },
+  'SOURCE.ADD': async (payload) => { // Yêu cầu thêm nguồn
     const { url } = payload;
-    if (!url) {
-      throw new Error("Đường dẫn URL nguồn không hợp lệ");
+    if (!url) throw new Error("payload.url (SOURCE.ADD) trống");
+    let folderGet = {} // Lấy dữ liệu bằng Tham chiếu (reference)
+    await fetchSubtitleFile([{url}], "", folderGet); // Gọi fetchSubtitleFile* lần đầu
+    if (!folderGet.type || !folderGet.groupName || !folderGet.id) {
+      throw new Error("Ko thể trích xuất thông tin folder");
     }
-    const folderGet = {} // Lấy dữ liệu bằng Tham chiếu (reference)
-    await fetchSubtitleFile([url], "", folderGet); // Gọi fetchSubtitleFile với videoId = "" (có chủ ý)
-    if (!folderGet.groupName || !folderGet.id) {
-      return {
-        status: 'NOT_ADDED' // Có thể do ko fetch đc, hoặc link ko chuẩn
-      };
-    }
-    const sourceData = {
+    const source = {
       url,
-      folderName: folderExtractor.groupName,
-      folderId: folderExtractor.id
-    };
-    const result = await addSource(sourceData);
-    return {
-      status: 'ADDED'
-    };
-  }, // Kết thúc xử lý hành động SOURCE.ADD
-  // Nhận yêu cầu quét tìm kiếm phụ đề từ phía Content Script gửi lên
-  'SUBTITLE.SEARCH': async (payload) => {
-    return await resolveSubtitles(payload.videoId);
-  }, // Kết thúc xử lý hành động SUBTITLE.SEARCH
-  //
-  // Nhận yêu cầu tải và phân tích tệp phụ đề cụ thể do người dùng click chọn từ Chooser UI
-  'SUBTITLE.SELECT': async (payload) => {
+      type: folderGet.type,
+      folderName: folderGet.groupName,
+      folderId: folderGet.id
+    }; // Thiết lập cấu trúc dữ liệu cho obj nguồn folder
+    return { type: 'SOURCE.ADDED', payload: await addSource(source) }; // Lưu nguồn vào cache
+    // return là thứ được try..catch tổng gửi trong sendResponse.
+  },
+  'SOURCE.GET_ALL': async () => { // Yêu cầu xem nguồn
+    // const undefined = payload
+    return { type: 'SOURCE.LIST', payload: await getSourceList() };
+  },
+  'SOURCE.REMOVE': async (payload) => { // Yêu cầu xóa nguồn
+    // const { savedAt } = payload
+    return { type: 'SOURCE.REMOVED', payload: await removeSource(payload.savedAt)};
+  },
+  'SUB.SEARCH': async (payload) => { // Yêu cầu tìm kiếm nguồn
+    // const { videoId } = payload
+    return { type: SUB.RESULTS, payload: await resolveSubtitles(payload.videoId)}; // resolveSubtitles()?
+  },
+  'SUB.SELECT': async (payload) => { // Xác nhận nguồn được user chọn
     const { videoId, candidate } = payload;
     const rawText = await fetchSubtitleText(candidate);
     const subObj = await processAndCacheSubtitle(videoId, candidate, rawText);
     return { status: 'HIT', data: subObj };
-  }, // Kết thúc xử lý hành động SUBTITLE.SELECT
-  //
-  // Lấy toàn bộ danh sách liên kết nguồn lưu trữ trong cấu hình
-  'SOURCE.GET_ALL': async () => {
-    return await getSources();
-  }, // Kết thúc xử lý hành động SOURCE.GET_ALL
-  //
-  // Xóa một nguồn cụ thể ra khỏi danh sách bộ nhớ cấu hình lưu trữ
-  'SOURCE.REMOVE': async (payload) => {
-    return await removeSource(payload.savedAt);
-  }, // Kết thúc xử lý hành động SOURCE.REMOVE (Chú ý: nhận dạng theo thời gian)
+  },
+}
+
+
+const handlers = {
+  
+ 
   // Handler mới: Chuyên tiếp nhận dữ liệu chuỗi thô từ thiết bị của user và parse lập tức
   'SUBTITLE.PARSE_RAW': async (payload) => {
     const { rawText, fileName } = payload;
@@ -251,7 +274,7 @@ async function resolveSubtitles(videoId) {
 async function processAndCacheSubtitle(videoId, candidate, rawText) {
   let subObj = { videoId, fileObj: candidate };
   subObj.parsedData = parseAegisubRaw(rawText);
-  await saveSubtitleCache(videoId, subObj);
+  await addSubData(videoId, subObj);
   return subObj;
 }
 console.log(
