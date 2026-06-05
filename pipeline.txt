@@ -57,52 +57,52 @@ v0.0.0.2 05jun26
         }
 
 3. Giao thức giữa background/background.js và content/*.js
-  3.1. Ở phía background.js: chrome.runtime.onMessage.addListener(((msg, sender, sendResponse)) => {})
+  Xét ở phía background.js: chrome.runtime.onMessage.addListener(((msg, sender, sendResponse)) => {})
   (msg là nhận, chi tiết xem phần handlers)
   msg = {
           type, // thuộc các dạng "LOG", "SOURCE.", "SUB." (có thể bổ sung sau)
           payload
         }
-    3.1.1. type === "LOG"
+    3.1. type === "LOG"
             payload = { type, text, url, timestamp }
           sendResponse (tổng): { type: 'LOGGED' }
 
-    3.1.2. type === "SOURCE.ADD"
+    3.2. type === "SOURCE.ADD"
             payload = { url }
           sendResponse (tổng): { type: 'SOURCE.ADDED', payload: folderData }
 
-    3.1.3. type === "SOURCE.GET_ALL"
+    3.3. type === "SOURCE.GET_ALL"
             payload = undefined
           sendResponse (tổng): { type: 'SOURCE.LIST', payload: getSourceList() }; // xem storage.js
 
-    3.1.4. type === "SOURCE.REMOVE"
+    3.4. type === "SOURCE.REMOVE"
             payload = { savedAt }
           sendResponse (tổng): { type: 'SOURCE.REMOVED', payload: await removeSource(payload.savedAt)}; // xem storage.js
 
-    3.1.5. type === "SUB.SEARCH"
+    3.5. type === "SUB.SEARCH"
             payload = { videoId }
           sendResponse (tổng): resolveSubtitles(videoId)
               { type: 'SUB.READY', payload: cached }
               { type: 'SUB.EMPTY', payload: [] }
               { type: 'SUB.WAIT', payload: candidates }
 
-    3.1.4. type === "SUB.SELECT"
+    3.4. type === "SUB.SELECT"
             payload = { videoId, candidate }
           sendResponse (tổng): processSubtitles(videoId, candidate, rawText)
               { type: 'SUB.READY', payload: subObj }
 
-    3.1.5. type === "SUB.GET_ALL"
+    3.5. type === "SUB.GET_ALL"
             payload = undefined
           sendResponse (tổng): { type: 'SUB.LIST', payload: await getSubDataList() }
     
-    3.1.6. type === "SUB.REMOVE"
+    3.6. type === "SUB.REMOVE"
             payload = { videoId }
           sendResponse (tổng): { type: 'SUB.REMOVED', payload: await removeSubData(videoId) };
 
-    3.1.7. type === "SUB.LOCAL"
+    3.7. type === "SUB.LOCAL"
             payload = { videoId, rawText, fileName }
           sendResponse (tổng): processSubtitles(videoId, localFileData (xử lí từ fileName), rawText)
-    3.1.8. Dữ liệu khác chuẩn/chạy handlers bị lỗi
+    3.8. Dữ liệu khác chuẩn/chạy handlers bị lỗi
           sendResponse (tổng): { type: 'ERROR', payload: err.message hoặc 'Unknown action' }
 
 Cấu trúc khung HTML của UI: (.innerHTML trong file ui.js và ui_work.html)
