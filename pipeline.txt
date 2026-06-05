@@ -53,7 +53,7 @@ v0.0.0.2 05jun26
           videoId,
           fileObj = candidate,      // xem mục 2.3.2
           parsedData,               // xem mục 2.4.2
-          cachedAt: time            // lưu tại storage.js (addSubData())
+          cachedAt: time            // (storage.js/addSubData())
         }
 
 3. Giao thức giữa background/background.js và content/*.js
@@ -102,69 +102,8 @@ v0.0.0.2 05jun26
     3.1.7. type === "SUB.LOCAL"
             payload = { videoId, rawText, fileName }
           sendResponse (tổng): processSubtitles(videoId, localFileData (xử lí từ fileName), rawText)
-
-      
-
-
-- Của file sub đã đóng gói (quy định trong file background.js)
-  subObj hoặc cached = {
-    videoId,
-    fileObj: candidate hoặc results.push
-    parsedData: parsedData 
-  }
-
-Cấu trúc dữ liệu đóng gói (quy định trong file background.js) handlers[msg.type]:
-  'SOURCE.ADD': payload = {
-    url
-  } => {
-    status: 'ADDED'
-  } hoặc {
-    status: 'NOT_ADDED' // (do ko fetch đc hoặc do link ko chuẩn)
-  }
-  'SUBTITLE.SEARCH': resolveSubtitles(payload.videoId): payload = {
-    videoId
-  } => {
-    status: 'HIT' / 'EMPTY' / 'ERROR' / 'MULTIPLE',
-    data:   với 'HIT': cached = getSubtitleCache(videoId) hoặc subObj = processAndCacheSubtitle(videoId, candidate, fetchSubtitleText(candidate))
-            với 'EMPTY': undefined (không định nghĩa dữ liệu nào khác đi kèm)
-            với 'MULTIPLE': candidates = fetchSubtitleFile(sources, videoId)
-            với 'ERROR': err.message
-  }
-  'SUBTITLE.SELECT': payload = {
-    videoId,
-    candidate
-  } => {
-    status: 'HIT', 
-    data: subObj = processAndCacheSubtitle(videoId, candidate, fetchSubtitleText(candidate))
-  }
-  'SOURCE.GET_ALL': payload = undefined (ko cần) => getSources() trong storage.js (trả về array các obj folderData)
-  'SOURCE.REMOVE': payload = {
-    savedAt (folderData.savedAt)
-  } => removeSource(payload.savedAt) trong storage.js (trả về boolean true)
-  'SUBTITLE.PARSE_RAW' (đối với file người dùng tải lên): payload = {
-    rawText, 
-    fileName
-  } => { 
-    status: 'HIT', 
-    data: {
-      videoId: 'local',
-      fileObj: {
-        id: 'local',
-        fileName:
-        url: 'local',
-        sourceType: 'local',
-        groupName: 'local'
-      },
-      parsedData: parsedData
-    } 
-  };
-
-Cấu trúc giao thức (đi từ background.js) sendResponse(): dựa trên msg.type:
-    'LOG_FROM_CONTENTS' => { status: "DEBUG" }
-    (có trong handlers) => handlers[msg.type](msg.payload) dạng { status, data }
-    (khác) => { status, message }
-
-Cấu trúc giao thức (đến từ background.js): msg = { type, payload } 
+    3.1.8. Dữ liệu khác chuẩn/chạy handlers bị lỗi
+          sendResponse (tổng): { type: 'ERROR', payload: err.message hoặc 'Unknown action' }
 
 Cấu trúc khung HTML của UI: (.innerHTML trong file ui.js và ui_work.html)
   (để tiện chỉnh sửa, sử dụng file ui_bea… à nhầm ui_work.html)

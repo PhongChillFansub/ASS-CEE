@@ -67,7 +67,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         sendResponse({ type: 'ERROR', payload: err.message });
       });
   } else {
-    console.warn(`[ASS-CEE] background: msg ngoài chuẩn handler:`, msg);
+    console.error(`[ASS-CEE] background: msg ngoài chuẩn handler:`, msg);
     sendResponse({ type: 'ERROR', payload: 'Unknown action' });
   }
   return true; // Kích hoạt cơ chế giữ kênh kết nối mở phục vụ cho các tiến trình xử lý bất đồng bộ
