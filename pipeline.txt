@@ -57,9 +57,9 @@ v0.0.0.2 05jun26
         }
 
 3. Giao thức giữa background/background.js và content/*.js
-  Ở phía background.js: chrome.runtime.onMessage.addListener(((msg, sender, sendResponse)) => {})
+  3.1. Ở phía background.js: chrome.runtime.onMessage.addListener(((msg, sender, sendResponse)) => {})
   (msg là nhận, chi tiết xem phần handlers)
-  3.1. msg = {
+  msg = {
           type, // thuộc các dạng "LOG", "SOURCE.", "SUB." (có thể bổ sung sau)
           payload
         }
