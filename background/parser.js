@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.0.2 04jun26
+// v0.0.0.2 05jun26
 // parser.js
 // Chức năng: xử lí kế tiếp, giai đoạn từ giai đoạn có file sub thô (rawText) đến cấu trúc file sub JS (line.raw)
 // hàm export là parseAegisubRaw (từ rawText đến cấu trúc JS)
@@ -54,7 +54,7 @@ function convertAegisubColorToCss(ascStr) {
   const r = parseInt(hex.substring(6, 8), 16);
   return `rgba(${r}, ${g}, ${b}, ${a})`;
 }
-export default function parseAegisubRaw(rawText) {
+export default function parser(rawText) {
 	// Hàm đọc text của file Aegisub.
 	// Cấu trúc file Aegisub gồm 4 phần: [Script Info], [Aegisub Project Garbage], [V4+ Styles], [Events]
 	// Trong đó, phần Garbage ko cần quan tâm. Phần Styles lưu các style, Events chứa các dòng comment (và code effect), và các dòng Dialogue
