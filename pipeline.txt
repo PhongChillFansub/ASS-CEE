@@ -41,16 +41,19 @@ v0.0.0.2 05jun26
   2.4. fetcher.js, parser.js, storage.js: 
         Lấy rawText từ link file sub trả về text, tiền xử lí thành dạng cấu trúc JS rồi lưu/thêm vào cache.
     2.4.1. fetcher.js (fetchSubtitleText(candidate)) => text    // candidate mục 2.3.2
+            Hoặc nhận text từ local (user tải file lên)
     2.4.2. parser.js (parser(text)) => parsedData = {
       info: {},     // Phần [Script Info] 
       styles: [],   // Phần [V4+ Styles]
       events: []    // Phần [Events]
     }
-    2.4.3. storage.js: Lưu mỗi obj file sub trong 1 Cache Key riêng (trong chrome.storage.local)
+    2.4.3. background.js, storage.js: Lưu mỗi obj file sub trong 1 Cache Key riêng (trong chrome.storage.local)
         const SUBTITLE_DATA_KEY = `${SUBTITLE_DATA_KEY_BASE}_${videoId}`    // cấu trúc key: ASSCEE_<videoId>
         SUBTITLE_DATA_KEY = {
-          ...parsedData,
-          cachedAt: time
+          videoId,
+          fileObj = candidate,      // xem mục 2.3.2
+          parsedData,               // xem mục 2.4.2
+          cachedAt: time            // lưu tại storage.js (addSubData())
         }
 
 3. Giao thức giữa background/background.js và content/*.js
@@ -75,12 +78,30 @@ v0.0.0.2 05jun26
     3.1.4. type === "SOURCE.REMOVE"
             payload = { savedAt }
           sendResponse (tổng): { type: 'SOURCE.REMOVED', payload: await removeSource(payload.savedAt)}; // xem storage.js
-          
+
     3.1.5. type === "SUB.SEARCH"
             payload = { videoId }
-          sendResponse (tổng): { type: 'RESULTS', payload: resolveSubtitles(videoId) }
+          sendResponse (tổng): resolveSubtitles(videoId)
+              { type: 'SUB.READY', payload: cached }
+              { type: 'SUB.EMPTY', payload: [] }
+              { type: 'SUB.WAIT', payload: candidates }
+
     3.1.4. type === "SUB.SELECT"
             payload = { videoId, candidate }
+          sendResponse (tổng): processSubtitles(videoId, candidate, rawText)
+              { type: 'SUB.READY', payload: subObj }
+
+    3.1.5. type === "SUB.GET_ALL"
+            payload = undefined
+          sendResponse (tổng): { type: 'SUB.LIST', payload: await getSubDataList() }
+    
+    3.1.6. type === "SUB.REMOVE"
+            payload = { videoId }
+          sendResponse (tổng): { type: 'SUB.REMOVED', payload: await removeSubData(videoId) };
+
+    3.1.7. type === "SUB.LOCAL"
+            payload = { videoId, rawText, fileName }
+          sendResponse (tổng): processSubtitles(videoId, localFileData (xử lí từ fileName), rawText)
 
       
 

@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.0.2 02jun26
+// v0.0.0.2 05jun26
 import { fetchSubtitleText, fetchSubtitleFile } from './fetcher.js';
 // 2 hàm fetchSubtitleText, fetchSubtitleFile
 import { addSource, getSourceList, removeSource, addSubData, getSubDataList, useSubData, removeSubData } from './storage.js';
@@ -57,57 +57,21 @@ chrome.action.onClicked.addListener(async (tab) => {
 // Hàm giao tiếp với content.js và ui.js
 let lastLogLocation = { tabId: "", url: "" };
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  
-  // Chạy đọc log trước khi sang handler
-  if (msg && msg.type === 'LOG_FROM_CONTENTS') {
-    const { type, text, url, timestamp } = msg.payload;
-    const tabId = sender.tab ? `Tab ${sender.tab.id}` : 'Unknown Tab';
-    const isSameLocation = (tabId === lastLogLocation.tabId && url === lastLogLocation.url);
-    lastLogLocation = { tabId, url };
-    const logPrefix = isSameLocation 
-        ? `[${timestamp}]\n`
-        : `[${timestamp}][${tabId}]\n[${url}]\n`;
-    switch (type) {
-      case 'error':
-        console.error(`${logPrefix} %c[ASS-CEE]%c ${text}`, 
-          "color: red, font-weight: bold;",
-          ""
-        );
-        break;
-      case 'warn':
-        console.warn(`${logPrefix} %c[ASS-CEE]%c ${text}`, 
-          "color: orange, font-weight: bold;",
-          ""
-        );
-        break;
-      default:
-        console.log(`${logPrefix} %c[ASS-CEE]%c ${text}`, 
-          "font-weight: bold;",
-          ""
-        );
-    }
-    sendResponse({ status: 'DEBUG' });
-    return true; 
-  }
-  // Phần đọc handler
+  // Chỉ xử lí theo chuẩn đã định nghĩa trong handler
   const handler = handlers[msg.type];
   if (handler) {
     handler(msg.payload)
       .then(result => sendResponse(result))
       .catch(err => {
-        console.error(`[ASS-CEE] background: [RPC Error] ${msg.type}:`, err);
-        sendResponse({ id: msg.id, status: 'ERROR', message: err.message });
+        console.error(`[ASS-CEE] background: handlers có vấn đề ở ${msg.type}:`, err);
+        sendResponse({ type: 'ERROR', payload: err.message });
       });
   } else {
-    console.warn(`[ASS-CEE] background: [Unknown Message] ${msg.type}`);
-    sendResponse({ status: 'ERROR', message: 'Unknown action' });
-  } // Kết thúc cấu trúc rẽ nhánh kiểm tra handler hoạt động
+    console.warn(`[ASS-CEE] background: msg ngoài chuẩn handler:`, msg);
+    sendResponse({ type: 'ERROR', payload: 'Unknown action' });
+  }
   return true; // Kích hoạt cơ chế giữ kênh kết nối mở phục vụ cho các tiến trình xử lý bất đồng bộ
 });
-
-
-
-
 const handlers = {
   // Mặc định cấu trúc chuẩn là msg = { type, payload }. Ở đây lấy msg.type làm key của obj.
   'LOG': async (payload, sender) => { // Log
@@ -152,111 +116,62 @@ const handlers = {
   },
   'SUB.SEARCH': async (payload) => { // Yêu cầu tìm kiếm nguồn
     // const { videoId } = payload
-    return { type: SUB.RESULTS, payload: await resolveSubtitles(payload.videoId)}; // resolveSubtitles()?
+    return resolveSubtitles(payload.videoId); // resolveSubtitles()?
   },
   'SUB.SELECT': async (payload) => { // Xác nhận nguồn được user chọn
     const { videoId, candidate } = payload;
     const rawText = await fetchSubtitleText(candidate);
-    const subObj = await processAndCacheSubtitle(videoId, candidate, rawText);
-    return { status: 'HIT', data: subObj };
+    return processSubtitles(videoId, candidate, rawText); // processSubtitles()?
   },
-}
-
-
-const handlers = {
-  
- 
-  // Handler mới: Chuyên tiếp nhận dữ liệu chuỗi thô từ thiết bị của user và parse lập tức
-  'SUBTITLE.PARSE_RAW': async (payload) => {
-    const { rawText, fileName } = payload;
-    if (!rawText) {
-      throw new Error("Dữ liệu tệp gửi lên không hợp lệ");
+  'SUB.GET_ALL': async () => { // Yêu cầu xem cache file sub
+    // const undefined = payload
+    return { type: 'SUB.LIST', payload: await getSubDataList() };
+  },
+  'SUB.REMOVE': async () => { // Yêu cầu xóa cache file sub (xóa theo videoId)
+    // const { videoId } = payload
+    return { type: 'SUB.REMOVED', payload: await removeSubData(payload.videoId) };
+  },
+  'SUB.LOCAL': async (payload) => { // Nhận nguồn từ thiết bị của user vào cache
+    const { videoId, rawText, fileName } = payload;
+    if (!rawText) throw new Error("Dữ liệu tệp gửi lên trống?");
+    const localFileData = { // Tương tự candidate
+      id: `local-${Date.now()}`,
+      fileName,
+      url: 'local',
+      sourceType: 'local',
+      groupName: 'local'
     }
-    // Parse tệp thô trực tiếp bằng công cụ phân tích đã viết sẵn
-    const parsedData = parseAegisubRaw(rawText);
-    return { 
-      status: 'HIT', 
-      data: {
-        videoId: 'local', // Định danh tạm cho video cục bộ để tương thích luồng vẽ
-        fileObj: {
-          id: 'local',
-          fileName,
-          url: 'local',
-          sourceType: 'local',
-          groupName: 'local'
-        },
-        parsedData: parsedData
-      } 
-    };
+    return processSubtitles(videoId, localFileData, rawText); // local cũng lưu cache.
   }
-};
+}
 /**
- * Hàm xử lý và điều phối tìm kiếm phụ đề dựa trên videoId (từ content.js?)
+ * Hàm xử lý và điều phối tìm kiếm phụ đề dựa trên videoId
  * @param {*} videoId 
- * @returns status: HIT, EMPTY, ERROR, MULTIPLE
- * với data tương ứng HIT -> getSubtitleCache() hoặc , MULTIPLE -> candidates (xem fetcher.js)
+ * @returns SUB.READY: có thể dùng ngay, .EMPTY: trống, .WAIT: có ít nhất 1 file tương ứng, cần content-side xử lí
  */
 async function resolveSubtitles(videoId) {
-  // --- BƯỚC 1: Kiểm tra bộ nhớ đệm (Cache) ---
-  const cached = await getSubtitleCache(videoId);
+  // Đầu ra luôn là dạng { type: "", payload: "" }
+  const cached = await useSubData(videoId);
+  // Lấy cache
   if (cached) {
-    console.log(
-      `%c[ASS-CEE]%c background: Tìm thấy cache của vid ${videoId}.`, 
-      "font-weight: bold;",
-      ""
-    );
-    return { status: 'HIT', data: cached };
-  } else {
-    console.log(
-      `%c[ASS-CEE]%c background: Không tìm thấy cache của vid ${videoId}. Chuyển sang tìm nguồn`, 
-      "font-weight: bold;",
-      ""
-    );
-  }
-  // --- BƯỚC 2: Quét tất cả các nguồn (GitHub/GDrive) ---
+    console.log(`[ASS-CEE] background: Đã tìm thấy cache cho vid ${videoId}.`);
+    return { type: 'SUB.READY', payload: cached }; // cached = value của key SUBTITLE_DATA_KEY (xem mục 2.4.3 pipeline)
+  } 
+  console.log(`[ASS-CEE] background: Ko có cache cho vid ${videoId}. Đang tìm nguồn...`)
+  // Lấy danh sách nguồn để quét
   const sources = await getSources();
   if (sources.length === 0) {
-    console.log(
-      `%c[ASS-CEE]%c background: Nguồn ko có file tương ứng cho ${videoId}.`, 
-      "font-weight: bold;",
-      ""
-    );
-    return { status: 'EMPTY' };
+    console.log(`[ASS-CEE] background: Không có thư mục nào để quét.`);
+    return { type: 'SUB.EMPTY', payload: [] };
   }
-  const candidates = await fetchSubtitleFile(sources, videoId, {});
-  // --- BƯỚC 3: Xử lý kết quả quét (Decision Layer) ---
-  if (candidates.length === 0) {
-    // Trường hợp 1: Không tìm thấy file phụ đề nào trên hệ thống
-    console.log(
-      `%c[ASS-CEE]%c background: Nguồn ko có file tương ứng cho ${videoId}.`, 
-      "font-weight: bold;",
-      ""
-    );
-    return { status: 'EMPTY' };
-  } else if (candidates.length === 1) {
-    // Trường hợp 2: Chỉ có DUY NHẤT một lựa chọn phụ đề phù hợp (Auto-resolve)
-    const candidate = candidates[0];
-    try {
-      const rawText = await fetchSubtitleText(candidate);
-      const subObj = await processAndCacheSubtitle(videoId, candidate, rawText);
-      console.log(
-        `%c[ASS-CEE]%c background: Nguồn có 1 file tương ứng cho ${videoId}: ${candidate.fileName}.`, 
-        "font-weight: bold;",
-        ""
-      );
-      return { status: 'HIT', data: subObj };
-    } catch (err) {
-      console.error(
-        `%c[ASS-CEE]%c background: Tự động xử lí bị lỗi (${videoId}: ${candidate.fileName}).`, 
-        "color: red, font-weight: bold;",
-        "",
-        err
-      );
-      return { status: 'ERROR', data: err.message };
-    }
-  }
-  // Trường hợp 3: Có nhiều kết quả phụ đề trùng khớp (Ambiguity)
-  return { status: 'MULTIPLE', data: candidates };
+  const candidates = await fetchSubtitleFile(sources, videoId, {}); // Quét danh sách nguồn
+  // Kiểm tra kết quả quét
+  if (candidates.length === 0) { // Trường hợp 1: Ko có file tương ứng
+    console.log(`[ASS-CEE] background: Ko có file cho vid ${videoId}.`);
+    return { type: 'SUB.EMPTY', payload: [] };
+  } // Ở sau là trường hợp 2: Có ít nhất 1 file tương ứng. Đưa cho content-side xử lí
+    console.log(`[ASS-CEE] background: Có ${candidates.length} file cho vid ${videoId}. Gửi thông tin cho content-side.`)
+    return { type: 'SUB.WAIT', payload: candidates }; // candidates (xem mục 2.3.2 pipeline)
 }
 /**
  * Hàm xử lý bóc tách định dạng dữ liệu dựa trên parseMode và lưu Cache
@@ -271,14 +186,10 @@ async function resolveSubtitles(videoId) {
  * @param {*} rawText 
  * @returns subObj quy định ở hàm này. Xem pipeline.txt
  */
-async function processAndCacheSubtitle(videoId, candidate, rawText) {
+async function processSubtitles(videoId, candidate, rawText) {
   let subObj = { videoId, fileObj: candidate };
-  subObj.parsedData = parseAegisubRaw(rawText);
+  subObj.parsedData = parser(rawText);
   await addSubData(videoId, subObj);
-  return subObj;
+  return { type: 'SUB.READY', payload: subObj }
 }
-console.log(
-  `%c[ASS-CEE]%c background: Đã sẵn sàng.`, 
-  "font-weight: bold;",
-  ""
-);
+console.log([ASS-CEE] background: Đã sẵn sàng.`);
