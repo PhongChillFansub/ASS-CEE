@@ -105,25 +105,25 @@ v0.0.0.2 05jun26
     3.8. Dữ liệu khác chuẩn/chạy handlers bị lỗi
           sendResponse (tổng): { type: 'ERROR', payload: err.message hoặc 'Unknown action' }
 
-Cấu trúc khung HTML của UI: (.innerHTML trong file ui.js và ui_work.html)
-  (để tiện chỉnh sửa, sử dụng file ui_bea… à nhầm ui_work.html)
-- class="asscee_ui": khung giao diện
-  - class="asscee_barTitle": thanh tiêu đề: hiển thị tên, nút chọn tab, nút ẩn/đóng UI
-    - class="asscee_titleLeftGrp": phần góc trái tiêu đề (nút chọn tab và tên)
-      - button id/class="asscee_tabBtn": nút đổi trang hiển thị trong giao diện
-      - span id/class="asscee_title": dòng tiêu đề, cùng khối với button Danh sách trang
-    - button id/class="asscee_closeBtn": nút tạm ẩn giao diện (góc phải tiêu đề)
-  - id/class="asscee_menuExpand": danh sách thả các trang hiển thị
-    - class="asscee_menuItem" data-asscee_tab-target=:
-      - "tab1": quản lí nguồn
-      - "tab2": quản lí phụ đề 
-      - "tab3": thông tin chung
-  - class="asscee_workspace": phần nội dung các trang
-    - id="asscee_tab<i>_content" class="asscee_tabPane active": phần nội dung các trang i tương ứng (đang trống)
-  - class="asscee_footer": phần footer
-    - span id/class="asscee_footerInfo": phần hiển thị thông tin thêm (vd: khi di chuột đến vị trí nút/dòng cần chú thích)
-    - span id/class="asscee_footerMisc": hiển thị thông tin khác (tạm thời trống)
-     
+4. Cấu trúc khung HTML của UI: (.innerHTML trong file ui.js và ui_work.html)
+    (để tiện chỉnh sửa, sử dụng file ui_bea… à nhầm ui_work.html)
+  - class="asscee_ui": khung giao diện
+    - class="asscee_barTitle": thanh tiêu đề: hiển thị tên, nút chọn tab, nút ẩn/đóng UI
+      - class="asscee_titleLeftGrp": phần góc trái tiêu đề (nút chọn tab và tên)
+        - button id/class="asscee_tabBtn": nút đổi trang hiển thị trong giao diện
+        - span id/class="asscee_title": dòng tiêu đề, cùng khối với button Danh sách trang
+      - button id/class="asscee_closeBtn": nút tạm ẩn giao diện (góc phải tiêu đề)
+    - id/class="asscee_menuExpand": danh sách thả các trang hiển thị
+      - class="asscee_menuItem" data-asscee_tab-target=:
+        - "tab1": quản lí nguồn
+        - "tab2": quản lí phụ đề 
+        - "tab3": thông tin chung
+    - class="asscee_workspace": phần nội dung các trang
+      - id="asscee_tab<i>_content" class="asscee_tabPane active": phần nội dung các trang i tương ứng (đang trống)
+    - class="asscee_footer": phần footer
+      - span id/class="asscee_footerInfo": phần hiển thị thông tin thêm (vd: khi di chuột đến vị trí nút/dòng cần chú thích)
+      - span id/class="asscee_footerMisc": hiển thị thông tin khác (tạm thời trống)
+      
 Cấu trúc phần chạy chính ui.js
 1. Phần định nghĩa khung HTML và giao thức với các Thực thể của nó
 1.1. Phần xử lí các thao tác chọn trang hiển thị
