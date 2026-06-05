@@ -1,4 +1,4 @@
-<!-- v0.0.0.2 03jun26 -->
+<!-- v0.0.0.2 05jun26 -->
 <div id="asscee_ui" class="asscee_UI">
   <!-- Khung giao diện -->
 
@@ -23,28 +23,7 @@
 
   <div id="asscee_workspace" class="asscee_Workspace">
     <!-- Phần nội dung các trang-->
-    <div id="asscee_tab1_content" class="asscee_TabPane active">
-      <!-- Tab 1: Quản lí nguồn (folder)-->
-      <div id="asscee_linkInputBar" class="asscee_InputBar"> <!-- Thanh ghi thêm nguồn -->
-        <input 
-          type="text" 
-          id="asscee_linkInput"
-          class="asscee_Input"
-          autocomplete="off"
-        />
-        <!-- placeholder="Thêm nguồn (link folder GitHub/GDrive)..."? -->
-        <button id="asscee_addFolderBtn" class="asscee_BtnSqr"></button>
-        <!-- Nút thêm nguồn -->
-      </div>
-      <div class="asscee_Divider"> <!-- Phần ngăn cách-->
-        <span id="asscee_dividerText" class="asscee_Text"></span>
-        <div class="asscee_DividerLine"></div>
-      </div>
-      <div class="asscee_ListContainer"> <!-- Phần danh sách nguồn -->
-        <ul id="asscee_linkList" class="asscee_List">
-          </ul>
-      </div>
-    </div>
+    <div id="asscee_tab1_content" class="asscee_TabPane active"></div>
     <div id="asscee_tab2_content" class="asscee_TabPane"></div>
     <div id="asscee_tab3_content" class="asscee_TabPane"></div>
   </div>
@@ -57,7 +36,27 @@
 
 </div>
 
-
+<!-- Tab 1: Quản lí nguồn (folder)-->
+<div id="asscee_linkInputBar" class="asscee_InputBar"> <!-- Thanh ghi thêm nguồn -->
+  <input 
+    type="text" 
+    id="asscee_linkInput"
+    class="asscee_Input"
+    autocomplete="off"
+  />
+  <!-- placeholder="Thêm nguồn (link folder GitHub/GDrive)..."? -->
+  <button id="asscee_addFolderBtn" class="asscee_BtnSqr"></button>
+  <!-- Nút thêm nguồn -->
+</div>
+<div class="asscee_Divider"> <!-- Phần ngăn cách-->
+  <span id="asscee_dividerText" class="asscee_Text"></span>
+  <div class="asscee_DividerLine"></div>
+</div>
+<div class="asscee_ListContainer"> <!-- Phần danh sách nguồn -->
+  <ul id="asscee_linkList" class="asscee_List">
+    </ul>
+</div>
+    
 
 
 

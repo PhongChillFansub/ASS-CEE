@@ -44,36 +44,41 @@ function sendLogToBackground(message, type = 'info') {
     const container = document.createElement('div');
     container.id = containerId;
     container.innerHTML = `
-      <div class="asscee_ui">
+      <div id="asscee_ui" class="asscee_UI">
         <!-- Khung giao diện -->
-        <div class="asscee_barTitle">
+
+        <div id="asscee_titleBar" class="asscee_BarTitle">
           <!-- Thanh tiêu đề -->  
-          <div class="asscee_titleLeftGrp">
+          <div id="asscee_titleLeftGrp" class="asscee_TitleLeftGrp">
             <!-- Chia thanh tiêu đề thành 2 phần: nút Danh sách trang và Tiêu đề ở trái -->
-            <button id="asscee_tabListBtn" class="asscee_tabListBtn"></button>
-            <span id="asscee_title" class="asscee_title"></span>
+            <button id="asscee_tabListBtn" class="asscee_BtnSqr"></button>
+            <span id="asscee_title" class="asscee_Text"></span>
           </div>
             <!-- Nút ẩn giao diện ở bên phải -->
-          <button id="asscee_closeBtn" class="asscee_closeBtn"></button>
+          <button id="asscee_closeBtn" class="asscee_BtnSqr"></button>
           <!-- Hết thanh tiêu đề -->
         </div>
-        <div id="asscee_tabListExpand" class="asscee_tabListExpand">
+        
+        <div id="asscee_tabListExpand" class="asscee_ListExpand">
           <!-- Phần Danh sách trang (mở khi bấm tabBtn)-->
-          <button class="asscee_tabListItem active" data-asscee_tab-target="tab1"></button>
-          <button class="asscee_tabListItem" data-asscee_tab-target="tab2"></button>
-          <button class="asscee_tabListItem" data-asscee_tab-target="tab3"></button>
+          <button class="asscee_TextBtn active" data-asscee_tab-target="tab1"></button>
+          <button class="asscee_TextBtn" data-asscee_tab-target="tab2"></button>
+          <button class="asscee_TextBtn" data-asscee_tab-target="tab3"></button>
         </div>
-        <div class="asscee_workspace">
+
+        <div id="asscee_workspace" class="asscee_Workspace">
           <!-- Phần nội dung các trang-->
-          <div id="asscee_tab1_content" class="asscee_tabPane active"></div>
-          <div id="asscee_tab2_content" class="asscee_tabPane"></div>
-          <div id="asscee_tab3_content" class="asscee_tabPane"></div>
+          <div id="asscee_tab1_content" class="asscee_TabPane active"></div>
+          <div id="asscee_tab2_content" class="asscee_TabPane"></div>
+          <div id="asscee_tab3_content" class="asscee_TabPane"></div>
         </div>
-        <div class="asscee_footer">
-          <!-- Phần footer-->
-          <span id="asscee_footerInfo" class="asscee_footerInfo"></span>
-          <span id="asscee_footerMisc" class="asscee_footerMisc"></span>
+
+        <div class="asscee_Footer">
+          <!-- Phần footer -->
+          <span id="asscee_footerInfo" class="asscee_Text"></span>
+          <span id="asscee_footerMisc" class="asscee_TextInBox"></span>
         </div>
+
       </div>
     `
     document.body.appendChild(container);
@@ -284,6 +289,15 @@ function sendLogToBackground(message, type = 'info') {
     } catch (error) {
       sendLogToBackground(`ui: Lỗi xử lí tính năng di chuyển (1.2): ${error.message}`, "error");
       console.error("[ASS-CEE] ui: Lỗi xử lí tính năng di chuyển (1.2):", error);
+    }
+    try {
+      // try..catch tầng 2
+      // 1.3. Phần xử lí tính năng tab 1: Quản lí nguồn
+
+
+    } catch (error) {
+      sendLogToBackground(`ui: Lỗi xử lí tính năng tab 1: Quản lí nguồn (1.3): ${error.message}`, "error");
+      console.error("[ASS-CEE] ui: Lỗi xử lí tính năng tab 1: Quản lí nguồn (1.3):", error);
     }
   } catch (error) {
     sendLogToBackground(`ui: Lỗi khởi tạo và xử lí khung HTML (1.): ${error.message}`, "error");
