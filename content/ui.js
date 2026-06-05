@@ -1,5 +1,5 @@
 // Code bằng tay (thực ra vẫn còn nhiều chỗ vibe coding)
-// v0.0.0.2 02jun26
+// v0.0.0.2 05jun26
 /**
  * Hàm gửi log về background.js
  * @param {*} message nội dung
@@ -7,7 +7,7 @@
  */
 function sendLogToBackground(message, type = 'info') {
   chrome.runtime.sendMessage({
-    type: 'LOG_FROM_CONTENTS',
+    type: 'LOG',
     payload: {
       type: type,
       text: message,
