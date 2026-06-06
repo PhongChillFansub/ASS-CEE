@@ -20,7 +20,7 @@ function sendLogToBackground(message, type = 'info') {
 }
 // Phần chạy chính của ui.js
 // Cấu trúc: 
-// 1. (tầng 1) khởi tạo khung HTML và các giao thức với nó
+// 1. (tầng 1) khởi tạo khung HTML cơ bản và các querySelector với nó
 // 1.x. (tầng 2) các tính năng độc lập
 (async function() {
   'use strict';
