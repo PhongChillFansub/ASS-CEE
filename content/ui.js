@@ -80,11 +80,11 @@ function sendLogToBackground(message, type = 'info') {
         </div>
 
       </div>
-    `
-    document.body.appendChild(container);
+    `;
+    document.body.appendChild(container); // Lệnh này sẽ hiển thị UI ngay
     sendLogToBackground("ui: Khởi tạo khung HTML thành công.");
     // Phần xử lí các nút giao diện
-    const barTitle = container.querySelector('.asscee_barTitle');
+    const barTitle = container.querySelector('#asscee_titleBar');
     // Cho toàn bộ thanh tiêu đề
 	  const tabListBtn = container.querySelector('#asscee_tabListBtn');
     // Cho nút đổi trang hiển thị (thanh tiêu đề) 
@@ -99,6 +99,7 @@ function sendLogToBackground(message, type = 'info') {
     // Ở đây chọn theo tag data để thuận cho việc chèn các nút chuyển tab bên trong tab khác, chứ ko chỉ có trong danh sách.
     const tabContents = container.querySelectorAll('.asscee_tabPane');
     // Cho các nút chọn trang hiển thị và nội dung tương ứng
+    // Cho nội dung tab 1 (quản lí nguồn)
     // const footerInfo = container.querySelector('#asscee_footerInfo');
     // Cho phần thông tin ở footer
     // const footerMisc = container.querySelector('#asscee_footerMisc');
@@ -107,7 +108,7 @@ function sendLogToBackground(message, type = 'info') {
     closeBtn.textContent = closeBtnIcon;
     tabItemBtns.forEach(btn => {
       const targetId = btn.getAttribute('data-asscee_tab-target');
-      btn.textContent = tabMap[targetId] || 'Trang';
+      btn.textContent = tabMap[targetId] || 'undefined';
     });
     sendLogToBackground("ui: Xử lí giao thức với các thực thể trong khung HTML thành công.");
     try {
@@ -293,7 +294,58 @@ function sendLogToBackground(message, type = 'info') {
     try {
       // try..catch tầng 2
       // 1.3. Phần xử lí tính năng tab 1: Quản lí nguồn
+      // tabContents[0] ở đây là id="asscee_tab1_content", do tabContents là class="asscee_TabPane".
+      tabContents[0].innerHTML = `
+        <!-- Tab 1: Quản lí nguồn (folder)-->
+        <div id="asscee_linkInputBar" class="asscee_InputBar"> <!-- Thanh ghi thêm nguồn -->
+          <input 
+            type="text" 
+            id="asscee_linkInput"
+            class="asscee_Input"
+            autocomplete="off"
+          />
+          <!-- placeholder="Thêm nguồn (link folder GitHub/GDrive)..."? -->
+          <button id="asscee_addFolderBtn" class="asscee_BtnSqr"></button>
+          <!-- Nút thêm nguồn -->
+        </div>
+        <div class="asscee_Divider"> <!-- Phần ngăn cách-->
+          <span id="asscee_dividerText" class="asscee_Text"></span>
+          <div class="asscee_DividerLine"></div>
+        </div>
+        <div class="asscee_ListContainer"> <!-- Phần danh sách nguồn -->
+          <ul id="asscee_linkList" class="asscee_List">
+            </ul>
+        </div>
+      `;
+      const linkInput = tabContents[0].querySelector('#asscee_linkInput');
+      // phần đầu vào link folder
+      const linkList = tabContents[0].querySelector('#asscee_linkList');
+      // phần danh sách link folder đã có trong cache
+      const addFolderBtn = tabContents[0].querySelector('#asscee_addFolderBtn');
+      // phần nút thêm nguồn
+      tabContents[0].querySelector('#asscee_dividerText').textContent = "Danh sách nguồn";
+      // phần chữ ở dòng divider (chỉ áp phần text, ko có logic gì thêm)
+      linkInput.placeholder = "Thêm nguồn (link folder GitHub/GDrive)...";
+      addFolderBtn.textContent = "+";
+      // Áp các phần tĩnh của UI tab 1.
+      /**
+       * Hàm render danh sách nguồn
+       * @param {*} linksArray 
+       */
+      function renderLinkList(linksArray) {
+        if (!linkList) return; // linkList không được định nghĩa?
+        linkList.innerHTML = ""; // Xóa sạch danh sách cũ, render lại từ đầu.
+        // Trường hợp mảng trống
+        if (!linksArray || linksArray.length === 0) {
+          const emptyLi = document.createElement("li"); // Tạm thời tạo ra element <li> mới
+          emptyLi.style.cssText = "color: #606060; text-align: center; padding: 15px; font-size: 11px;";
+          emptyLi.textContent = "Chưa có nguồn nào được thêm.";
+          linkList.appendChild(emptyLi);
+          return;
+        }
 
+      } // Kết thúc hàm renderLinkList(). to-do: check gemini và viết tiếp đoạn xung quanh dòng này
+      
 
     } catch (error) {
       sendLogToBackground(`ui: Lỗi xử lí tính năng tab 1: Quản lí nguồn (1.3): ${error.message}`, "error");
