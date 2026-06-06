@@ -1,5 +1,5 @@
 // Code bằng tay (thực ra vẫn còn nhiều chỗ vibe coding)
-// v0.0.0.2 05jun26
+// v0.0.0.2 06jun26
 /**
  * Hàm gửi log về background.js
  * @param {*} message nội dung
@@ -343,8 +343,11 @@ function sendLogToBackground(message, type = 'info') {
           linkList.appendChild(emptyLi);
           return;
         }
-
-      } // Kết thúc hàm renderLinkList(). to-do: check gemini và viết tiếp đoạn xung quanh dòng này
+        linksArray.forEach((item) => {
+          const li = document.createElement("li");
+          li.className = "asscee_LinkItem";
+        });
+      }; // Kết thúc hàm renderLinkList(). to-do: check gemini và viết tiếp đoạn xung quanh dòng này
       
 
     } catch (error) {
