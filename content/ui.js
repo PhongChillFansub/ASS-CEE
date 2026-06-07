@@ -431,9 +431,9 @@ function getRelativeTimeString(timestamp) {
                 console.error("Lỗi từ backend:", response.payload);
               }
             });
-            linkList.appendChild(li);
           });
-        }
+		    linkList.appendChild(li);
+        });
       }; // Kết thúc hàm renderLinkList(). to-do: check gemini và viết tiếp đoạn xung quanh dòng này
       function initSourceList() {
         chrome.runtime.sendMessage({ type: "SOURCE.GET_ALL" }, (response) => {
