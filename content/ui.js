@@ -1,5 +1,5 @@
 // Code bằng tay (thực ra vẫn còn nhiều chỗ vibe coding)
-// v0.0.0.2 06jun26
+// v0.0.0.2 07jun26
 /**
  * Hàm gửi log về background.js
  * @param {*} message nội dung
@@ -17,6 +17,47 @@ function sendLogToBackground(message, type = 'info') {
   }).catch(err => {
     console.warn("[ASS-CEE] ui: Không thể gửi log về background:", err);
   });
+}
+/**
+ * Tính thời gian tương đối ở mọi thời điểm và định dạng thời gian chính xác
+ * @param {number|string|Date} timestamp - Mốc thời gian cần tính
+ * @returns {Object} { relative: string, exact: string }
+ */
+function getRelativeTimeString(timestamp) {
+  const date = new Date(timestamp);
+  if (isNaN(date.getTime())) {
+    return { relative: "Không rõ", exact: "Thời gian không hợp lệ" };
+  }
+  const now = new Date();
+  const diffInSeconds = Math.floor((now - date) / 1000);
+  // 1. Tính thời gian tương đối (relative) ở mọi thời điểm
+  let relative = "";
+  if (diffInSeconds < 60) {
+    relative = "Vừa xong";
+  } else if (diffInSeconds < 3600) {
+    const minutes = Math.floor(diffInSeconds / 60);
+    relative = `${minutes} phút trước`;
+  } else if (diffInSeconds < 86400) {
+    const hours = Math.floor(diffInSeconds / 3600);
+    relative = `${hours} giờ trước`;
+  } else if (diffInSeconds < 2592000) { // Dưới 30 ngày
+    const days = Math.floor(diffInSeconds / 86400);
+    relative = `${days} ngày trước`;
+  } else if (diffInSeconds < 31536000) { // Dưới 365 ngày (1 năm)
+    const months = Math.floor(diffInSeconds / 2592000);
+    relative = `${months} tháng trước`;
+  } else { // Từ 1 năm trở lên
+    const years = Math.floor(diffInSeconds / 31536000);
+    relative = `${years} năm trước`;
+  }
+  // 2. Định dạng thời gian chính xác (exact) cho tooltip title (HH:MM:SS DD/MM/YYYY)
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const exact = `${hours}:${minutes}:${seconds} ${day}/${month}/${date.getFullYear()}`;
+  return { relative, exact };
 }
 // Phần chạy chính của ui.js
 // Cấu trúc: 
@@ -346,9 +387,98 @@ function sendLogToBackground(message, type = 'info') {
         linksArray.forEach((item) => {
           const li = document.createElement("li");
           li.className = "asscee_LinkItem";
+          const timeInfo = getRelativeTimeString(item.savedAt);
+          const hasFolder = item.folderName && item.id;
+          const line1Left = hasFolder ? item.folderName : "Nguồn ẩn danh";
+          const line2Left = hasFolder ? `ID: ${item.id}` : item.url;
+
+          li.innerHTML = `
+            <div class="asscee_ItemRow">
+              <span class="asscee_Text">${line1Left}</span>
+              <button class="asscee_BtnSqr asscee_itemDeleteBtn" title="Xóa nguồn">×</button>
+            </div>
+            <div class="asscee_ItemRow">
+              <span class="asscee_Text asscee_SubText asscee_itemIdSub">${line2Left}</span>
+              <span class="asscee_Text asscee_SubText asscee_itemTimeSub" title="${timeInfo.exact}">${timeInfo.relative}</span>
+            </div>
+          `;
+          li.addEventListener("click", (e) => { // SỰ KIỆN 1: Click vào li để copy link nguồn
+            // Nếu click trúng nút xóa thì bỏ qua không copy
+            if (e.target.closest(".asscee_itemDeleteBtn")) return;
+            navigator.clipboard.writeText(item.url).then(() => {
+              console.log("Đã copy link nguồn: " + item.url);
+            }).catch(err => {
+              console.error("Lỗi khi copy link: ", err);
+            });
+          });
+          // SỰ KIỆN 2: Click vào nút xóa nguồn liên kết với background.js (xem mục 3.4)
+          const deleteBtn = li.querySelector(".asscee_itemDeleteBtn");
+          deleteBtn.addEventListener("click", (e) => {
+            e.stopPropagation(); // Ngăn sự kiện click bị lan ra thẻ li bên ngoài
+            const targetTime = item.savedAt;
+            chrome.runtime.sendMessage({
+              type: "SOURCE.REMOVE",
+              payload: { savedAt: targetTime }
+            }, (response) => {
+              if (chrome.runtime.lastError) {
+                console.error("Lỗi kết nối background:", chrome.runtime.lastError.message);
+                return;
+              }
+              if (response && response.type === "SOURCE.REMOVED") {
+                // Mảng data mới trả về sau khi xóa thành công nằm trong response.payload
+                renderLinkList(response.payload);
+              } else if (response && response.type === "ERROR") {
+                console.error("Lỗi từ backend:", response.payload);
+              }
+            });
+            linkList.appendChild(li);
         });
       }; // Kết thúc hàm renderLinkList(). to-do: check gemini và viết tiếp đoạn xung quanh dòng này
-      
+      function initSourceList() {
+        chrome.runtime.sendMessage({ type: "SOURCE.GET_ALL" }, (response) => {
+          if (chrome.runtime.lastError) {
+            console.error("Không thể lấy danh sách nguồn:", chrome.runtime.lastError.message);
+            return;
+          }
+          if (response && response.type === "SOURCE.LIST") {
+            renderLinkList(response.payload);
+          }
+        });
+      }
+      addFolderBtn.addEventListener("click", () => {
+        const urlValue = linkInput.value.trim();
+        if (!urlValue) return;
+        // Khóa nút tạm thời để tránh click liên tục khi đang xử lý
+        addFolderBtn.disabled = true;
+        chrome.runtime.sendMessage({
+          type: "SOURCE.ADD",
+          payload: { url: urlValue }
+        }, (response) => {
+          addFolderBtn.disabled = false; // Mở khóa nút
+          if (chrome.runtime.lastError) {
+            console.error("Lỗi khi thêm nguồn:", chrome.runtime.lastError.message);
+            return;
+          }
+          if (response && response.type === "SOURCE.ADDED") {
+            linkInput.value = ""; // Xóa text trong ô input sau khi thêm thành công
+            // Giao thức trả về folderData của phần tử vừa thêm hoặc toàn mảng tùy backend lo,
+            // Ở đây ta gọi lại danh sách tổng mới nhất để đồng bộ UI
+            initSourceList(); 
+          } else if (response && response.type === "ERROR") {
+            console.error("Thêm nguồn thất bại:", response.payload);
+            alert("Lỗi: " + response.payload); // Hiển thị thông báo lỗi nếu cần
+          }
+        });
+      });
+      // Hoặc người dùng có thể nhấn Enter trong ô input để thêm nguồn nhanh
+      linkInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          addFolderBtn.click();
+        }
+      });
+
+      // Kích hoạt nạp danh sách ban đầu ngay lập tức
+      initSourceList();
 
     } catch (error) {
       sendLogToBackground(`ui: Lỗi xử lí tính năng tab 1: Quản lí nguồn (1.3): ${error.message}`, "error");
