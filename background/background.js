@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.0.2 05jun26
+// v0.0.0.2 07jun26
 import { fetchSubtitleText, fetchSubtitleFile } from './fetcher.js';
 // 2 hàm fetchSubtitleText, fetchSubtitleFile
 import { addSource, getSourceList, removeSource, addSubData, getSubDataList, useSubData, removeSubData } from './storage.js';
@@ -192,4 +192,4 @@ async function processSubtitles(videoId, candidate, rawText) {
   await addSubData(videoId, subObj);
   return { type: 'SUB.READY', payload: subObj }
 }
-console.log([ASS-CEE] background: Đã sẵn sàng.`);
+console.log(`[ASS-CEE] background: Đã sẵn sàng.`);
