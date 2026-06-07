@@ -60,7 +60,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   // Chỉ xử lí theo chuẩn đã định nghĩa trong handler
   const handler = handlers[msg.type];
   if (handler) {
-    handler(msg.payload)
+    handler(msg.payload, sender, sendResponse)
       .then(result => sendResponse(result))
       .catch(err => {
         console.error(`[ASS-CEE] background: handlers có vấn đề ở ${msg.type}:`, err);

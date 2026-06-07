@@ -336,6 +336,10 @@ function getRelativeTimeString(timestamp) {
       // try..catch tầng 2
       // 1.3. Phần xử lí tính năng tab 1: Quản lí nguồn
       // tabContents[0] ở đây là id="asscee_tab1_content", do tabContents là class="asscee_TabPane".
+	  if (!tabContents || !tabContents[0]) {
+		console.warn("[ASS-CEE] tabContents[0] chưa sẵn sàng trong DOM. Bỏ qua khởi tạo Tab 1.");
+		return; // Thoát ra luôn, không chạy code dưới nữa để tránh crash
+	  }
       tabContents[0].innerHTML = `
         <!-- Tab 1: Quản lí nguồn (folder)-->
         <div id="asscee_linkInputBar" class="asscee_InputBar"> <!-- Thanh ghi thêm nguồn -->
@@ -374,7 +378,10 @@ function getRelativeTimeString(timestamp) {
        * @param {*} linksArray 
        */
       function renderLinkList(linksArray) {
-        if (!linkList) return; // linkList không được định nghĩa?
+        if (!linkList) {
+			console.error("[ASS-CEE] linkList đang bị rỗng hoàn toàn!");
+			return;
+		  } // linkList không được định nghĩa?
         linkList.innerHTML = ""; // Xóa sạch danh sách cũ, render lại từ đầu.
         // Trường hợp mảng trống
         if (!linksArray || linksArray.length === 0) {
@@ -432,7 +439,7 @@ function getRelativeTimeString(timestamp) {
               }
             });
           });
-		    linkList.appendChild(li);
+		  linkList.appendChild(li);
         });
       }; // Kết thúc hàm renderLinkList(). to-do: check gemini và viết tiếp đoạn xung quanh dòng này
       function initSourceList() {
