@@ -1,5 +1,5 @@
 // Code bằng tay (thực ra vẫn còn nhiều chỗ vibe coding)
-// v0.0.0.2 07jun26
+// v0.0.0.2 09jun26
 /**
  * Hàm gửi log về background.js
  * @param {*} message nội dung
@@ -332,166 +332,169 @@ function getRelativeTimeString(timestamp) {
       sendLogToBackground(`ui: Lỗi xử lí tính năng di chuyển (1.2): ${error.message}`, "error");
       console.error("[ASS-CEE] ui: Lỗi xử lí tính năng di chuyển (1.2):", error);
     }
-    try {
-      // try..catch tầng 2
+    (function tabContent1() {
+      // try..catch? tầng 2. Ở đây là dạng hàm chạy ngay chứa try..catch
       // 1.3. Phần xử lí tính năng tab 1: Quản lí nguồn
       // tabContents[0] ở đây là id="asscee_tab1_content", do tabContents là class="asscee_TabPane".
-	  if (!tabContents || !tabContents[0]) {
-		console.warn("[ASS-CEE] tabContents[0] chưa sẵn sàng trong DOM. Bỏ qua khởi tạo Tab 1.");
-		return; // Thoát ra luôn, không chạy code dưới nữa để tránh crash
-	  }
-      tabContents[0].innerHTML = `
-        <!-- Tab 1: Quản lí nguồn (folder)-->
-        <div id="asscee_linkInputBar" class="asscee_InputBar"> <!-- Thanh ghi thêm nguồn -->
-          <input 
-            type="text" 
-            id="asscee_linkInput"
-            class="asscee_Input"
-            autocomplete="off"
-          />
-          <!-- placeholder="Thêm nguồn (link folder GitHub/GDrive)..."? -->
-          <button id="asscee_addFolderBtn" class="asscee_BtnSqr"></button>
-          <!-- Nút thêm nguồn -->
-        </div>
-        <div class="asscee_Divider"> <!-- Phần ngăn cách-->
-          <span id="asscee_dividerText" class="asscee_Text"></span>
-          <div class="asscee_DividerLine"></div>
-        </div>
-        <div class="asscee_ListContainer"> <!-- Phần danh sách nguồn -->
-          <ul id="asscee_linkList" class="asscee_List">
-            </ul>
-        </div>
-      `;
-      const linkInput = tabContents[0].querySelector('#asscee_linkInput');
-      // phần đầu vào link folder
-      const linkList = tabContents[0].querySelector('#asscee_linkList');
-      // phần danh sách link folder đã có trong cache
-      const addFolderBtn = tabContents[0].querySelector('#asscee_addFolderBtn');
-      // phần nút thêm nguồn
-      tabContents[0].querySelector('#asscee_dividerText').textContent = "Danh sách nguồn";
-      // phần chữ ở dòng divider (chỉ áp phần text, ko có logic gì thêm)
-      linkInput.placeholder = "Thêm nguồn (link folder GitHub/GDrive)...";
-      addFolderBtn.textContent = "+";
-      // Áp các phần tĩnh của UI tab 1.
-      /**
-       * Hàm render danh sách nguồn
-       * @param {*} linksArray 
-       */
-      function renderLinkList(linksArray) {
-        if (!linkList) {
-			console.error("[ASS-CEE] linkList đang bị rỗng hoàn toàn!");
-			return;
-		  } // linkList không được định nghĩa?
-        linkList.innerHTML = ""; // Xóa sạch danh sách cũ, render lại từ đầu.
-        // Trường hợp mảng trống
-        if (!linksArray || linksArray.length === 0) {
-          const emptyLi = document.createElement("li"); // Tạm thời tạo ra element <li> mới
-          emptyLi.style.cssText = "color: #606060; text-align: center; padding: 15px; font-size: 11px;";
-          emptyLi.textContent = "Chưa có nguồn nào được thêm.";
-          linkList.appendChild(emptyLi);
-          return;
-        }
-        linksArray.forEach((item) => {
-          const li = document.createElement("li");
-          li.className = "asscee_LinkItem";
-          const timeInfo = getRelativeTimeString(item.savedAt);
-          const hasFolder = item.folderName && item.id;
-          const line1Left = hasFolder ? item.folderName : "Nguồn ẩn danh";
-          const line2Left = hasFolder ? `ID: ${item.id}` : item.url;
-
-          li.innerHTML = `
-            <div class="asscee_ItemRow">
-              <span class="asscee_Text">${line1Left}</span>
-              <button class="asscee_BtnSqr asscee_itemDeleteBtn" title="Xóa nguồn">×</button>
-            </div>
-            <div class="asscee_ItemRow">
-              <span class="asscee_Text asscee_SubText asscee_itemIdSub">${line2Left}</span>
-              <span class="asscee_Text asscee_SubText asscee_itemTimeSub" title="${timeInfo.exact}">${timeInfo.relative}</span>
-            </div>
-          `;
-          li.addEventListener("click", (e) => { // SỰ KIỆN 1: Click vào li để copy link nguồn
-            // Nếu click trúng nút xóa thì bỏ qua không copy
-            if (e.target.closest(".asscee_itemDeleteBtn")) return;
-            navigator.clipboard.writeText(item.url).then(() => {
-              console.log("Đã copy link nguồn: " + item.url);
-            }).catch(err => {
-              console.error("Lỗi khi copy link: ", err);
-            });
-          });
-          // SỰ KIỆN 2: Click vào nút xóa nguồn liên kết với background.js (xem mục 3.4)
-          const deleteBtn = li.querySelector(".asscee_itemDeleteBtn");
-          deleteBtn.addEventListener("click", (e) => {
-            e.stopPropagation(); // Ngăn sự kiện click bị lan ra thẻ li bên ngoài
-            const targetTime = item.savedAt;
-            chrome.runtime.sendMessage({
-              type: "SOURCE.REMOVE",
-              payload: { savedAt: targetTime }
-            }, (response) => {
-              if (chrome.runtime.lastError) {
-                console.error("Lỗi kết nối background:", chrome.runtime.lastError.message);
-                return;
-              }
-              if (response && response.type === "SOURCE.REMOVED") {
-                // Mảng data mới trả về sau khi xóa thành công nằm trong response.payload
-                renderLinkList(response.payload);
-              } else if (response && response.type === "ERROR") {
-                console.error("Lỗi từ backend:", response.payload);
-              }
-            });
-          });
-		  linkList.appendChild(li);
-        });
-      }; // Kết thúc hàm renderLinkList(). to-do: check gemini và viết tiếp đoạn xung quanh dòng này
-      function initSourceList() {
-        chrome.runtime.sendMessage({ type: "SOURCE.GET_ALL" }, (response) => {
-          if (chrome.runtime.lastError) {
-            console.error("Không thể lấy danh sách nguồn:", chrome.runtime.lastError.message);
-            return;
-          }
-          if (response && response.type === "SOURCE.LIST") {
-            renderLinkList(response.payload);
-          }
-        });
+      if (!tabContents || !tabContents[0]) {
+        sendLogToBackground("ui: tabContents[0] chưa sẵn sàng. Chờ mỗi 50ms, cho đến khi có, thì mới chạy mục 1.3.","warn");
+        setTimeout(tabContent1, 50);
+        return; // Thoát luồng check hiện tại
       }
-      addFolderBtn.addEventListener("click", () => {
-        const urlValue = linkInput.value.trim();
-        if (!urlValue) return;
-        // Khóa nút tạm thời để tránh click liên tục khi đang xử lý
-        addFolderBtn.disabled = true;
-        chrome.runtime.sendMessage({
-          type: "SOURCE.ADD",
-          payload: { url: urlValue }
-        }, (response) => {
-          addFolderBtn.disabled = false; // Mở khóa nút
-          if (chrome.runtime.lastError) {
-            console.error("Lỗi khi thêm nguồn:", chrome.runtime.lastError.message);
+      try {
+        tabContents[0].innerHTML = `
+          <!-- Tab 1: Quản lí nguồn (folder)-->
+          <div id="asscee_linkInputBar" class="asscee_InputBar"> <!-- Thanh ghi thêm nguồn -->
+            <input 
+              type="text" 
+              id="asscee_linkInput"
+              class="asscee_Input"
+              autocomplete="off"
+            />
+            <!-- placeholder="Thêm nguồn (link folder GitHub/GDrive)..."? -->
+            <button id="asscee_addFolderBtn" class="asscee_BtnSqr"></button>
+            <!-- Nút thêm nguồn -->
+          </div>
+          <div class="asscee_Divider"> <!-- Phần ngăn cách-->
+            <span id="asscee_dividerText" class="asscee_Text"></span>
+            <div class="asscee_DividerLine"></div>
+          </div>
+          <div class="asscee_ListContainer"> <!-- Phần danh sách nguồn -->
+            <ul id="asscee_linkList" class="asscee_List">
+              </ul>
+          </div>
+        `;
+        const linkInput = tabContents[0].querySelector('#asscee_linkInput');
+        // phần đầu vào link folder
+        const linkList = tabContents[0].querySelector('#asscee_linkList');
+        // phần danh sách link folder đã có trong cache
+        const addFolderBtn = tabContents[0].querySelector('#asscee_addFolderBtn');
+        // phần nút thêm nguồn
+        tabContents[0].querySelector('#asscee_dividerText').textContent = "Danh sách nguồn";
+        // phần chữ ở dòng divider (chỉ áp phần text, ko có logic gì thêm)
+        linkInput.placeholder = "Thêm nguồn (link folder GitHub/GDrive)...";
+        addFolderBtn.textContent = "+";
+        // Áp các phần tĩnh của UI tab 1.
+        /**
+         * Hàm render danh sách nguồn
+         * @param {*} linksArray 
+         */
+        function renderLinkList(linksArray) {
+          if (!linkList) {
+        console.error("[ASS-CEE] linkList đang bị rỗng hoàn toàn!");
+        return;
+        } // linkList không được định nghĩa?
+          linkList.innerHTML = ""; // Xóa sạch danh sách cũ, render lại từ đầu.
+          // Trường hợp mảng trống
+          if (!linksArray || linksArray.length === 0) {
+            const emptyLi = document.createElement("li"); // Tạm thời tạo ra element <li> mới
+            emptyLi.style.cssText = "color: #606060; text-align: center; padding: 15px; font-size: 11px;";
+            emptyLi.textContent = "Chưa có nguồn nào được thêm.";
+            linkList.appendChild(emptyLi);
             return;
           }
-          if (response && response.type === "SOURCE.ADDED") {
-            linkInput.value = ""; // Xóa text trong ô input sau khi thêm thành công
-            // Giao thức trả về folderData của phần tử vừa thêm hoặc toàn mảng tùy backend lo,
-            // Ở đây ta gọi lại danh sách tổng mới nhất để đồng bộ UI
-            initSourceList(); 
-          } else if (response && response.type === "ERROR") {
-            console.error("Thêm nguồn thất bại:", response.payload);
-            alert("Lỗi: " + response.payload); // Hiển thị thông báo lỗi nếu cần
+          linksArray.forEach((item) => {
+            const li = document.createElement("li");
+            li.className = "asscee_LinkItem";
+            const timeInfo = getRelativeTimeString(item.savedAt);
+            const hasFolder = item.folderName && item.id;
+            const line1Left = hasFolder ? item.folderName : "Nguồn ẩn danh";
+            const line2Left = hasFolder ? `ID: ${item.id}` : item.url;
+
+            li.innerHTML = `
+              <div class="asscee_ItemRow">
+                <span class="asscee_Text">${line1Left}</span>
+                <button class="asscee_BtnSqr asscee_itemDeleteBtn" title="Xóa nguồn">×</button>
+              </div>
+              <div class="asscee_ItemRow">
+                <span class="asscee_Text asscee_SubText asscee_itemIdSub">${line2Left}</span>
+                <span class="asscee_Text asscee_SubText asscee_itemTimeSub" title="${timeInfo.exact}">${timeInfo.relative}</span>
+              </div>
+            `;
+            li.addEventListener("click", (e) => { // SỰ KIỆN 1: Click vào li để copy link nguồn
+              // Nếu click trúng nút xóa thì bỏ qua không copy
+              if (e.target.closest(".asscee_itemDeleteBtn")) return;
+              navigator.clipboard.writeText(item.url).then(() => {
+                console.log("Đã copy link nguồn: " + item.url);
+              }).catch(err => {
+                console.error("Lỗi khi copy link: ", err);
+              });
+            });
+            // SỰ KIỆN 2: Click vào nút xóa nguồn liên kết với background.js (xem mục 3.4)
+            const deleteBtn = li.querySelector(".asscee_itemDeleteBtn");
+            deleteBtn.addEventListener("click", (e) => {
+              e.stopPropagation(); // Ngăn sự kiện click bị lan ra thẻ li bên ngoài
+              const targetTime = item.savedAt;
+              chrome.runtime.sendMessage({
+                type: "SOURCE.REMOVE",
+                payload: { savedAt: targetTime }
+              }, (response) => {
+                if (chrome.runtime.lastError) {
+                  console.error("Lỗi kết nối background:", chrome.runtime.lastError.message);
+                  return;
+                }
+                if (response && response.type === "SOURCE.REMOVED") {
+                  // Mảng data mới trả về sau khi xóa thành công nằm trong response.payload
+                  renderLinkList(response.payload);
+                } else if (response && response.type === "ERROR") {
+                  console.error("Lỗi từ backend:", response.payload);
+                }
+              });
+            });
+        linkList.appendChild(li);
+          });
+        }; // Kết thúc hàm renderLinkList(). to-do: check gemini và viết tiếp đoạn xung quanh dòng này
+        function initSourceList() {
+          chrome.runtime.sendMessage({ type: "SOURCE.GET_ALL" }, (response) => {
+            if (chrome.runtime.lastError) {
+              console.error("Không thể lấy danh sách nguồn:", chrome.runtime.lastError.message);
+              return;
+            }
+            if (response && response.type === "SOURCE.LIST") {
+              renderLinkList(response.payload);
+            }
+          });
+        }
+        addFolderBtn.addEventListener("click", () => {
+          const urlValue = linkInput.value.trim();
+          if (!urlValue) return;
+          // Khóa nút tạm thời để tránh click liên tục khi đang xử lý
+          addFolderBtn.disabled = true;
+          chrome.runtime.sendMessage({
+            type: "SOURCE.ADD",
+            payload: { url: urlValue }
+          }, (response) => {
+            addFolderBtn.disabled = false; // Mở khóa nút
+            if (chrome.runtime.lastError) {
+              console.error("Lỗi khi thêm nguồn:", chrome.runtime.lastError.message);
+              return;
+            }
+            if (response && response.type === "SOURCE.ADDED") {
+              linkInput.value = ""; // Xóa text trong ô input sau khi thêm thành công
+              // Giao thức trả về folderData của phần tử vừa thêm hoặc toàn mảng tùy backend lo,
+              // Ở đây ta gọi lại danh sách tổng mới nhất để đồng bộ UI
+              initSourceList(); 
+            } else if (response && response.type === "ERROR") {
+              console.error("Thêm nguồn thất bại:", response.payload);
+              alert("Lỗi: " + response.payload); // Hiển thị thông báo lỗi nếu cần
+            }
+          });
+        });
+        // Hoặc người dùng có thể nhấn Enter trong ô input để thêm nguồn nhanh
+        linkInput.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            addFolderBtn.click();
           }
         });
-      });
-      // Hoặc người dùng có thể nhấn Enter trong ô input để thêm nguồn nhanh
-      linkInput.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-          addFolderBtn.click();
-        }
-      });
 
-      // Kích hoạt nạp danh sách ban đầu ngay lập tức
-      initSourceList();
+        // Kích hoạt nạp danh sách ban đầu ngay lập tức
+        initSourceList();
 
-    } catch (error) {
-      sendLogToBackground(`ui: Lỗi xử lí tính năng tab 1: Quản lí nguồn (1.3): ${error.message}`, "error");
-      console.error("[ASS-CEE] ui: Lỗi xử lí tính năng tab 1: Quản lí nguồn (1.3):", error);
-    }
+      } catch (error) {
+        sendLogToBackground(`ui: Lỗi xử lí tính năng tab 1: Quản lí nguồn (1.3): ${error.message}`, "error");
+        console.error("[ASS-CEE] ui: Lỗi xử lí tính năng tab 1: Quản lí nguồn (1.3):", error);
+      } // Hết try..catch
+    })(); // Hết phần hàm chạy ngay mục 1.3
   } catch (error) {
     sendLogToBackground(`ui: Lỗi khởi tạo và xử lí khung HTML (1.): ${error.message}`, "error");
     console.error("[ASS-CEE] ui: Lỗi khởi tạo và xử lí khung HTML (1.):", error);
