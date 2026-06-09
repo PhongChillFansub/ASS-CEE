@@ -1,5 +1,5 @@
 // Code bằng tay (thực ra vẫn còn nhiều chỗ vibe coding)
-// v0.0.0.2 09jun26
+// v0.0.0.2 10jun26
 /**
  * Hàm gửi log về background.js
  * @param {*} message nội dung
@@ -138,7 +138,7 @@ function getRelativeTimeString(timestamp) {
     const tabItemBtns = container.querySelectorAll('[data-asscee_tab-target]');
     // Cho các nút chọn trang (danh sách trang hiển thị). 
     // Ở đây chọn theo tag data để thuận cho việc chèn các nút chuyển tab bên trong tab khác, chứ ko chỉ có trong danh sách.
-    const tabContents = container.querySelectorAll('.asscee_tabPane');
+    const tabContents = container.querySelectorAll('.asscee_TabPane');
     // Cho các nút chọn trang hiển thị và nội dung tương ứng
     // Cho nội dung tab 1 (quản lí nguồn)
     // const footerInfo = container.querySelector('#asscee_footerInfo');
