@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.0.2 07jun26
+// v0.0.0.2 10jun26
 const FETCH_TIMEOUT = 60000; // Tối đa 60 giây kết nối và nhận dữ liệu. Dùng cho hàm fetchWithTimeout().
 const VALID_FILE_SIGNATURE = ["[Script Info]", "[V4+ Styles]", "[Events]"];
 // Danh sách các nội dung mà parser dùng để đánh dấu. Dùng cho hàm validateSubtitleContent().
@@ -53,7 +53,7 @@ function validateSubtitleContent(text) {
 }
 /**
  * Hàm quét DANH SÁCH thư mục GitHub/GDrive (thông qua 2 hàm scanGitHub và scanGoogleDrive)
- * @param {*} sources folderData = { url, // bắt buộc
+ * @param {*} sources array các obj folderData = { url, // bắt buộc
         type, folderName, folderId, // chạy lần đầu sẽ được cấp
         savedAt, // ko sử dụng, do storage.js cấp (addSource())
     }
@@ -67,8 +67,9 @@ function validateSubtitleContent(text) {
         groupName
     }
  */
-export async function fetchSubtitleFile(sources, videoId, folderGet) {
-    const scanPromises = sources.map(source => {
+export async function fetchSubtitleFile(sources, videoId) {
+    const scanPromises = sources.map(async (source) => {
+        // source = folderData
         // Ưu tiên dùng source.type có sẵn, nếu chạy lần đầu chưa có thì check qua URL
         const type = source.type || (
             source.url?.includes('github.com') 
@@ -77,25 +78,29 @@ export async function fetchSubtitleFile(sources, videoId, folderGet) {
                     ? 'gdrive' 
                     : null
         ); 
-        folderGet.type = type; // Chạy lần đầu được cấp .type ở đây
+        source.type = type; // Chạy lần đầu được cấp .type ở đây
+        let folderGet = {};
+        let result = [];
         if (type === 'github') {
-            return scanGitHub(source, videoId, folderGet); // Chạy lần đầu được cấp .folderName, .Id ở đây
+            result = await scanGitHub(source, videoId, folderGet); // Chạy lần đầu được cấp .folderName, .Id ở đây
         } else if (type === 'gdrive') {
-            return scanGDrive(source, videoId, folderGet); // Chạy lần đầu được cấp .folderName, .Id ở đây
+            result = await scanGDrive(source, videoId, folderGet); // Chạy lần đầu được cấp .folderName, .Id ở đây
         } else {
-            console.warn(`[ASS-CEE] fetcher: Link chuẩn chưa em? (${source})`);
-            return [];
+            console.warn("[ASS-CEE] fetcher: Link chuẩn chưa em?\n", source);
+            return []; // Trả về array các file đáp ứng videoId trong folder đang xét (trống)
         }
+        source.folderName = source.groupName || folderGet.groupName;
+        source.folderId = source.folderId || folderGet.id;
+        return result;
     });
-    if (!videoId) {
-        console.log(`[ASS-CEE] fetcher: Coi như link folder chạy lần đầu (${source})`);
-        return [];
+    const results = await Promise.allSettled(scanPromises); // Chờ tất cả các luồng quét kết thúc hết để check videoId
+    if (!videoId || videoId.trim() === "") {
+        console.log("[ASS-CEE] fetcher: Coi như link folder chạy lần đầu (đã nạp xong folderName và folderId)\n", sources);
+        return []; 
     }
-    // 2. Chờ tất cả các luồng quét kết thúc đồng thời
-    const results = await Promise.allSettled(scanPromises);
-    // 3. Gom và làm phẳng danh sách file sub tìm được
+    // Gom và làm phẳng danh sách file sub tìm được
     const candidates = results.filter(r => r.status === 'fulfilled').flatMap(r => r.value);
-    // 4. Sắp xếp file theo thứ tự bảng chữ cái ABC
+    // Sắp xếp file theo thứ tự bảng chữ cái ABC
 	candidates.sort((a, b) => a.groupName.localeCompare(b.groupName) || a.fileName.localeCompare(b.fileName));
 	// So sánh theo groupName trước, sau đó là theo fileName. 
     console.log(`[ASS-CEE] fetcher: Đã tìm xong các file tương ứng. (${videoId}, trả về ${candidates.length})`);
