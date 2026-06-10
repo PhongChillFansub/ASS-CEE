@@ -98,7 +98,7 @@ const handlers = {
         .filter(u => u !== "");
         // Tách danh sách URL bằng dấu xuống dòng, loại bỏ khoảng trắng và dòng trống
     if (urls.length === 0) {
-        throw new Error("payload.url (SOURCE.ADD) trống (string "")");
+        throw new Error(`payload.url (SOURCE.ADD) trống (string "")`);
     }
     const sourcesToFetch = urls.map(singleUrl => ({ url: singleUrl }));
     await fetchSubtitleFile(sourcesToFetch, "");  // Gọi fetchSubtitleFile* lần đầu
