@@ -68,7 +68,7 @@ export async function addSubData(videoId, subtitleObj = {}) {
         throw new Error("Dữ liệu file sub lưu cache không hợp lệ"); 
     }
     subtitleObj.cachedAt = Date.now()
-    const SUBTITLE_DATA_KEY = `${SUBTITLE_DATA_KEY_BASE}_${videoId}`
+    const subKey = `${SUBTITLE_DATA_KEY_BASE}_${videoId}`
     // cấu trúc key: ASSCEE_<videoId>
     await chrome.storage.local.set({ [subKey]: subtitleObj });
     // Luôn luôn ghi đè
