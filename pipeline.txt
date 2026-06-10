@@ -1,4 +1,4 @@
-v0.0.0.2 05jun26
+v0.0.0.2 10jun26
 1. Cấu trúc extension:
   - manifest.JSON
   - background
@@ -68,8 +68,9 @@ v0.0.0.2 05jun26
           sendResponse (tổng): { type: 'LOGGED' }
 
     3.2. type === "SOURCE.ADD"
-            payload = { url }
-          sendResponse (tổng): { type: 'SOURCE.ADDED', payload: folderData }
+            payload = { urls }
+          sendResponse (tổng):  { type: 'SOURCE.ADDED', payload: [folderData] }
+          hoặc                  { type: 'SOURCE.NOT_ADDED', payload: message (string) }
 
     3.3. type === "SOURCE.GET_ALL"
             payload = undefined

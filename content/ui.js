@@ -449,9 +449,8 @@ function buildSourceManagerTab() {
         // Giao thức trả về folderData của phần tử vừa thêm hoặc toàn mảng tùy backend lo,
         // Ở đây ta gọi lại danh sách tổng mới nhất để đồng bộ UI
         initSourceList(); 
-      } else if (response && response.type === "ERROR") {
-        console.error("Thêm nguồn thất bại:", response.payload);
-        alert("Lỗi: " + response.payload); // Hiển thị thông báo lỗi nếu cần
+      } else if (response && response.type === "SOURCE.NOT_ADDED") {
+        alert("Thêm nguồn thất bại: " + response.payload); // Hiển thị thông báo lỗi nếu cần
       }
     });
   });

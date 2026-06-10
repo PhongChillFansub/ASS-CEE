@@ -91,31 +91,33 @@ const handlers = {
   },
   'SOURCE.ADD': async (payload) => { // Yêu cầu thêm nguồn
     const { url } = payload;
-    if (!url) throw new Error("payload.url (SOURCE.ADD) trống (undefined)");
+    if (!url) {
+      return { type: 'SOURCE.NOT_ADDED', payload: "payload.url (SOURCE.ADD) trống (undefined)" };
+    } 
     const urls = url
-        .split('\n')
-        .map(u => u.trim())
-        .filter(u => u !== "");
-        // Tách danh sách URL bằng dấu xuống dòng, loại bỏ khoảng trắng và dòng trống
+      .split('\n')
+      .map(u => u.trim())
+      .filter(u => u !== "");
+      // Tách danh sách URL bằng dấu xuống dòng, loại bỏ khoảng trắng và dòng trống
     if (urls.length === 0) {
-        throw new Error(`payload.url (SOURCE.ADD) trống (string trống)`);
+      return { type: 'SOURCE.NOT_ADDED', payload: "payload.url (SOURCE.ADD) trống (string trống)" };
     }
     const sourcesToFetch = urls.map(singleUrl => ({ url: singleUrl }));
     await fetchSubtitleFile(sourcesToFetch, "");  // Gọi fetchSubtitleFile* lần đầu
     const finalizedSources = [];
     for (const sourceItem of sourcesToFetch) {
-        if (!sourceItem.type || !sourceItem.folderName || !sourceItem.folderId) {
-            throw new Error(`Không thể trích xuất thông tin folder cho URL: ${sourceItem.url}`);
-        }
-        finalizedSources.push({
-            url: sourceItem.url,
-            type: sourceItem.type,
-            folderName: sourceItem.folderName,
-            folderId: sourceItem.folderId
-        });
+      if (!sourceItem.type || !sourceItem.folderName || !sourceItem.folderId) {
+          return { type: 'SOURCE.NOT_ADDED', payload: `Không thể trích xuất thông tin folder cho URL: ${sourceItem.url}` };
+      }
+      finalizedSources.push({
+        url: sourceItem.url,
+        type: sourceItem.type,
+        folderName: sourceItem.folderName,
+        folderId: sourceItem.folderId
+      });
     }
     const addedSources = await Promise.all(
-        finalizedSources.map(source => addSource(source))
+      finalizedSources.map(source => addSource(source))
     );
     return { type: 'SOURCE.ADDED', payload: addedSources };
     // return là thứ được try..catch tổng gửi trong sendResponse.
