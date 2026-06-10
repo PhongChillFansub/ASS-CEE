@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.0.2 05jun26
+// v0.0.0.2 10jun26
 // storage.js
 // Chức năng: chuyên xử lí lưu trữ trên chrome.storage.local.
 // 7 hàm export là:
@@ -20,7 +20,7 @@ export async function addSource(source = {}) {
     // Kiểm tra cấu trúc dữ liệu
   }
   const sources = (await getSourceList());
-  // Lấy danh sách nguồn đã có để kiểm tra trùng lặp (hàm getSources đã fallback array trống)
+  // Lấy danh sách nguồn đã có để kiểm tra trùng lặp (hàm getSourceList đã fallback array trống)
   if (sources.some(item => item.url === source.url)) {
     // Kiểm tra nếu nguồn trùng lặp, báo lại và dừng
     throw new Error("Nguồn này đã tồn tại trong danh sách");
@@ -50,11 +50,11 @@ export async function getSourceList() {
  * @returns true (boolean)
  */
 export async function removeSource(time) {
-  const sources = await getSources();
+  const sources = await getSourceList();
   const updated = sources.filter(s => s.savedAt !== time);
   const deleted = sources.filter(s => s.savedAt == time);
   await chrome.storage.local.set({ [SUBTITLE_SOURCES_KEY]: updated });
-  console.log(`%c[ASS-CEE]%c storage: Đã xóa ${deleted.length} nguồn:\n   ${deleted.map(item => item.url).join('\n   ')}`);
+  console.log(`[ASS-CEE] storage: Đã xóa ${deleted.length} nguồn:\n   ${deleted.map(item => item.url).join('\n   ')}`);
   return true;
 }
 /**
@@ -72,7 +72,7 @@ export async function addSubData(videoId, subtitleObj = {}) {
     // cấu trúc key: ASSCEE_<videoId>
     await chrome.storage.local.set({ [subKey]: subtitleObj });
     // Luôn luôn ghi đè
-    console.log(`%c[ASS-CEE]%c storage: Đã lưu cache sub obj cho vid: ${videoId}.`);
+    console.log(`[ASS-CEE] storage: Đã lưu cache sub obj cho vid: ${videoId}.`);
 }
 /**
  * Hàm lấy toàn bộ danh sách dữ liệu sub đang được lưu cache
@@ -112,18 +112,18 @@ export async function useSubData(videoId) {
  */
 export async function removeSubData(videoId) {
   if (!videoId) {
-    console.warn(`%c[ASS-CEE]%c storage: videoId trống, ko có obj để xóa.`);
+    console.warn(`[ASS-CEE] storage: videoId trống, ko có obj để xóa.`);
     return false;
   }
   const storageData = await chrome.storage.local.get(SUBTITLE_DATA_KEY);
   const data = storageData[SUBTITLE_DATA_KEY] || {};
   if (!data[videoId]) {
-    console.warn(`%c[ASS-CEE]%c storage: obj ${videoId} ko có dữ liệu để xóa.`);
+    console.warn(`[ASS-CEE] storage: obj ${videoId} ko có dữ liệu để xóa.`);
     return false;
   }
   // Tiến hành xóa key videoId khỏi object bằng cách phân rã (destructuring)
   const { [videoId]: deletedVideo, ...updated } = data;
   await chrome.storage.local.set({ [SUBTITLE_DATA_KEY]: updated });
-  console.log(`%c[ASS-CEE]%c storage: Đã xóa cache sub obj của vid: ${videoId}.`);
+  console.log(`[ASS-CEE] storage: Đã xóa cache sub obj của vid: ${videoId}.`);
   return true;
 }
