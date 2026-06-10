@@ -60,7 +60,7 @@ function getRelativeTimeString(timestamp) {
   return { relative, exact };
 }
 // Phần hàm chạy các hạng mục
-const uiData = window.uiData || {}; // Obj lưu toàn bộ dữ liệu UI, có bảo tồn do chạy nhiều lần file ui.js này
+var uiData = window.uiData || {}; // Obj lưu toàn bộ dữ liệu UI, có bảo tồn do chạy nhiều lần file ui.js này
 /**
  * Hàm chạy mục 1. Khởi tạo khung UI và API của nó.
  */
