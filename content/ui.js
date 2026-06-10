@@ -74,7 +74,7 @@ function buildMainHTML() {
   uiData.tabListBtnIcon = '☰';
   uiData.closeBtnIcon = '✕';
   uiData.container = document.createElement('div');
-  uiData.container.id = containerId;
+  uiData.container.id = uiData.containerId;
   uiData.container.innerHTML = `
     <div id="asscee_ui" class="asscee_UI">
       <!-- Khung giao diện -->
@@ -466,15 +466,15 @@ function buildSourceManagerTab() {
 // Phần chạy chính của ui.js
 (async function() {
   'use strict';
-  const containerId = 'asscee_overlayRoot';
+  uiData.containerId = 'asscee_overlayRoot';
   // Khai báo chung containerId để 2 file (content.js, ui.js) cùng nhận diện đc và giao tiếp. 
   // Tuy nhiên, do ko chạy ở background nên có tính độc lập theo tab (tab isolation)
-  if (document.getElementById(containerId)) return; // Nếu trùng lặp thì thoát
+  if (document.getElementById(uiData.containerId)) return; // Nếu trùng lặp thì thoát
   sendLogToBackground("ui: Đang khởi tạo giao diện nội bộ.");
   try { // Phần chạy mục 1.
     buildMainHTML(); // Chạy mục 1.
     sendLogToBackground("ui: chạy xong mục 1. Khởi tạo khung UI và API của nó.");
-  } catch {
+  } catch (error) {
     sendLogToBackground(`ui: chạy lỗi mục 1. Khởi tạo khung UI và API của nó: ${error.message}`, "error");
     console.error("[ASS-CEE] ui: chạy lỗi mục 1. Khởi tạo khung UI và API của nó:", error);
     return;
@@ -482,7 +482,7 @@ function buildSourceManagerTab() {
   try { // Phần chạy mục 1.1.
     buildTabListLogic(); // Hàm chạy mục 1.1. Khởi tạo logic trên danh sách trang hiển thị
     sendLogToBackground("ui: chạy xong mục 1.1. Khởi tạo logic trên danh sách trang hiển thị.");
-  } catch {
+  } catch (error) {
     sendLogToBackground(`ui: chạy lỗi mục 1.1. Khởi tạo logic trên danh sách trang hiển thị: ${error.message}`, "error");
     console.error("[ASS-CEE] ui: chạy lỗi mục 1.1. Khởi tạo logic trên danh sách trang hiển thị:", error);
   }
