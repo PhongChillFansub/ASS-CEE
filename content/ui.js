@@ -139,7 +139,7 @@ function buildMainHTML() {
  * Kết quả: thay đổi thuộc tính active của tab
  */
 function selectTab(tabId) {
-  const tabLabel = tabMap[tabId] || 'Tab không xác định';
+  const tabLabel = uiData.tabMap[tabId] || 'Tab không xác định';
   // Lấy tên trang
   uiData.titleText.textContent = `${uiData.extensionName} (${tabLabel})`;
   // Thay đổi tiêu đề để chứa tên extension và tab đang sử dụng
