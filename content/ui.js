@@ -171,7 +171,7 @@ function buildTabListLogic() {
   uiData.tabListBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     uiData.tabListExpand.classList.toggle('show');
-    const isShowing = tabListExpand.classList.contains('show');
+    const isShowing = uiData.tabListExpand.classList.contains('show');
     sendLogToBackground(`ui: Người dùng ${isShowing ? "mở" : "đóng"} danh mục menu lựa chọn Tab`);
   });
   // Xử lí thao tác bấm vào toàn trang (kể cả những vùng đã định dạng khác)
