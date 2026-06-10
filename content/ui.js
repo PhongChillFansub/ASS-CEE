@@ -60,6 +60,7 @@ function getRelativeTimeString(timestamp) {
   return { relative, exact };
 }
 // Phần hàm chạy các hạng mục
+const uiData = window.uiData || {}; // Obj lưu toàn bộ dữ liệu UI, có bảo tồn do chạy nhiều lần file ui.js này
 /**
  * Hàm chạy mục 1. Khởi tạo khung UI và API của nó.
  */
@@ -465,7 +466,6 @@ function buildSourceManagerTab() {
 // Phần chạy chính của ui.js
 (async function() {
   'use strict';
-  const uiData = {}; // Obj lưu toàn bộ dữ liệu UI (sử dụng để lưu dữ liệu chung cho mọi hạng mục)
   uiData.containerId = 'asscee_overlayRoot';
   // Khai báo chung containerId để 2 file (content.js, ui.js) cùng nhận diện đc và giao tiếp. 
   // Tuy nhiên, do ko chạy ở background nên có tính độc lập theo tab (tab isolation)
