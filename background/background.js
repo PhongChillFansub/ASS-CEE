@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.0.2 07jun26
+// v0.0.0.2 10jun26
 import { fetchSubtitleText, fetchSubtitleFile } from './fetcher.js';
 // 2 hàm fetchSubtitleText, fetchSubtitleFile
 import { addSource, getSourceList, removeSource, addSubData, getSubDataList, useSubData, removeSubData } from './storage.js';
@@ -91,19 +91,33 @@ const handlers = {
   },
   'SOURCE.ADD': async (payload) => { // Yêu cầu thêm nguồn
     const { url } = payload;
-    if (!url) throw new Error("payload.url (SOURCE.ADD) trống");
-    let folderGet = {} // Lấy dữ liệu bằng Tham chiếu (reference)
-    await fetchSubtitleFile([{url}], "", folderGet); // Gọi fetchSubtitleFile* lần đầu
-    if (!folderGet.type || !folderGet.groupName || !folderGet.id) {
-      throw new Error("Ko thể trích xuất thông tin folder");
+    if (!url) throw new Error("payload.url (SOURCE.ADD) trống (undefined)");
+    const urls = url
+        .split('\n')
+        .map(u => u.trim())
+        .filter(u => u !== "");
+        // Tách danh sách URL bằng dấu xuống dòng, loại bỏ khoảng trắng và dòng trống
+    if (urls.length === 0) {
+        throw new Error("payload.url (SOURCE.ADD) trống (string "")");
     }
-    const source = {
-      url,
-      type: folderGet.type,
-      folderName: folderGet.groupName,
-      folderId: folderGet.id
-    }; // Thiết lập cấu trúc dữ liệu cho obj nguồn folder
-    return { type: 'SOURCE.ADDED', payload: await addSource(source) }; // Lưu nguồn vào cache
+    const sourcesToFetch = urls.map(singleUrl => ({ url: singleUrl }));
+    await fetchSubtitleFile(sourcesToFetch, "");  // Gọi fetchSubtitleFile* lần đầu
+    const finalizedSources = [];
+    for (const sourceItem of sourcesToFetch) {
+        if (!sourceItem.type || !sourceItem.folderName || !sourceItem.folderId) {
+            throw new Error(`Không thể trích xuất thông tin folder cho URL: ${sourceItem.url}`);
+        }
+        finalizedSources.push({
+            url: sourceItem.url,
+            type: sourceItem.type,
+            folderName: sourceItem.folderName,
+            folderId: sourceItem.folderId
+        });
+    }
+    const addedSources = await Promise.all(
+        finalizedSources.map(source => addSource(source))
+    );
+    return { type: 'SOURCE.ADDED', payload: addedSources };
     // return là thứ được try..catch tổng gửi trong sendResponse.
   },
   'SOURCE.GET_ALL': async () => { // Yêu cầu xem nguồn
@@ -164,7 +178,7 @@ async function resolveSubtitles(videoId) {
     console.log(`[ASS-CEE] background: Không có thư mục nào để quét.`);
     return { type: 'SUB.EMPTY', payload: [] };
   }
-  const candidates = await fetchSubtitleFile(sources, videoId, {}); // Quét danh sách nguồn
+  const candidates = await fetchSubtitleFile(sources, videoId); // Quét danh sách nguồn
   // Kiểm tra kết quả quét
   if (candidates.length === 0) { // Trường hợp 1: Ko có file tương ứng
     console.log(`[ASS-CEE] background: Ko có file cho vid ${videoId}.`);
