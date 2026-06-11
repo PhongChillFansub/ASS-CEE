@@ -446,7 +446,7 @@ function buildSourceManagerTab() {
   uiData.linkInput.placeholder = "Thêm nguồn (link folder GitHub/GDrive)...";
   uiData.addFolderBtn.textContent = "+";
   // Thêm nguồn bằng cách bấm vào nút thêm
-  uiData.addFolderBtn.addEventListener("click", () => async {
+  uiData.addFolderBtn.addEventListener("click", async () => {
     const urlValue = uiData.linkInput.value.trim();
     if (!urlValue) {
       // 1. Khóa nút và thay đổi trạng thái hiển thị (tránh lag/spam click)
