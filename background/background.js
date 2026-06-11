@@ -160,6 +160,33 @@ async function resolveSubtitles(videoId) {
     return { type: 'SUB.EMPTY', payload: [] };
   }
   const candidates = await fetchSubtitleFile(sources, videoId); // Quét danh sách nguồn
+  // Nếu videoId === "" thì tức là đang refetch. Trả về cấu trúc tương tự 'SOURCE.GET_ALL', 'SOURCE.REMOVE'
+  if (videoId === "") {
+    try {
+      console.log(`[ASS-CEE] background: Đã refetch các nguồn sẵn có. Đang ghi đè lên cache.`);
+      const oldSources = await getSourceList();
+      for (const src of oldSources) {
+        await removeSource(src.savedAt);
+      } // Xóa hoàn toàn cache nguồn cũ dựa trên thời gian 
+      console.log(`[ASS-CEE] background: Đã xóa cache nguồn cũ. Đang ghi đè dữ liệu mới.`);
+      for (const src of sources) {
+        if (src.type && src.folderName && src.folderId) {
+          await addSource({
+            url: src.url,
+            type: src.type,
+            folderName: src.folderName,
+            folderId: src.folderId
+          });
+        }
+      } // Ghi lại các nguồn đã refetch
+      console.log(`[ASS-CEE] background: Đã ghi đè dữ liệu mới.`);
+      const updatedSources = await getSourceList();
+      return { type: 'SOURCE.LIST', payload: updatedSources };
+    } catch (err) {
+      console.error("[ASS-CEE] background: Gặp lỗi trong quá trình refetch và ghi đè cache:", err);
+      return { type: 'ERROR', payload: err.message };
+    }
+  }
   // Kiểm tra kết quả quét
   if (candidates.length === 0) { // Trường hợp 1: Ko có file tương ứng
     console.log(`[ASS-CEE] background: Ko có file cho vid ${videoId}.`);

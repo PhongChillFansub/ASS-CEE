@@ -448,7 +448,26 @@ function buildSourceManagerTab() {
   // Thêm nguồn bằng cách bấm vào nút thêm
   uiData.addFolderBtn.addEventListener("click", () => {
     const urlValue = uiData.linkInput.value.trim();
-    if (!urlValue) return;
+    if (!urlValue) {
+      // 1. Khóa nút và thay đổi trạng thái hiển thị (tránh lag/spam click)
+      uiData.addFolderBtn.disabled = true;
+      try {
+        // 2. Gửi message cho background và đợi phản hồi
+        const response = await chrome.runtime.sendMessage({
+          type: 'SUB.SEARCH',
+          payload: { videoId: "" }
+        });
+        // 3. Nhận kết quả và render lại danh sách
+        if (response && response.payload) {
+          renderLinkList(response.payload);
+        } else {
+          console.warn("Không nhận được dữ liệu hợp lệ từ background.");
+        }
+      } catch (error) {
+        console.error("Lỗi khi refetch folder:", error);
+      }
+      return; // Kết thúc sớm, không chạy phần xử lý thêm link dưới đây
+    }
     // Khóa nút tạm thời để tránh click liên tục khi đang xử lý
     uiData.addFolderBtn.disabled = true;
     chrome.runtime.sendMessage({
