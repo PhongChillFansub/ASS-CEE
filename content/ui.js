@@ -444,7 +444,16 @@ function buildSourceManagerTab() {
   uiData.tabContents[0].querySelector('#asscee_dividerText').textContent = "Danh sách nguồn";
   // phần chữ ở dòng divider (chỉ áp phần text, ko có logic gì thêm)
   uiData.linkInput.placeholder = "Thêm nguồn (link folder GitHub/GDrive)...";
-  uiData.addFolderBtn.textContent = "+";
+  uiData.addFolderBtn.title = "(+) Nếu có link, nút này thêm thư mục vào danh sách.\n(↺) Nếu ko có link, nút này sẽ tải lại các nguồn đã có."
+  // Hàm cập nhật hiển thị của nút bấm dựa trên giá trị trong ô Input
+  const updateAddFolderBtnIcon = () => {
+    const urlValue = uiData.linkInput.value.trim();
+    uiData.addFolderBtn.textContent = urlValue ? "+" : "↺";
+  };
+  // Lắng nghe sự kiện thay đổi văn bản (gõ, xóa, paste) trên ô Input
+  uiData.linkInput.addEventListener("input", updateAddFolderBtnIcon);
+  // Gọi thiết lập ban đầu ngay khi tải trang để đồng bộ trạng thái mặc định (↺)
+  updateAddFolderBtnIcon();
   // Thêm nguồn bằng cách bấm vào nút thêm
   uiData.addFolderBtn.addEventListener("click", async () => {
     const urlValue = uiData.linkInput.value.trim();
@@ -468,6 +477,7 @@ function buildSourceManagerTab() {
       } finally {
         // 4. LUÔN LUÔN mở khóa lại nút ở đây (dù thành công hay thất bại)
         uiData.addFolderBtn.disabled = false;
+        updateAddFolderBtnIcon(); // Tự động khôi phục lại icon chuẩn (+ hoặc ↺)
       }
       return; // Kết thúc sớm, không chạy phần xử lý thêm link dưới đây
     }
