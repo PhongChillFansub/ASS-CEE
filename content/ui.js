@@ -357,8 +357,8 @@ function renderLinkList(linksArray) {
         <button class="asscee_BtnSqr asscee_ItemDeleteBtns" title="Xóa nguồn">×</button>
       </div>
       <div class="asscee_ItemRow">
-        <span class="asscee_Text asscee_SubText asscee_itemIdSub" title="${item.folderId}">${line2Left}</span>
-        <span class="asscee_Text asscee_SubText asscee_itemTimeSub" title="${timeInfo.exact}">${timeInfo.relative}</span>
+        <span class="asscee_Text asscee_SubText asscee_ItemIdSub" title="${item.folderId}">${line2Left}</span>
+        <span class="asscee_Text asscee_SubText asscee_ItemTimeSub" title="${timeInfo.exact}">${timeInfo.relative}</span>
       </div>
     `;
     li.addEventListener("click", (e) => { 

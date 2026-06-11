@@ -347,6 +347,8 @@ asscee_ItemTimeSub*/
 }
 /* CSS cho phần ID */
 .asscee_ItemIdSub {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
   max-width: 65% !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
@@ -357,9 +359,7 @@ asscee_ItemTimeSub*/
   font-size: 10px !important;
   flex-shrink: 0 !important; /* Ngăn co cụm */
   margin-left: 8px !important;
-  white-space: nowrap !important;
-  
-  /* Ép buộc luôn hiển thị đầy đủ, không bao giờ tạo dấu ba chấm */
+  white-space: nowrap !important; /* Ép buộc luôn hiển thị đầy đủ, không bao giờ tạo dấu ba chấm */
   overflow: visible !important;
   text-overflow: clip !important;
 }
