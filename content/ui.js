@@ -349,16 +349,16 @@ function renderLinkList(linksArray) {
     li.title = `Bấm để chuyển sang tab/truy cập:\n${item.url}`;
     const timeInfo = getRelativeTimeString(item.savedAt);
     const line1Left = item.folderName;
-    const line2Left = `ID: "${item.folderId}"`;
+    const line2Left = `ID: ${item.folderId}`;
 
     li.innerHTML = `
       <div class="asscee_ItemRow">
-        <span class="asscee_Text asscee_ItemTitle">${line1Left}</span>
+        <span class="asscee_Text asscee_ItemTitle" title="${line1Left}\n${li.title}">${line1Left}</span>
         <button class="asscee_BtnSqr asscee_ItemDeleteBtns" title="Xóa nguồn">×</button>
       </div>
       <div class="asscee_ItemRow">
-        <span class="asscee_Text asscee_SubText asscee_ItemIdSub" title="${line2Left}">${line2Left}</span>
-        <span class="asscee_Text asscee_SubText asscee_ItemTimeSub" title="${timeInfo.exact}">${timeInfo.relative}</span>
+        <span class="asscee_Text asscee_SubText asscee_ItemIdSub" title="${line2Left}\n${li.title}">${line2Left}</span>
+        <span class="asscee_Text asscee_SubText asscee_ItemTimeSub" title="Thời điểm thêm: ${timeInfo.exact}\n${li.title}">${timeInfo.relative}</span>
       </div>
     `;
     li.addEventListener("click", (e) => { 
