@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.0.2 10jun26
+// v0.0.0.2 11jun26
 // storage.js
 // Chức năng: chuyên xử lí lưu trữ trên chrome.storage.local.
 // 7 hàm export là:
@@ -11,19 +11,19 @@ const SUBTITLE_DATA_KEY_BASE = "ASSCEE";
 /**
  * Hàm thêm nguồn (URL của folder GitHub/GDrive) vào bộ nhớ extension.
  * (do bộ nhớ theo dạng array, nên ở đây cập nhật dưới dạng spread, thay vì pop/push)
- * @param {*} source thô: { url, name, id }
+ * @param {*} source thô: { url, type, folderName, folderId }
  * @returns {Promise<Object>} Object nguồn đã được thêm thuộc tính savedAt
  */
 export async function addSource(source = {}) {
   if (!source?.url?.trim()) {
-    throw new Error("Dữ liệu nguồn không hợp lệ");
-    // Kiểm tra cấu trúc dữ liệu
+    console.warn(`[ASS-CEE] storage: Nguồn ko hợp lệ: ${source?.url}`);
+    return { success: false, error: "Dữ liệu nguồn không hợp lệ", url: source?.url };
   }
-  const sources = (await getSourceList());
-  // Lấy danh sách nguồn đã có để kiểm tra trùng lặp (hàm getSourceList đã fallback array trống)
+  const sources = await getSourceList(); // Lấy danh sách nguồn đã có để kiểm tra trùng lặp (hàm getSourceList đã fallback array trống)
+  // Kiểm tra trùng lặp
   if (sources.some(item => item.url === source.url)) {
-    // Kiểm tra nếu nguồn trùng lặp, báo lại và dừng
-    throw new Error("Nguồn này đã tồn tại trong danh sách");
+    console.warn(`[ASS-CEE] storage: Nguồn đã tồn tại: ${source?.url}`);
+    return { success: false, error: "Nguồn này đã tồn tại trong danh sách", url: source.url };
   }  
   const createdSource = {
     ...source,
@@ -31,8 +31,8 @@ export async function addSource(source = {}) {
   };
   const updated = [...sources, createdSource];
   await chrome.storage.local.set({ [SUBTITLE_SOURCES_KEY]: updated });
-  console.log(`[ASS-CEE] storage: Đã thêm nguồn: ${source.name} (${createdSource.savedAt}).`);
-  return createdSource;
+  console.log(`[ASS-CEE] storage: Đã thêm nguồn: ${source.folderName}`);
+  return { success: true, data: createdSource };
 }
 /**
  * Hàm lấy danh sách nguồn

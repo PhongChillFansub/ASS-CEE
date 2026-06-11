@@ -461,20 +461,31 @@ function buildSourceManagerTab() {
         return;
       }
       if (response && response.type === "SOURCE.ADDED") {
-        uiData.linkInput.value = ""; // Xóa text trong ô input sau khi thêm thành công
-        // Giao thức trả về folderData của phần tử vừa thêm hoặc toàn mảng tùy backend lo,
-        // Ở đây ta gọi lại danh sách tổng mới nhất để đồng bộ UI
-        initSourceList(); 
+        const results = response.payload; // Mảng chứa kết quả của từng nguồn
+        const successes = results.filter(r => r.success);
+        const failures = results.filter(r => !r.success);
+
+        // Nếu có ít nhất một nguồn được thêm thành công
+        if (successes.length > 0) {
+          uiData.linkInput.value = ""; // Xóa text trong ô input
+          initSourceList(); // Tải lại danh sách để đồng bộ UI
+        }
+        // Tạo nội dung thông báo cho người dùng
+        let reportMessage = "";
+        if (successes.length > 0 && failures.length === 0) {
+          reportMessage = `Đã thêm thành công ${successes.length} nguồn!`;
+        } else if (successes.length === 0 && failures.length > 0) {
+          const errorDetails = failures.map(f => `- ${f.error}`).join("\n");
+          reportMessage = `Thêm nguồn thất bại:\n${errorDetails}`;
+        } else {
+          const errorDetails = failures.map(f => `- Link: ${f.url || 'Ẩn danh'}\n Lỗi: ${f.error}`).join("\n");
+          reportMessage = `Kết quả xử lý:\n- Thành công: ${successes.length} nguồn\n- Thất bại: ${failures.length} nguồn\n\nChi tiết lỗi:\n${errorDetails}`;
+        }
+        alert(reportMessage);
       } else if (response && response.type === "SOURCE.NOT_ADDED") {
-        alert("Thêm nguồn thất bại: " + response.payload); // Hiển thị thông báo lỗi nếu cần
+        alert("Thêm nguồn thất bại: " + response.payload);
       }
     });
-  });
-  // Hoặc người dùng có thể nhấn Enter trong ô input để thêm nguồn nhanh
-  uiData.linkInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      uiData.addFolderBtn.click();
-    }
   });
   initSourceList(); // Kích hoạt nạp danh sách ban đầu ngay lập tức
 }

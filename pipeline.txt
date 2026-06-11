@@ -22,7 +22,7 @@ v0.0.0.2 11jun26
           url,          // background.js (nhận từ phía content)
           type,         // fetcher.js (fetchSubtitleFile*(), đầu vào đặc biệt)
           folderName,   // fetcher.js (fetchSubtitleFile*(), đầu vào đặc biệt)
-          folderId      // fetcher.js (fetchSubtitleFile*(), đầu vào đặc biệt)
+          folderId,      // fetcher.js (fetchSubtitleFile*(), đầu vào đặc biệt)
           savedAt,      // storage.js (addSource())
         }
   2.2. storage.js: Cache Key lưu các obj các nguồn folder (trong chrome.storage.local)

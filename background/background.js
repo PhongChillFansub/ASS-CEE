@@ -53,7 +53,7 @@ const handlers = {
     // Kiểm tra với log trước
     const logPrefix = isSameLocation 
       ? `[${timestamp}]\n`
-      : `[${timestamp}][${tabId}]\n[${url}]\n`;
+      : `[${timestamp}][${tabInfo}]\n[${url}]\n`;
     console[type || "log"](`${logPrefix} [ASS-CEE] ${text}`);
     return { type: 'LOGGED' }; // return là thứ được try..catch tổng gửi trong sendResponse.
   },
@@ -61,7 +61,7 @@ const handlers = {
     const { url } = payload;
     if (!url) {
       return { type: 'SOURCE.NOT_ADDED', payload: "payload.url (SOURCE.ADD) trống (undefined)" };
-    } 
+    }
     const urls = url
       .split('\n')
       .map(u => u.trim())
@@ -74,21 +74,32 @@ const handlers = {
     await fetchSubtitleFile(sourcesToFetch, "");  // Gọi fetchSubtitleFile* lần đầu
     const finalizedSources = [];
     for (const sourceItem of sourcesToFetch) {
+      // Nếu không trích xuất được thông tin, đánh dấu lỗi riêng cho URL đó thay vì chặn toàn bộ tiến trình
       if (!sourceItem.type || !sourceItem.folderName || !sourceItem.folderId) {
-          return { type: 'SOURCE.NOT_ADDED', payload: `Không thể trích xuất thông tin folder cho URL: ${sourceItem.url}` };
+          finalizedSources.push({
+            url: sourceItem.url,
+            error: `Không thể trích xuất thông tin folder cho URL này`
+          });
+      } else {
+          finalizedSources.push({
+            url: sourceItem.url,
+            type: sourceItem.type,
+            folderName: sourceItem.folderName,
+            folderId: sourceItem.folderId
+          });
       }
-      finalizedSources.push({
-        url: sourceItem.url,
-        type: sourceItem.type,
-        folderName: sourceItem.folderName,
-        folderId: sourceItem.folderId
-      });
     }
-    const addedSources = await Promise.all(
-      finalizedSources.map(source => addSource(source))
+    // Thực hiện thêm từng nguồn vào storage và gom kết quả lại
+    const addedResults = await Promise.all(
+      finalizedSources.map(async (source) => {
+        if (source.error) {
+          return { success: false, error: source.error, url: source.url };
+        }
+        return await addSource(source);
+      })
     );
-    return { type: 'SOURCE.ADDED', payload: addedSources };
-    // return là thứ được try..catch tổng gửi trong sendResponse.
+    // Trả về danh sách kết quả chi tiết của từng URL để phía content-side hiển thị thông báo phù hợp
+    return { type: 'SOURCE.ADDED', payload: addedResults };
   },
   'SOURCE.GET_ALL': async () => { // Yêu cầu xem nguồn
     // const undefined = payload
