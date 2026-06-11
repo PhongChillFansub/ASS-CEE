@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.0.2 10jun26
+// v0.0.0.2 11jun26
 const FETCH_TIMEOUT = 60000; // Tối đa 60 giây kết nối và nhận dữ liệu. Dùng cho hàm fetchWithTimeout().
 const VALID_FILE_SIGNATURE = ["[Script Info]", "[V4+ Styles]", "[Events]"];
 // Danh sách các nội dung mà parser dùng để đánh dấu. Dùng cho hàm validateSubtitleContent().
@@ -210,11 +210,24 @@ async function scanGDrive(source, videoId, folderName = { groupName: '',id: '' }
 		// fetchWithTimeout()?
         if (!resp.ok) return [];
         const html = await resp.text();
-		// 3. Lấy tên thư mục
-        const titleRegex = /<title>([^<]+) - Google Drive<\/title>/;
+        // 3. Lấy tên thư mục bằng phương pháp quét đa tầng (Fallback)
+        let extractedName = "";
+        // Cách 1: Lấy từ thẻ meta og:title (Rất chính xác và không bị ảnh hưởng bởi ngôn ngữ hiển thị)
+        const ogTitleRegex = /<meta property="og:title" content="([^"]+)"/i;
+        const ogTitleMatch = html.match(ogTitleRegex);
+        // Cách 2: Lấy toàn bộ nội dung trong thẻ <title> (bất kể xuống dòng hay khoảng trắng)
+        const titleRegex = /<title>([\s\S]*?)<\/title>/i;
         const titleMatch = html.match(titleRegex);
+        if (ogTitleMatch && ogTitleMatch[1]) {
+            extractedName = ogTitleMatch[1].trim();
+        } else if (titleMatch && titleMatch[1]) {
+            // Nếu lấy từ <title>, ta tiến hành lọc sạch các chữ "Google Drive" thừa
+            extractedName = titleMatch[1].trim()
+                .replace(/\s*-\s*Google\s+Drive/i, "") // Xóa cụm " - Google Drive"
+                .replace(/Google\s+Drive\s*-\s*/i, ""); // Xóa cụm "Google Drive - " (nếu có)
+        }
         // Nếu tìm thấy thì lấy nhóm 1 và xóa khoảng trắng, nếu không thấy thì để tên mặc định
-        folderName.groupName = titleMatch ? titleMatch[1].trim() : "undefined_GDrive";
+        folderName.groupName = extractedName || "undefined_GDrive";
         folderName.id = folderId;
         // 4. Regex bóc tách cặp [File ID, Tên File] từ đống dữ liệu JSON ẩn trong HTML
         const entryRegex = /\["([a-zA-Z0-9_-]{19,})","([^"]+)"/g;
