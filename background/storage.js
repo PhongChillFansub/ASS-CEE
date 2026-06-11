@@ -55,7 +55,7 @@ export async function removeSource(time) {
   const deleted = sources.filter(s => s.savedAt == time);
   await chrome.storage.local.set({ [SUBTITLE_SOURCES_KEY]: updated });
   console.log(`[ASS-CEE] storage: Đã xóa ${deleted.length} nguồn:\n   ${deleted.map(item => item.url).join('\n   ')}`);
-  return true;
+  return updated;
 }
 /**
  * Hàm lưu dữ liệu file sub (obj) dựa trên videoId
