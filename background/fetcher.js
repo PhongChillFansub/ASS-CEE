@@ -89,8 +89,8 @@ export async function fetchSubtitleFile(sources, videoId) {
             console.warn("[ASS-CEE] fetcher: Link chuẩn chưa em?\n", source);
             return []; // Trả về array các file đáp ứng videoId trong folder đang xét (trống)
         }
-        source.folderName = source.groupName || folderGet.groupName;
-        source.folderId = source.folderId || folderGet.id;
+        source.folderName = folderGet.groupName; // Luôn luôn overwrite (để cập nhật tên)
+        source.folderId = source.folderId || folderGet.id; // ID gắn chặt với link nên ko thể cập nhật
         return result;
     });
     const results = await Promise.allSettled(scanPromises); // Chờ tất cả các luồng quét kết thúc hết để check videoId
