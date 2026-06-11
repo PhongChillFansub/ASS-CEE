@@ -347,9 +347,8 @@ function renderLinkList(linksArray) {
     const li = document.createElement("li");
     li.className = "asscee_LinkItem";
     const timeInfo = getRelativeTimeString(item.savedAt);
-    const hasFolder = item.folderName && item.id;
-    const line1Left = hasFolder ? item.folderName : "Nguồn ẩn danh";
-    const line2Left = hasFolder ? `ID: ${item.id}` : item.url;
+    const line1Left = item.folderName;
+    const line2Left = `ID: "${item.folderId}"`;
 
     li.innerHTML = `
       <div class="asscee_ItemRow">
