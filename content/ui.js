@@ -405,8 +405,6 @@ function initSourceList() {
     }
   });
 }
-
-
 /**
  * Hàm chạy mục 1.3. Tính năng trong tab 1: Quản lí nguồn
  */
@@ -500,6 +498,7 @@ function buildSourceManagerTab() {
         // Nếu có ít nhất một nguồn được thêm thành công
         if (successes.length > 0) {
           uiData.linkInput.value = ""; // Xóa text trong ô input
+          updateAddFolderBtnIcon();
           initSourceList(); // Tải lại danh sách để đồng bộ UI
         }
         // Tạo nội dung thông báo cho người dùng
