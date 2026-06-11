@@ -465,6 +465,9 @@ function buildSourceManagerTab() {
         }
       } catch (error) {
         console.error("Lỗi khi refetch folder:", error);
+      } finally {
+        // 4. LUÔN LUÔN mở khóa lại nút ở đây (dù thành công hay thất bại)
+        uiData.addFolderBtn.disabled = false;
       }
       return; // Kết thúc sớm, không chạy phần xử lý thêm link dưới đây
     }
