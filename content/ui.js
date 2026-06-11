@@ -273,7 +273,7 @@ function barTitleOnRelease() {
     document.removeEventListener('touchmove', barTitleOnTouchHold);
     document.removeEventListener('touchend', barTitleOnRelease);
     // Đóng các thao tác kéo thả UI
-    sendLogToBackground(`ui: Đã dời vị trí Extension tới tọa độ mới: left=${container.style.left}, top=${container.style.top}`);
+    sendLogToBackground(`ui: Đã dời vị trí Extension tới tọa độ mới: left=${uiData.container.style.left}, top=${uiData.container.style.top}`);
   }
 }
 /**
