@@ -18,6 +18,22 @@ function sendLogToBackground(message, type = 'info') {
     console.warn("[ASS-CEE] ui: Không thể gửi log về background:", err);
   });
 }
+function toggleOverlay(containerId, forceShow) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  // Nếu forceShow là boolean, sử dụng giá trị đó.
+  // Ngược lại, xác định dựa trên trạng thái hiển thị hiện tại.
+  const shouldShow = typeof forceShow === 'boolean' 
+    ? forceShow 
+    : window.getComputedStyle(container).display === 'none';
+  if (shouldShow) {
+    container.style.setProperty('display', 'block', 'important');
+    sendLogToBackground("content: Đã hiện giao diện UI.");
+  } else {
+    container.style.setProperty('display', 'none', 'important');
+    sendLogToBackground("content: Đã ẩn giao diện UI.");
+  }
+}
 /**
  * Tính thời gian tương đối ở mọi thời điểm và định dạng thời gian chính xác
  * @param {number|string|Date} timestamp - Mốc thời gian cần tính
@@ -499,4 +515,5 @@ function buildSourceManagerTab() {
     sendLogToBackground(`ui: chạy lỗi mục 1.3. Tính năng trong tab 1: Quản lí nguồn: ${error.message}`, "error");
     console.error("[ASS-CEE] ui: chạy lỗi mục 1.3. Tính năng trong tab 1: Quản lí nguồn:", error);
   }
+  toggleOverlay(uiData.containerId, false);
 })();
