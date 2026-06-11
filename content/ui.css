@@ -62,7 +62,9 @@ asscee_LinkItem
 asscee_ItemRow
 asscee_Footer
 asscee_TextInBox 
-asscee_ItemDeleteBtns */
+asscee_ItemDeleteBtns 
+asscee_ItemIdSub
+asscee_ItemTimeSub*/
 
 /* id asscee_closeBtn (class asscee_BtnSqr) */
 #asscee_closeBtn:hover {
@@ -83,17 +85,6 @@ asscee_ItemDeleteBtns */
   height: 32px !important;
   font-size: 16px !important;
   border: 1px solid rgba(255, 255, 255, 0.12) !important;
-}
-/* Các thuộc tính chỉ áp dụng riêng cho ô ID/Url (Cắt chữ nếu quá dài) */
-#asscee_itemIdSub {
-  max-width: 70% !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-}
-
-/* Tùy biến riêng cho mốc thời gian nếu bạn muốn nó nhỏ hơn một chút nữa (10px) */
-#asscee_itemTimeSub {
-  font-size: 10px !important;
 }
 
 /* class asscee_UI */
@@ -352,4 +343,17 @@ asscee_ItemDeleteBtns */
 .asscee_ItemDeleteBtns:hover {
   color: #ff6b6b !important;
   background-color: rgba(255, 107, 107, 0.15) !important;
+}
+/* Các thuộc tính chỉ áp dụng riêng cho ô ID/Url (Cắt chữ nếu quá dài) */
+.asscee_ItemIdSub {
+  max-width: 65% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+/* Tùy biến riêng cho mốc thời gian nếu bạn muốn nó nhỏ hơn một chút nữa (10px) */
+.asscee_ItemTimeSub {
+  font-size: 10px !important;
+  flex-shrink: 0 !important; /* Ngăn không cho mốc thời gian bị co kéo hay ẩn bớt */
+  margin-left: 8px !important; /* Tạo một khoảng cách nhỏ an toàn với ID */
+  white-space: nowrap !important;
 }
