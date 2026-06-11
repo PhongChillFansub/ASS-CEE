@@ -154,7 +154,7 @@ async function resolveSubtitles(videoId) {
   } 
   console.log(`[ASS-CEE] background: Ko có cache cho vid ${videoId}. Đang tìm nguồn...`)
   // Lấy danh sách nguồn để quét
-  const sources = await getSources();
+  const sources = await getSourceList();
   if (sources.length === 0) {
     console.log(`[ASS-CEE] background: Không có thư mục nào để quét.`);
     return { type: 'SUB.EMPTY', payload: [] };
