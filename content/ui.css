@@ -349,7 +349,7 @@ asscee_ItemTimeSub*/
 .asscee_ItemIdSub {
   flex: 1 1 auto !important;
   min-width: 0 !important;
-  max-width: 65% !important;
+  max-width: 100% !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
   white-space: nowrap !important;
