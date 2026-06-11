@@ -299,9 +299,10 @@ asscee_ItemTimeSub*/
   width: 100% !important;
   min-height: 20px !important;
 }
-.asscee_ItemRow .asscee_Text {
+/* Chỉ áp dụng các thuộc tính thu gọn và màu trắng cho Tiêu đề dòng 1 */
+.asscee_ItemTitle {
   font-size: 13px !important;
-  color: #ffffff !important; /* Chữ sáng màu */
+  color: #ffffff !important; /* Chữ tiêu đề sáng màu */
   font-weight: 500 !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
@@ -344,16 +345,21 @@ asscee_ItemTimeSub*/
   color: #ff6b6b !important;
   background-color: rgba(255, 107, 107, 0.15) !important;
 }
-/* Các thuộc tính chỉ áp dụng riêng cho ô ID/Url (Cắt chữ nếu quá dài) */
+/* CSS cho phần ID */
 .asscee_ItemIdSub {
   max-width: 65% !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
+  white-space: nowrap !important;
 }
 /* Tùy biến riêng cho mốc thời gian nếu bạn muốn nó nhỏ hơn một chút nữa (10px) */
 .asscee_ItemTimeSub {
   font-size: 10px !important;
-  flex-shrink: 0 !important; /* Ngăn không cho mốc thời gian bị co kéo hay ẩn bớt */
-  margin-left: 8px !important; /* Tạo một khoảng cách nhỏ an toàn với ID */
+  flex-shrink: 0 !important; /* Ngăn co cụm */
+  margin-left: 8px !important;
   white-space: nowrap !important;
+  
+  /* Ép buộc luôn hiển thị đầy đủ, không bao giờ tạo dấu ba chấm */
+  overflow: visible !important;
+  text-overflow: clip !important;
 }

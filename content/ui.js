@@ -353,7 +353,7 @@ function renderLinkList(linksArray) {
 
     li.innerHTML = `
       <div class="asscee_ItemRow">
-        <span class="asscee_Text">${line1Left}</span>
+        <span class="asscee_Text asscee_ItemTitle">${line1Left}</span>
         <button class="asscee_BtnSqr asscee_ItemDeleteBtns" title="Xóa nguồn">×</button>
       </div>
       <div class="asscee_ItemRow">
