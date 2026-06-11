@@ -6,7 +6,8 @@
   "description": "Hiển thị phụ đề Aegisub trên YouTube",
   "permissions": ["storage", "activeTab", "scripting", "unlimitedStorage"],
   "host_permissions": [
-    "https://www.youtube.com/*"
+    "https://www.youtube.com/*",
+    "https://drive.google.com/*"
   ],
   "background": {
     "service_worker": "background/background.js",
