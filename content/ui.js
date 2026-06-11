@@ -354,7 +354,7 @@ function renderLinkList(linksArray) {
     li.innerHTML = `
       <div class="asscee_ItemRow">
         <span class="asscee_Text">${line1Left}</span>
-        <button class="asscee_BtnSqr asscee_itemDeleteBtn" title="Xóa nguồn">×</button>
+        <button class="asscee_BtnSqr asscee_ItemDeleteBtns" title="Xóa nguồn">×</button>
       </div>
       <div class="asscee_ItemRow">
         <span class="asscee_Text asscee_SubText asscee_itemIdSub">${line2Left}</span>
@@ -364,14 +364,14 @@ function renderLinkList(linksArray) {
     li.addEventListener("click", (e) => { 
       // SỰ KIỆN 1: Click vào li để mở link nguồn
       // Nếu click trúng nút xóa thì bỏ qua không mở link
-      if (e.target.closest(".asscee_itemDeleteBtn")) return;
+      if (e.target.closest(".asscee_ItemDeleteBtns")) return;
 
       if (item.url) {
         window.open(item.url, "_blank");
       }
     });
     // SỰ KIỆN 2: Click vào nút xóa nguồn liên kết với background.js (xem mục 3.4)
-    const deleteBtn = li.querySelector(".asscee_itemDeleteBtn");
+    const deleteBtn = li.querySelector(".asscee_ItemDeleteBtns");
     deleteBtn.addEventListener("click", (e) => {
       e.stopPropagation(); // Ngăn sự kiện click bị lan ra thẻ li bên ngoài
       const targetTime = item.savedAt;
