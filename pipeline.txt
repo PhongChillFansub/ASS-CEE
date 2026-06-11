@@ -1,4 +1,4 @@
-v0.0.0.2 10jun26
+v0.0.0.2 11jun26
 1. Cấu trúc extension:
   - manifest.JSON
   - background
@@ -56,9 +56,8 @@ v0.0.0.2 10jun26
           cachedAt: time            // (storage.js/addSubData())
         }
 
-3. Giao thức giữa background/background.js và content/*.js
-  Xét ở phía background.js: chrome.runtime.onMessage.addListener(((msg, sender, sendResponse)) => {})
-  (msg là nhận, chi tiết xem phần handlers)
+3. Giao thức giữa background/background.js (nhận) và content/*.js
+  chrome.runtime.onMessage.addListener(((msg, sender, sendResponse)) => {}) (chi tiết xem phần handlers)
   msg = {
           type, // thuộc các dạng "LOG", "SOURCE.", "SUB." (có thể bổ sung sau)
           payload
@@ -105,6 +104,10 @@ v0.0.0.2 10jun26
           sendResponse (tổng): processSubtitles(videoId, localFileData (xử lí từ fileName), rawText)
     3.8. Dữ liệu khác chuẩn/chạy handlers bị lỗi
           sendResponse (tổng): { type: 'ERROR', payload: err.message hoặc 'Unknown action' }
+
+4. Giao thức giữa background/background.js (gửi) và content/*.js
+    4.1. action === "TOGGLE_OVERLAY_SIGNAL"
+          (gửi lệnh toggleOverlay cho UI, do nút icon extension là background quản lí)
 
 4. Cấu trúc khung HTML của UI: (.innerHTML trong file ui.js và ui_work.html)
     (để tiện chỉnh sửa, sử dụng file ui_bea… à nhầm ui_work.html)

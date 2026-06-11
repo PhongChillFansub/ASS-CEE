@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.0.2 10jun26
+// v0.0.0.2 11jun26
 import { fetchSubtitleText, fetchSubtitleFile } from './fetcher.js';
 // 2 hàm fetchSubtitleText, fetchSubtitleFile
 import { addSource, getSourceList, removeSource, addSubData, getSubDataList, useSubData, removeSubData } from './storage.js';
@@ -9,49 +9,17 @@ import parser from './parser.js';
 // 1 hàm parser
 // Phần xử lí của background khi nhấn vào icon extension
 chrome.action.onClicked.addListener(async (tab) => {
-  if (!tab.url || tab.url.startsWith("chrome://")) {
-    await chrome.action.setTitle({
-      tabId: tab.id,
-      title: "[ASS-CEE] Extension sẽ không kích hoạt ở trang này."
-    });
-    return;
-  }
+  if (!tab.url || tab.url.startsWith("chrome://") || tab.url.startsWith("edge://")) return;
   // Bảo vệ extension tránh crash khi chạy các trang nội bộ trình duyệt (hoặc tab trống)
   const tabId = tab.id;
   // Định danh tab cần chạy, tránh xung đột với các tab khác
   try {
-    // Kiểm tra xem extension đã từng nạp file core (ui.js) vào tab này chưa
-    const [result] = await chrome.scripting.executeScript({
-      target: { tabId },
-      func: () => typeof window.__ASS_CEE_UI_INJECTED__ !== 'undefined'
-    });
-    const isAlreadyInjected = result?.result;
-    // Lấy kết quả kiểm tra
-    if (!isAlreadyInjected) {
-      // LẦN ĐẦU CLICK: Nạp tất cả các file để định nghĩa cấu trúc
-      await chrome.scripting.executeScript({
-        target: { tabId },
-        files: [
-          "content/ui.js",
-          "content/content.js"
-        ]
-      }); // Tạm thời chỉ sử dụng ui.js (thử nghiệm) và content.js
-      // Đánh dấu đã nạp file thành công vào tab
-      await chrome.scripting.executeScript({
-        target: { tabId },
-        func: () => { window.__ASS_CEE_UI_INJECTED__ = true; }
-      });
-      console.log("[ASS-CEE] background: Đã nạp toàn bộ file content lần đầu (ui.js) và ẩn (content.js).");
-    } else {
-      // CÁC LẦN CLICK SAU: CHỈ nạp đúng file điều khiển content.js để toggle
-      await chrome.scripting.executeScript({
-        target: { tabId },
-        files: ["content/content.js"]
-      });
-      console.log("[ASS-CEE] background: Các lần sau: Chỉ chạy lệnh Toggle (trên content.js).");
-    }
+    // Vì file đã được tự động nạp từ manifest.json ngay khi vào trang,
+    // ta chỉ cần gửi thẳng tin nhắn yêu cầu Toggle xuống content/ui.js
+    await chrome.tabs.sendMessage(tabId, { action: "TOGGLE_OVERLAY_SIGNAL" });
+    console.log("[ASS-CEE] background: Đã gửi tín hiệu Toggle xuống ui.js.");
   } catch (err) {
-    console.error("[ASS-CEE] background: Lỗi kích hoạt onClicked:", err);
+    console.error("[ASS-CEE] background: Lỗi khi gửi tín hiệu toggle:", err);
   }
 });
 // Hàm giao tiếp với content.js và ui.js

@@ -516,4 +516,10 @@ function buildSourceManagerTab() {
     console.error("[ASS-CEE] ui: chạy lỗi mục 1.3. Tính năng trong tab 1: Quản lí nguồn:", error);
   }
   toggleOverlay(uiData.containerId, false);
+  // Phần tính năng ẩn hiện UI qua nút icon extension (nhận lệnh từ background vì background quản lí nó)
+  chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+	  if (msg.action === "TOGGLE_OVERLAY_SIGNAL") {
+		toggleOverlay(uiData.containerId);
+	  }
+	});
 })();
