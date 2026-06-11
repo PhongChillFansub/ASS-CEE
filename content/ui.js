@@ -338,7 +338,7 @@ function renderLinkList(linksArray) {
   // Trường hợp mảng trống
   if (!linksArray || linksArray.length === 0) {
     const emptyLi = document.createElement("li"); // Tạm thời tạo ra element <li> mới
-    emptyLi.style.cssText = "color: #606060; text-align: center; padding: 15px; font-size: 11px;";
+    emptyLi.className = "asscee_Text";
     emptyLi.textContent = "Chưa có nguồn nào được thêm.";
     uiData.linkList.appendChild(emptyLi);
     return;
@@ -346,6 +346,7 @@ function renderLinkList(linksArray) {
   linksArray.forEach((item) => {
     const li = document.createElement("li");
     li.className = "asscee_LinkItem";
+    li.title = `Bấm để chuyển sang tab/truy cập:\n${item.url}`;
     const timeInfo = getRelativeTimeString(item.savedAt);
     const line1Left = item.folderName;
     const line2Left = `ID: "${item.folderId}"`;
@@ -360,14 +361,14 @@ function renderLinkList(linksArray) {
         <span class="asscee_Text asscee_SubText asscee_itemTimeSub" title="${timeInfo.exact}">${timeInfo.relative}</span>
       </div>
     `;
-    li.addEventListener("click", (e) => { // SỰ KIỆN 1: Click vào li để copy link nguồn
-      // Nếu click trúng nút xóa thì bỏ qua không copy
+    li.addEventListener("click", (e) => { 
+      // SỰ KIỆN 1: Click vào li để mở link nguồn
+      // Nếu click trúng nút xóa thì bỏ qua không mở link
       if (e.target.closest(".asscee_itemDeleteBtn")) return;
-      navigator.clipboard.writeText(item.url).then(() => {
-        console.log("Đã copy link nguồn: " + item.url);
-      }).catch(err => {
-        console.error("Lỗi khi copy link: ", err);
-      });
+
+      if (item.url) {
+        window.open(item.url, "_blank");
+      }
     });
     // SỰ KIỆN 2: Click vào nút xóa nguồn liên kết với background.js (xem mục 3.4)
     const deleteBtn = li.querySelector(".asscee_itemDeleteBtn");
