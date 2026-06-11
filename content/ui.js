@@ -1,5 +1,5 @@
 // Code bằng tay (thực ra vẫn còn nhiều chỗ vibe coding)
-// v0.0.0.2 10jun26
+// v0.0.0.2 11jun26
 /**
  * Hàm gửi log về background.js
  * @param {*} message nội dung
@@ -203,8 +203,8 @@ function buildTabListLogic() {
  * Đầu ra newLeft, newTop: vị trí mới của góc trên bên trái UI
  */
 function handleMove(clientX, clientY) {
-  let newLeft = clientX - offsetX;
-  let newTop = clientY - offsetY;
+  let newLeft = clientX - uiData.offsetX;
+  let newTop = clientY - uiData.offsetY;
   // Tính toán tọa độ thô của UI
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
@@ -228,11 +228,11 @@ function handleMove(clientX, clientY) {
  * @returns Đầu ra: mở thao tác di chuyển UI (addEventListener) bằng chuột
  */
 function barTitleOnClick(clientX, clientY) {
-  isDragging = true; // Bật trạng thái kéo thả UI
+  uiData.isDragging = true; // Bật trạng thái kéo thả UI
   uiData.barTitle.style.cursor = 'grabbing'; // Đổi icon của con trỏ sang 'grabbing' (tay nắm)
-  const rect = container.getBoundingClientRect(); // Lấy tọa độ 4 góc của UI để tính offset
-  offsetX = clientX - rect.left; // Tính toán offsetX
-  offsetY = clientY - rect.top; // Tính toán offsetY
+  const rect = uiData.container.getBoundingClientRect(); // Lấy tọa độ 4 góc của UI để tính offset
+  uiData.offsetX = clientX - rect.left; // Tính toán offsetX
+  uiData.offsetY = clientY - rect.top; // Tính toán offsetY
   document.addEventListener('mousemove', barTitleOnClickHold, { passive: false });
   document.addEventListener('mouseup', barTitleOnRelease);
   // Mở cặp thao tác di chuyển khi nhấn giữ + di chuyển, và thả chuột.
@@ -246,7 +246,7 @@ function barTitleOnClick(clientX, clientY) {
  * @returns chạy handleMove()
  */
 function barTitleOnClickHold(e) {
-  if (!isDragging) return;
+  if (!uiData.isDragging) return;
   e.preventDefault();
   handleMove(e.clientX, e.clientY);
 }
@@ -256,7 +256,7 @@ function barTitleOnClickHold(e) {
  * @returns chạy handleMove()
  */
 function barTitleOnTouchHold(e) {
-  if (!isDragging) return;
+  if (!uiData.isDragging) return;
   e.preventDefault();
   const touch = e.touches[0];
   handleMove(touch.clientX, touch.clientY);
@@ -265,9 +265,9 @@ function barTitleOnTouchHold(e) {
  * Hàm xử lí thả chuột/chạm (dùng trong mục 1.2.)
  */
 function barTitleOnRelease() {
-  if (isDragging) {
-    isDragging = false; // Tắt trạng thái kéo thả UI
-    barTitle.style.cursor = 'grab'; // Đưa icon con trỏ về 'grab'
+  if (uiData.isDragging) {
+    uiData.isDragging = false; // Tắt trạng thái kéo thả UI
+    uiData.barTitle.style.cursor = 'grab'; // Đưa icon con trỏ về 'grab'
     document.removeEventListener('mousemove', barTitleOnClickHold);
     document.removeEventListener('mouseup', barTitleOnRelease);
     document.removeEventListener('touchmove', barTitleOnTouchHold);
@@ -280,9 +280,9 @@ function barTitleOnRelease() {
  * Hàm chạy mục 1.2. Tính năng di chuyển giao diện
  */
 function buildDragFeature() {
-  let isDragging = false; // Trạng thái kéo thả UI
-  let offsetX = 0; // Vị trí của chuột so với góc trên bên trái của UI, chiều X
-  let offsetY = 0; // Vị trí tương tự, chiều Y
+  uiData.isDragging = false; // Trạng thái kéo thả UI
+  uiData.offsetX = 0; // Vị trí của chuột so với góc trên bên trái của UI, chiều X
+  uiData.offsetY = 0; // Vị trí tương tự, chiều Y
   // Xử lí thao tác bấm chuột vào thanh tiêu đề 
   uiData.barTitle.addEventListener('mousedown', (e) => {
     if (e.button !== 0) return;
@@ -303,8 +303,8 @@ function buildDragFeature() {
   }, { passive: true });
   // Xử lí thao tác nhả chạm (fallback trên toàn cửa sổ do touchstart có passive: true. Gemini bảo thế. chưa test)
   document.addEventListener('touchend', () => {
-    if (isDragging) {
-      isDragging = false;
+    if (uiData.isDragging) {
+      uiData.isDragging = false;
       sendLogToBackground(`ui: Đã dời vị trí Extension (cảm ứng) tới tọa độ mới: left=${container.style.left}, top=${container.style.top}`);
     }
   });
