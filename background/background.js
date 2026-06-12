@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.0.2 11jun26
+// v0.0.0.3 12jun26
 import { fetchSubtitleText, fetchSubtitleFile } from './fetcher.js';
 // 2 hàm fetchSubtitleText, fetchSubtitleFile
 import { addSource, getSourceList, removeSource, addSubData, getSubDataList, useSubData, removeSubData } from './storage.js';
@@ -10,16 +10,24 @@ import parser from './parser.js';
 // Phần xử lí của background khi nhấn vào icon extension
 chrome.action.onClicked.addListener(async (tab) => {
   if (!tab.url || tab.url.startsWith("chrome://") || tab.url.startsWith("edge://")) return;
-  // Bảo vệ extension tránh crash khi chạy các trang nội bộ trình duyệt (hoặc tab trống)
   const tabId = tab.id;
-  // Định danh tab cần chạy, tránh xung đột với các tab khác
   try {
-    // Vì file đã được tự động nạp từ manifest.json ngay khi vào trang,
-    // ta chỉ cần gửi thẳng tin nhắn yêu cầu Toggle xuống content/ui.js
+    // Thử gửi tin nhắn trước
     await chrome.tabs.sendMessage(tabId, { action: "TOGGLE_OVERLAY_SIGNAL" });
-    console.log("[ASS-CEE] background: Đã gửi tín hiệu Toggle xuống ui.js.");
+    console.log("[ASS-CEE] background: Đã gửi tín hiệu Toggle.");
   } catch (err) {
-    console.error("[ASS-CEE] background: Lỗi khi gửi tín hiệu toggle:", err);
+    // Nếu lỗi (do chưa nạp script hoặc trang vừa reload), tiến hành nạp file thủ công
+    console.log("[ASS-CEE] background: Phát hiện chưa nạp ui.js lần đầu, đang tiến hành nạp trực tiếp...");
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId },
+        files: ["content/ui.js"] // Nạp các file cần thiết
+      });
+      // Gửi lại tín hiệu sau khi đã nạp xong (nếu ui.js không tự kích hoạt khi chạy lần đầu)
+      await chrome.tabs.sendMessage(tabId, { action: "TOGGLE_OVERLAY_SIGNAL" });
+    } catch (injectErr) {
+      console.error("[ASS-CEE] background: Lỗi khi nạp file trực tiếp:", injectErr);
+    }
   }
 });
 // Hàm giao tiếp với content.js và ui.js
