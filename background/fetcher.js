@@ -67,7 +67,7 @@ function validateSubtitleContent(text) {
         groupName
     }
  */
-export async function fetchSubtitleFile(sources, videoId) {
+export async function fetchSubtitleFile(sources, videoId, folderMode) {
     const scanPromises = sources.map(async (source) => {
         // source = folderData
         // Ưu tiên dùng source.type có sẵn, nếu chạy lần đầu chưa có thì check qua URL
@@ -82,9 +82,9 @@ export async function fetchSubtitleFile(sources, videoId) {
         let folderGet = {};
         let result = [];
         if (type === 'github') {
-            result = await scanGitHub(source, videoId, folderGet); // Chạy lần đầu được cấp .folderName, .Id ở đây
+            result = await scanGitHub(source, videoId, folderGet, folderMode); // Chạy lần đầu được cấp .folderName, .Id ở đây
         } else if (type === 'gdrive') {
-            result = await scanGDrive(source, videoId, folderGet); // Chạy lần đầu được cấp .folderName, .Id ở đây
+            result = await scanGDrive(source, videoId, folderGet, folderMode); // Chạy lần đầu được cấp .folderName, .Id ở đây
         } else {
             console.warn("[ASS-CEE] fetcher: Link chuẩn chưa em?\n", source);
             return []; // Trả về array các file đáp ứng videoId trong folder đang xét (trống)
@@ -94,9 +94,11 @@ export async function fetchSubtitleFile(sources, videoId) {
         return result;
     });
     const results = await Promise.allSettled(scanPromises); // Chờ tất cả các luồng quét kết thúc hết để check videoId
-    if (!videoId || videoId.trim() === "") {
+    if ((!videoId || videoId.trim() === "") && folderMode) {
         console.log("[ASS-CEE] fetcher: Coi như link folder chạy lần đầu (đã nạp xong folderName và folderId)\n", sources);
         return []; 
+    } else {
+        console.log("[ASS-CEE] fetcher: Đang ở chế độ quét toàn bộ file sub trong các folder");
     }
     // Gom và làm phẳng danh sách file sub tìm được
     const candidates = results.filter(r => r.status === 'fulfilled').flatMap(r => r.value);
@@ -119,7 +121,7 @@ export async function fetchSubtitleFile(sources, videoId) {
     groupName
     }
  */
-async function scanGitHub(source, videoId, folderGet) {
+async function scanGitHub(source, videoId, folderGet, folderMode) {
     // 1. Kiểm tra cấu trúc URL
     const regex = /github\.com\/([^\/]+)\/([^\/]+)\/tree\/([^\/]+)\/?(.*)/;
     // Cấu trúc link GitHub folder chuẩn 
@@ -153,7 +155,7 @@ async function scanGitHub(source, videoId, folderGet) {
         for (const item of items) { // 3. Quét các file tìm được
             if (item.type !== "file") continue; 
             // Vì chỉ quét các file nên bỏ qua các folder và file ko phải file sub
-            if (item.name.endsWith('.ass') && isMatchingSubtitle(item.name, videoId)) {
+            if (item.name.endsWith('.ass') && (isMatchingSubtitle(name, videoId) || !folderMode)) {
                 // isMatchingSubtitle()?
                 results.push({
                     id: item.sha,
@@ -190,7 +192,7 @@ async function scanGitHub(source, videoId, folderGet) {
     groupName
   } 
  */
-async function scanGDrive(source, videoId, folderName = { groupName: '',id: '' }) {
+async function scanGDrive(source, videoId, folderName = { groupName: '',id: '' }, folderMode) {
 	// Hàm quét thư mục GDrive (Gemini, đã check)
     // 1. Bóc tách lấy ID của thư mục từ URL
     const folderId = source.url.split('/folders/')[1]?.split('?')[0];
@@ -241,7 +243,7 @@ async function scanGDrive(source, videoId, folderName = { groupName: '',id: '' }
         while ((match = entryRegex.exec(html)) !== null) {
             const [_, id, name] = match;
             // 6. Kiểm tra điều kiện định dạng và mã video
-            if (name.endsWith('.ass') && isMatchingSubtitle(name, videoId)) {
+            if (name.endsWith('.ass') && (isMatchingSubtitle(name, videoId) || !folderMode)) {
 				// isMatchingSubtitle()?
                 results.push({
                     id: id,

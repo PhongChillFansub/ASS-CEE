@@ -1,5 +1,5 @@
-// Code bằng tay (thực ra vẫn còn nhiều chỗ vibe coding)
-// v0.0.0.2 11jun26
+// Code bằng tay
+// v0.0.0.3 12jun26
 /**
  * Hàm gửi log về background.js
  * @param {*} message nội dung
@@ -462,7 +462,7 @@ function buildSourceManagerTab() {
         // 2. Gửi message cho background và đợi phản hồi
         const response = await chrome.runtime.sendMessage({
           type: 'SUB.SEARCH',
-          payload: { videoId: "" }
+          payload: { videoId: "", folderMode: true }
         });
         // 3. Nhận kết quả và render lại danh sách
         if (response && response.payload) {

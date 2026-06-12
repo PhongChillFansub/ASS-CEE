@@ -79,7 +79,7 @@ const handlers = {
       return { type: 'SOURCE.NOT_ADDED', payload: "payload.url (SOURCE.ADD) trống (string trống)" };
     }
     const sourcesToFetch = urls.map(singleUrl => ({ url: singleUrl }));
-    await fetchSubtitleFile(sourcesToFetch, "");  // Gọi fetchSubtitleFile* lần đầu
+    await fetchSubtitleFile(sourcesToFetch, "", true);  // Gọi fetchSubtitleFile* lần đầu
     const finalizedSources = [];
     for (const sourceItem of sourcesToFetch) {
       // Nếu không trích xuất được thông tin, đánh dấu lỗi riêng cho URL đó thay vì chặn toàn bộ tiến trình
@@ -118,8 +118,8 @@ const handlers = {
     return { type: 'SOURCE.REMOVED', payload: await removeSource(payload.savedAt)};
   },
   'SUB.SEARCH': async (payload) => { // Yêu cầu tìm kiếm nguồn
-    // const { videoId } = payload
-    return resolveSubtitles(payload.videoId); // resolveSubtitles()?
+    // const { videoId, folderMode } = payload
+    return resolveSubtitles(payload.videoId, payload.folderMode); // resolveSubtitles()?
   },
   'SUB.SELECT': async (payload) => { // Xác nhận nguồn được user chọn
     const { videoId, candidate } = payload;
@@ -152,7 +152,7 @@ const handlers = {
  * @param {*} videoId 
  * @returns SUB.READY: có thể dùng ngay, .EMPTY: trống, .WAIT: có ít nhất 1 file tương ứng, cần content-side xử lí
  */
-async function resolveSubtitles(videoId) {
+async function resolveSubtitles(videoId, folderMode) {
   // Đầu ra luôn là dạng { type: "", payload: "" }
   const cached = await useSubData(videoId);
   // Lấy cache
@@ -167,9 +167,9 @@ async function resolveSubtitles(videoId) {
     console.log(`[ASS-CEE] background: Không có thư mục nào để quét.`);
     return { type: 'SUB.EMPTY', payload: [] };
   }
-  const candidates = await fetchSubtitleFile(sources, videoId); // Quét danh sách nguồn
+  const candidates = await fetchSubtitleFile(sources, videoId, folderMode); // Quét danh sách nguồn
   // Nếu videoId === "" thì tức là đang refetch. Trả về cấu trúc tương tự 'SOURCE.GET_ALL', 'SOURCE.REMOVE'
-  if (videoId === "") {
+  if (videoId === "" && folderMode) {
     try {
       console.log(`[ASS-CEE] background: Đã refetch các nguồn sẵn có. Đang ghi đè lên cache.`);
       const oldSources = await getSourceList();
