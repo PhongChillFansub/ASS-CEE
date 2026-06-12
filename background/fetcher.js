@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.0.2 11jun26
+// v0.0.0.3 12jun26
 const FETCH_TIMEOUT = 60000; // Tối đa 60 giây kết nối và nhận dữ liệu. Dùng cho hàm fetchWithTimeout().
 const VALID_FILE_SIGNATURE = ["[Script Info]", "[V4+ Styles]", "[Events]"];
 // Danh sách các nội dung mà parser dùng để đánh dấu. Dùng cho hàm validateSubtitleContent().
@@ -268,10 +268,11 @@ async function scanGDrive(source, videoId, folderName = { groupName: '',id: '' }
  * @returns boolean?
  */
 function isMatchingSubtitle(fileName, videoId) {
-	// Hàm check tên file có chứa YT ID, và bao quanh nó trong ngoặc () hoặc [] ko.
+	// Hàm check tên file có đúng id ko. Quy tắc: "#<id>", ngăn cách bởi các kí tự khác chữ, số, gạch dưới và gạch ngang
+    // Phù hợp với quy tắc base64 URL safe của videoId trên YT. 
     if (!videoId) return false;
     // Nếu không có videoId hoặc videoId trống ("" để chỉ scan lấy tên folder), trả về false luôn
-    const regex = new RegExp(`\\(${videoId}\\)|\\[${videoId}\\]`); 
+    const regex = new RegExp(`#${videoId}(?![\\w-])`);
     return regex.test(fileName);
 }
 /**
