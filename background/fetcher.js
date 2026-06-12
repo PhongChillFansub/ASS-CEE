@@ -147,7 +147,7 @@ async function scanGitHub(source, videoId, folderGet, folderMode) {
             return [];
             // Kiểm tra nếu trả về ko phải array các file
         }
-        if (!videoId) {
+        if (!videoId && folderMode) {
             // Nếu ko có videoId (có chủ ý: để lấy dữ liệu folderGet.groupName và .id)
             console.log(`[ASS-CEE] fetcher: Đã lấy xong dữ liệu thư mục GitHub lần đầu: ${folderGet.groupName})`)
             return [];
@@ -155,7 +155,7 @@ async function scanGitHub(source, videoId, folderGet, folderMode) {
         for (const item of items) { // 3. Quét các file tìm được
             if (item.type !== "file") continue; 
             // Vì chỉ quét các file nên bỏ qua các folder và file ko phải file sub
-            if (item.name.endsWith('.ass') && (isMatchingSubtitle(name, videoId) || !folderMode)) {
+            if (item.name.endsWith('.ass') && (isMatchingSubtitle(item.name, videoId) || !folderMode)) {
                 // isMatchingSubtitle()?
                 results.push({
                     id: item.sha,
@@ -233,9 +233,9 @@ async function scanGDrive(source, videoId, folderName = { groupName: '',id: '' }
         folderName.id = folderId;
         // 4. Regex bóc tách cặp [File ID, Tên File] từ đống dữ liệu JSON ẩn trong HTML
         const entryRegex = /\["([a-zA-Z0-9_-]{19,})","([^"]+)"/g;
-        if (!videoId) {
+        if (!videoId && folderMode) {
             // Nếu ko có videoId (có chủ ý: để lấy dữ liệu folderName.groupName và .id)
-            console.log(`[ASS-CEE] fetcher: Đang dò lấy dữ liệu thư mục GDrive: ${folderName.groupName})`)
+            console.log(`[ASS-CEE] fetcher: Đã lấy xong dữ liệu thư mục GDrive lần đầu: ${folderName.groupName})`)
             return [];
         }
         let match;

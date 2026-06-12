@@ -1,4 +1,4 @@
-v0.0.0.2 11jun26
+v0.0.0.3 12jun26
 1. Cấu trúc extension:
   - manifest.JSON
   - background
@@ -53,7 +53,7 @@ v0.0.0.2 11jun26
           videoId,
           fileObj = candidate,      // xem mục 2.3.2
           parsedData,               // xem mục 2.4.2
-          cachedAt: time            // (storage.js/addSubData())
+          cachedAt: time            // (storage.js > addSubData())
         }
 
 3. Giao thức giữa background/background.js (nhận) và content/*.js
@@ -80,11 +80,13 @@ v0.0.0.2 11jun26
           sendResponse (tổng): { type: 'SOURCE.REMOVED', payload: await removeSource(payload.savedAt)}; // xem storage.js
 
     3.5. type === "SUB.SEARCH"
-            payload = { videoId }
-          sendResponse (tổng): resolveSubtitles(videoId)
+            payload = { videoId, folderMode }
+          sendResponse (tổng): resolveSubtitles(videoId, folderMode)
+            nếu folderMode falsy:
               { type: 'SUB.READY', payload: cached }
               { type: 'SUB.EMPTY', payload: [] }
               { type: 'SUB.WAIT', payload: candidates }
+            hoặc { type: 'SOURCE.LIST', payload: await getSourceList() } nếu folderMode truthy
 
     3.4. type === "SUB.SELECT"
             payload = { videoId, candidate }
@@ -238,7 +240,8 @@ Hệ thống linh hoạt vận hành dựa trên biến cấu hình `parseMode` 
 
 📌 6. Tài liệu tham khảo & Giới hạn phạm vi (Reference Boundaries)
 - File nguồn `Kull-Vietsub_extension_content.js.txt` CHỈ ĐÓNG VAI TRÒ THAM KHẢO Ý TƯỞNG (Các thông số cấu hình mặc định DEFAULTS hiển thị, logic hoán đổi toán học cơ bản hoặc băm chuỗi thô).
-- Tuyệt đối KHÔNG thiết kế cấu trúc mã nguồn đi hoàn toàn theo hướng giải quyết gom cụm (monolithic) của file này. Dự án ASS-CEE tuân thủ tách biệt hoàn toàn Layer tìm kiếm/xử lý (Background) và Layer dựng hình (Content Script) nhằm bảo toàn hiệu năng tối đa cho trình phát video YouTube.
+- Tuyệt đối KHÔNG thiết kế cấu trúc mã nguồn đi hoàn toàn theo hướng giải quyết gom cụm (monolithic) của file này. Dự án ASS-CEE tuân thủ tách biệt hoàn toàn Layer tìm kiếm/xử lý (Background) và Layer dựng hình (Content Script) 
+nhằm bảo toàn hiệu năng tối đa cho trình phát video YouTube.
 
 ⚠️ 7. Quy tắc phát triển code bắt buộc (AI-LLM Vibe Coding Critical Rules)
 a.Luôn có comment giải thích code.
@@ -266,4 +269,5 @@ Quy tắc quản lý hiển thị khi gặp Style không xác định trong file
 //     BorderStyle: "1", Outline: "2", Shadow: "2", Alignment: "2",
 //     MarginL: "10", MarginR: "10", MarginV: "10", Encoding: "1"
 //   }
-- Giai đoạn xử lý tối ưu: Để tránh việc kiểm tra lặp đi lặp lại trong vòng lặp thời gian 10ms gây suy giảm hiệu năng, Renderer.js phải chuẩn bị sẵn (pre-inject) style Default nguyên bản vào bộ nhớ lưu trữ Map Styles cục bộ ngay khi nhận được dữ liệu phụ đề mới từ content.js, đảm bảo vòng lặp vẽ chỉ cần gọi: stylesMap[line.style] || stylesMap['Default'].
+- Giai đoạn xử lý tối ưu: Để tránh việc kiểm tra lặp đi lặp lại trong vòng lặp thời gian 10ms gây suy giảm hiệu năng, 
+Renderer.js phải chuẩn bị sẵn (pre-inject) style Default nguyên bản vào bộ nhớ lưu trữ Map Styles cục bộ ngay khi nhận được dữ liệu phụ đề mới từ content.js, đảm bảo vòng lặp vẽ chỉ cần gọi: stylesMap[line.style] || stylesMap['Default'].

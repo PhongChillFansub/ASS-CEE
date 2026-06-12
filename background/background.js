@@ -188,8 +188,7 @@ async function resolveSubtitles(videoId, folderMode) {
         }
       } // Ghi lại các nguồn đã refetch
       console.log(`[ASS-CEE] background: Đã ghi đè dữ liệu mới.`);
-      const updatedSources = await getSourceList();
-      return { type: 'SOURCE.LIST', payload: updatedSources };
+      return { type: 'SOURCE.LIST', payload: await getSourceList() };
     } catch (err) {
       console.error("[ASS-CEE] background: Gặp lỗi trong quá trình refetch và ghi đè cache:", err);
       return { type: 'ERROR', payload: err.message };
