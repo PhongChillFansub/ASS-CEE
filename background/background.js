@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.0.3 12jun26
+// v0.0.0.3 17jun26
 import { fetchSubtitleText, fetchSubtitleFile } from './fetcher.js';
 // 2 hàm fetchSubtitleText, fetchSubtitleFile
 import { addSource, getSourceList, removeSource, addSubData, getSubDataList, useSubData, removeSubData } from './storage.js';
@@ -19,6 +19,10 @@ chrome.action.onClicked.addListener(async (tab) => {
     // Nếu lỗi (do chưa nạp script hoặc trang vừa reload), tiến hành nạp file thủ công
     console.log("[ASS-CEE] background: Phát hiện chưa nạp ui.js lần đầu, đang tiến hành nạp trực tiếp...");
     try {
+      await chrome.scripting.insertCSS({
+        target: { tabId },
+        files: ["content/ui.css"]
+      });
       await chrome.scripting.executeScript({
         target: { tabId },
         files: ["content/ui.js"] // Nạp các file cần thiết
@@ -168,7 +172,7 @@ async function resolveSubtitles(videoId, folderMode) {
     return { type: 'SUB.EMPTY', payload: [] };
   }
   const candidates = await fetchSubtitleFile(sources, videoId, folderMode); // Quét danh sách nguồn
-  // Nếu videoId === "" thì tức là đang refetch. Trả về cấu trúc tương tự 'SOURCE.GET_ALL', 'SOURCE.REMOVE'
+  // Nếu videoId === "" và folderMode === true thì tức là đang refetch. Trả về cấu trúc tương tự 'SOURCE.GET_ALL', 'SOURCE.REMOVE'
   if (videoId === "" && folderMode) {
     try {
       console.log(`[ASS-CEE] background: Đã refetch các nguồn sẵn có. Đang ghi đè lên cache.`);
@@ -194,6 +198,7 @@ async function resolveSubtitles(videoId, folderMode) {
       return { type: 'ERROR', payload: err.message };
     }
   }
+  // Nếu videoId === "" và folderMode === false thì tức là đang tìm tất cả file sub có trong các nguồn
   // Kiểm tra kết quả quét
   if (candidates.length === 0) { // Trường hợp 1: Ko có file tương ứng
     console.log(`[ASS-CEE] background: Ko có file cho vid ${videoId}.`);

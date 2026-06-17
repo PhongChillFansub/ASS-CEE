@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.0.2 11jun26
+// v0.0.0.3 17jun26
 // storage.js
 // Chức năng: chuyên xử lí lưu trữ trên chrome.storage.local.
 // 7 hàm export là:
@@ -87,11 +87,14 @@ export async function getSubDataList() {
     if (key.startsWith(`${SUBTITLE_DATA_KEY_BASE}_`)) {
       const videoId = key.replace(`${SUBTITLE_DATA_KEY_BASE}_`, ""); // Cắt bỏ chữ "sub_" để lấy lại videoId gốc
       cacheList[videoId] = {
-        cachedAt: value && value.cachedAt ? value.cachedAt : null
+        videoId,
+        cachedId: value.videoId,
+        fileObj: value.fileObj,
+        cachedAt: value.cachedAt || null,
       };
     }
   }
-  return cacheList; // obj dạng { "videoId": {cachedAt} }
+  return cacheList; // obj dạng { "videoId": {cachedAt} } 
 }
 /**
  * Hàm lấy dữ liệu file sub (obj) dựa trên videoId
