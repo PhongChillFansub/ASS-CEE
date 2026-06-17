@@ -1,4 +1,4 @@
-v0.0.0.3 12jun26
+v0.0.0.3 17jun26
 1. Cấu trúc extension:
   - manifest.JSON
   - background
@@ -54,6 +54,13 @@ v0.0.0.3 12jun26
           fileObj = candidate,      // xem mục 2.3.2
           parsedData,               // xem mục 2.4.2
           cachedAt: time            // (storage.js > addSubData())
+        }
+        Đối với đầu ra hàm getSubDataList():
+        cacheList[videoId] = {
+          videoId: (Id dùng đặt tên trong SUBTITLE_DATA_KEY: ${SUBTITLE_DATA_KEY_BASE}_${videoId})
+          cachedId: (Id lưu trong SUBTITLE_DATA_KEY[videoId])
+          cachedAt: time            // (storage.js > addSubData())
+          ...candidate              // xem mục 2.3.2
         }
 
 3. Giao thức giữa background/background.js (nhận) và content/*.js

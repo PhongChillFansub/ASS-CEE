@@ -89,12 +89,12 @@ export async function getSubDataList() {
       cacheList[videoId] = {
         videoId,
         cachedId: value.videoId,
-        fileObj: value.fileObj,
         cachedAt: value.cachedAt || null,
+        ...value.fileObj
       };
     }
   }
-  return cacheList; // obj dạng { "videoId": {cachedAt} } 
+  return cacheList; // obj dạng { "videoId": {videoId, cachedId, cachedAt, ...candidate} } 
 }
 /**
  * Hàm lấy dữ liệu file sub (obj) dựa trên videoId
