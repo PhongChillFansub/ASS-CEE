@@ -120,7 +120,7 @@ v0.0.0.3 17jun26
     4.1. action === "TOGGLE_OVERLAY_SIGNAL"
           (gửi lệnh toggleOverlay cho UI, do nút icon extension là background quản lí)
 
-4. Cấu trúc khung HTML của UI: (.innerHTML trong file ui.js và ui_work.html)
+5. Cấu trúc khung HTML của UI: (.innerHTML trong file ui.js và ui_work.html)
     (để tiện chỉnh sửa, sử dụng file ui_bea… à nhầm ui_work.html)
   - class="asscee_ui": khung giao diện
     - class="asscee_barTitle": thanh tiêu đề: hiển thị tên, nút chọn tab, nút ẩn/đóng UI
@@ -139,7 +139,16 @@ v0.0.0.3 17jun26
       - span id/class="asscee_footerInfo": phần hiển thị thông tin thêm (vd: khi di chuột đến vị trí nút/dòng cần chú thích)
       - span id/class="asscee_footerMisc": hiển thị thông tin khác (tạm thời trống)
       
-Cấu trúc phần chạy chính ui.js
+6. Cấu trúc ui.js
+  6.1. Các hàm tính năng cơ bản
+    6.1.1. sendLogToBackground(): gửi log từ ui.js về background.js (content-side sang background-side)
+    6.1.2. toggleOverlay(): hàm điều khiển ẩn/hiện UI
+    6.1.3. getRelativeTimeString(): hàm xử lí thời gian tương đối (N (đơn vị) trước) và tuyệt đối (HH:MM:SS DD/MM/YYYY)
+  - Đặt obj uiData để quản lí dữ liệu toàn file
+  6.2. Các hàm tính năng chuyên dụng và hàm cơ sở (build*)
+    6.2.1. 
+
+
 1. Phần định nghĩa khung HTML và giao thức với các Thực thể của nó
 1.1. Phần xử lí các thao tác chọn trang hiển thị
 1.2. Phần xử lí tính năng di chuyển giao diện

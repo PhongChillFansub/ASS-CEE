@@ -1,7 +1,7 @@
 // Code bằng tay
 // v0.0.0.3 17jun26
 /**
- * Hàm gửi log về background.js
+ * 6.1.1. Hàm gửi log về background.js
  * @param {*} message nội dung
  * @param {*} type loại nội dung (default: "info" -> log, "warn" -> warn, "error" -> error)
  */
@@ -18,6 +18,13 @@ function sendLogToBackground(message, type = 'info') {
     console.warn("[ASS-CEE] ui: Không thể gửi log về background:", err);
   });
 }
+/**
+ * 6.1.2. Hàm điều khiển ẩn/hiện của UI
+ * @param {*} containerId [outdated] Id để giao tiếp với content.js (bản cũ điều khiển ẩn/hiện ở content.js)
+ * Bản mới điều khiển trực tiếp trên này
+ * @param {*} forceShow trạng thái (boolean), nếu undefined thì đảo ngược trạng thái hiện tại
+ * @returns gửi log về background
+ */
 function toggleOverlay(containerId, forceShow) {
   const container = document.getElementById(containerId);
   if (!container) return;
@@ -35,7 +42,7 @@ function toggleOverlay(containerId, forceShow) {
   }
 }
 /**
- * Tính thời gian tương đối ở mọi thời điểm và định dạng thời gian chính xác
+ * 6.1.3. Tính thời gian tương đối ở mọi thời điểm và định dạng thời gian chính xác
  * @param {number|string|Date} timestamp - Mốc thời gian cần tính
  * @returns {Object} { relative: string, exact: string }
  */
