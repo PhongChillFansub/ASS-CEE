@@ -2,8 +2,8 @@
 // v0.0.0.3 17jun26
 /**
  * 6.1.1. Hàm gửi log về background.js
- * @param {*} message nội dung
- * @param {*} type loại nội dung (default: "info" -> log, "warn" -> warn, "error" -> error)
+ * @param {string} message nội dung
+ * @param {string} type loại nội dung (default: "info" -> log, "warn" -> warn, "error" -> error)
  */
 function sendLogToBackground(message, type = 'info') {
   chrome.runtime.sendMessage({
@@ -20,9 +20,9 @@ function sendLogToBackground(message, type = 'info') {
 }
 /**
  * 6.1.2. Hàm điều khiển ẩn/hiện của UI
- * @param {*} containerId [outdated] Id để giao tiếp với content.js (bản cũ điều khiển ẩn/hiện ở content.js)
+ * @param {string} containerId [outdated] Id để giao tiếp với content.js (bản cũ điều khiển ẩn/hiện ở content.js)
  * Bản mới điều khiển trực tiếp trên này
- * @param {*} forceShow trạng thái (boolean), nếu undefined thì đảo ngược trạng thái hiện tại
+ * @param {boolean} forceShow trạng thái (boolean), nếu undefined thì đảo ngược trạng thái hiện tại
  * @returns gửi log về background
  */
 function toggleOverlay(containerId, forceShow) {
@@ -82,10 +82,10 @@ function getRelativeTimeString(timestamp) {
   const exact = `${hours}:${minutes}:${seconds} ${day}/${month}/${date.getFullYear()}`;
   return { relative, exact };
 }
-// Phần hàm chạy các hạng mục
+// 6.2. Phần hàm chạy các hạng mục
 var uiData = window.uiData || {}; // Obj lưu toàn bộ dữ liệu UI, có bảo tồn do chạy nhiều lần file ui.js này
 /**
- * Hàm chạy mục 1. Khởi tạo khung UI và API của nó.
+ * 6.2.0. Hàm chạy mục 1.0. Khởi tạo khung UI và API của nó.
  */
 function buildMainHTML() {
   uiData.extensionName = 'ASS-CEE';
@@ -157,9 +157,9 @@ function buildMainHTML() {
     });
 }
 /**
- * Hàm xử lí lựa chọn trang (dùng trong mục 1.1.)
- * @param {*} tabId ở đây là giá trị của thuộc tính data-asscee_tab-target
- * Kết quả: thay đổi thuộc tính active của tab
+ * 6.2.1.1. Hàm xử lí lựa chọn trang (dùng trong mục 1.1.)
+ * @param {string} tabId ở đây là giá trị của thuộc tính data-asscee_tab-target
+ * @returns {void} Kết quả: thay đổi thuộc tính active của tab
  */
 function selectTab(tabId) {
   const tabLabel = uiData.tabMap[tabId] || 'Tab không xác định';
@@ -187,7 +187,7 @@ function selectTab(tabId) {
   });
 }
 /**
- * Hàm chạy mục 1.1. Khởi tạo logic trên danh sách trang hiển thị
+ * 6.2.1.2. Hàm chạy mục 1.1. Khởi tạo logic trên danh sách trang hiển thị
  */
 function buildTabListLogic() {
   // Xử lí thao tác bấm nút tabListBtn
@@ -220,10 +220,11 @@ function buildTabListLogic() {
   selectTab('tab1'); // Chạy selectTab lần đầu để hiển thị nội dung đầu tiên
 }
 /**
- * Hàm trung tâm, xử lí tọa độ UI khi di chuyển (dùng trong mục 1.2.)
- * @param {*} clientX vị trí con trỏ (x)
- * @param {*} clientY vị trí con trỏ (y)
- * Đầu ra newLeft, newTop: vị trí mới của góc trên bên trái UI
+ * 6.2.2.1. Hàm trung tâm, xử lí tọa độ UI khi di chuyển (dùng trong mục 1.2.)
+ * @param {number} clientX vị trí con trỏ (x)
+ * @param {number} clientY vị trí con trỏ (y)
+ * @returns {Object} uiData.container.style.left, uiData.container.style.top = newLeft, newTop:
+ * vị trí mới của góc trên bên trái UI
  */
 function handleMove(clientX, clientY) {
   let newLeft = clientX - uiData.offsetX;
@@ -245,10 +246,10 @@ function handleMove(clientX, clientY) {
   // Áp dụng tọa độ
 }
 /**
- * Hàm chuyển trạng thái UI sang kéo thả (chuyển vị trí), khi bấm vào thanh tiêu đề (dùng trong mục 1.2.)
- * @param {*} clientX vị trí con trỏ (x)
- * @param {*} clientY vị trí con trỏ (y)
- * @returns Đầu ra: mở thao tác di chuyển UI (addEventListener) bằng chuột
+ * 6.2.2.2. Hàm chuyển trạng thái UI sang kéo thả (chuyển vị trí), khi bấm vào thanh tiêu đề (dùng trong mục 1.2.)
+ * @param {number} clientX vị trí con trỏ (x)
+ * @param {number} clientY vị trí con trỏ (y)
+ * @returns {void} Đầu ra: mở thao tác di chuyển UI (addEventListener) bằng chuột
  */
 function barTitleOnClick(clientX, clientY) {
   uiData.isDragging = true; // Bật trạng thái kéo thả UI
@@ -264,9 +265,9 @@ function barTitleOnClick(clientX, clientY) {
   // Tương tự với màn hình cảm ứng (chưa test)
 }
 /**
- * Hàm xử lí nhấn giữ + di chuyển chuột (dùng trong mục 1.2.)
- * @param {*} e (ko rõ)
- * @returns chạy handleMove()
+ * 6.2.2.3. Hàm xử lí nhấn giữ + di chuyển chuột (dùng trong mục 1.2.)
+ * @param {MouseEvent} e (ko rõ)
+ * @returns {void} chạy handleMove()
  */
 function barTitleOnClickHold(e) {
   if (!uiData.isDragging) return;
@@ -274,9 +275,9 @@ function barTitleOnClickHold(e) {
   handleMove(e.clientX, e.clientY);
 }
 /**
- * Hàm xử lí nhấn giữ + di chuyển chạm (chưa test) (dùng trong mục 1.2.)
- * @param {*} e (ko rõ)
- * @returns chạy handleMove()
+ * 6.2.2.4. Hàm xử lí nhấn giữ + di chuyển chạm (chưa test) (dùng trong mục 1.2.)
+ * @param {TouchEvent} e (ko rõ)
+ * @returns {void} chạy handleMove()
  */
 function barTitleOnTouchHold(e) {
   if (!uiData.isDragging) return;
@@ -285,7 +286,8 @@ function barTitleOnTouchHold(e) {
   handleMove(touch.clientX, touch.clientY);
 }
 /**
- * Hàm xử lí thả chuột/chạm (dùng trong mục 1.2.)
+ * 6.2.2.5. Hàm xử lí thả chuột/chạm (dùng trong mục 1.2.)
+ * @returns {void} Đầu ra: tắt thao tác di chuyển UI (removeEventListener)
  */
 function barTitleOnRelease() {
   if (uiData.isDragging) {
@@ -300,7 +302,7 @@ function barTitleOnRelease() {
   }
 }
 /**
- * Hàm chạy mục 1.2. Tính năng di chuyển giao diện
+ * 6.2.2.6. Hàm chạy mục 1.2. Tính năng di chuyển giao diện
  */
 function buildDragFeature() {
   uiData.isDragging = false; // Trạng thái kéo thả UI
@@ -333,8 +335,9 @@ function buildDragFeature() {
   });
 }
 /**
- * Hàm render danh sách nguồn (dùng trong mục 1.3.)
- * @param {*} linksArray danh sách nguồn (nhận getSourceList() từ background/storage.js, xem pipeline mục 2.2)
+ * 6.2.3.1. Hàm render danh sách nguồn (dùng trong mục 1.3.)
+ * @param {Array<Object>} linksArray danh sách nguồn (nhận getSourceList() từ background/storage.js, xem pipeline mục 2.2)
+ * @returns {void} Đầu ra: render danh sách nguồn vào uiData.linkList trong tab 1, gắn sự kiện cho từng item
  */
 function renderLinkList(linksArray) {
   if (!uiData.linkList) {
@@ -357,7 +360,6 @@ function renderLinkList(linksArray) {
     const timeInfo = getRelativeTimeString(item.savedAt);
     const line1Left = item.folderName;
     const line2Left = `ID: ${item.folderId}`;
-
     li.innerHTML = `
       <div class="asscee_ItemRow">
         <span class="asscee_Text asscee_ItemTitle" title="${line1Left}\n${li.title}">${line1Left}</span>
@@ -400,6 +402,9 @@ function renderLinkList(linksArray) {
   uiData.linkList.appendChild(li);
   });
 };
+/**
+ * 6.2.3.2. Tải danh sách nguồn từ background.js và render vào tab 1
+ */
 function initSourceList() {
   chrome.runtime.sendMessage({ type: "SOURCE.GET_ALL" }, (response) => {
     if (chrome.runtime.lastError) {
@@ -412,7 +417,7 @@ function initSourceList() {
   });
 }
 /**
- * Hàm chạy mục 1.3. Tính năng trong tab 1: Quản lí nguồn
+ * 6.2.3.3. Hàm chạy mục 1.3. Tính năng trong tab 1: Quản lí nguồn
  */
 function buildSourceManagerTab() {
   if (!uiData.tabContents[0]) {
@@ -500,7 +505,6 @@ function buildSourceManagerTab() {
         const results = response.payload; // Mảng chứa kết quả của từng nguồn
         const successes = results.filter(r => r.success);
         const failures = results.filter(r => !r.success);
-
         // Nếu có ít nhất một nguồn được thêm thành công
         if (successes.length > 0) {
           uiData.linkInput.value = ""; // Xóa text trong ô input
