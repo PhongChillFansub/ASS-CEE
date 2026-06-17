@@ -48,6 +48,7 @@ v0.0.0.3 17jun26
       events: []    // Phần [Events]
     }
     2.4.3. background.js, storage.js: Lưu mỗi obj file sub trong 1 Cache Key riêng (trong chrome.storage.local)
+      2.4.3.1. Đối với cache
         const SUBTITLE_DATA_KEY = `${SUBTITLE_DATA_KEY_BASE}_${videoId}`    // cấu trúc key: ASSCEE_<videoId>
         SUBTITLE_DATA_KEY = {
           videoId,
@@ -55,7 +56,7 @@ v0.0.0.3 17jun26
           parsedData,               // xem mục 2.4.2
           cachedAt: time            // (storage.js > addSubData())
         }
-      Đối với đầu ra hàm getSubDataList():
+      2.4.3.2. Đối với đầu ra hàm getSubDataList():
         cacheList = [cacheData,...] 
         cacheData = {
           videoId: (Id dùng đặt tên trong SUBTITLE_DATA_KEY: ${SUBTITLE_DATA_KEY_BASE}_${videoId})
