@@ -104,7 +104,7 @@ function buildMainHTML() {
 
       <div id="asscee_titleBar" class="asscee_BarTitle">
         <!-- Thanh tiêu đề -->  
-        <div id="asscee_titleLeftGrp" class="asscee_TitleLeftGrp">
+        <div id="asscee_titleLeftGrp" class="asscee_LRGroup">
           <!-- Chia thanh tiêu đề thành 2 phần: nút Danh sách trang và Tiêu đề ở trái -->
           <button id="asscee_tabListBtn" class="asscee_BtnSqr"></button>
           <span id="asscee_title" class="asscee_Text"></span>
@@ -330,7 +330,7 @@ function buildDragFeature() {
   document.addEventListener('touchend', () => {
     if (uiData.isDragging) {
       uiData.isDragging = false;
-      sendLogToBackground(`ui: Đã dời vị trí Extension (cảm ứng) tới tọa độ mới: left=${container.style.left}, top=${container.style.top}`);
+      sendLogToBackground(`ui: Đã dời vị trí Extension (cảm ứng) tới tọa độ mới: left=${uiData.container.style.left}, top=${uiData.container.style.top}`);
     }
   });
 }
@@ -421,7 +421,7 @@ function initSourceList() {
  */
 function buildSourceManagerTab() {
   if (!uiData.tabContents[0]) {
-    sendLogToBackground("ui: [ASS-CEE] ko có khung tabContents[0] để render? Mục 1.3 bị bỏ qua.", "error");
+    sendLogToBackground("ui: ko có khung tabContents[0] để render? Mục 1.3 bị bỏ qua.", "error");
     return;
   }
   uiData.tabContents[0].innerHTML = `
@@ -531,7 +531,7 @@ function buildSourceManagerTab() {
   initSourceList(); // Kích hoạt nạp danh sách ban đầu ngay lập tức
 }
 /**
- * Hàm hỗ trợ tự động lấy YouTube Video ID từ URL hiện tại
+ * 6.2.4.1. Hàm lấy YouTube Video ID từ URL hiện tại
  * @returns {string} videoId hoặc chuỗi rỗng
  */
 function getYouTubeVideoId() {
@@ -543,16 +543,62 @@ function getYouTubeVideoId() {
   }
 }
 /**
- * Hàm render danh sách tệp phụ đề (mục 1.4)
+ * 6.2.4.2. Hàm render danh sách tệp phụ đề (mục 1.4)
  * @param {Array} candidates danh sách các file phụ đề 
  * (xem mục 2.3.2 (candidates) với quét file online, 2.4.3.2 (cacheList) với quét cache)
  * @param {string} videoId
  */
 function renderSubFileArray(candidates, videoId){
   if (!uiData.subFileArray) {
-    sendLogToBackground("ui: [ASS-CEE] ko có khung linkList để render?", "error");
+    sendLogToBackground("ui: ko có khung linkList để render?", "error");
     return;
   }
+  uiData.subFileArray = "";
+  if (!candidates || candidates.length === 0) {
+    const emptyLi = document.createElement("li");
+    emptyLi.className = "asscee_Text asscee_SubText";
+    emptyLi.textContent = "Danh sách tệp phụ đề kết quả trống.";
+    uiData.scanResultList.appendChild(emptyLi);
+    return;
+  }
+  candidates.forEach((candidate) => {
+    const li = document.createElement("li");
+    const timeInfo = candidate.cachedAt ? getRelativeTimeString(candidate.cachedAt) : '';
+    li.className = "asscee_LinkItem";
+    li.title = `Bấm để chuyển sang tab/truy cập:\n${candidate.url}`;
+    const displayName = `${candidate.videoId ? candidate.videoId + ': ' : ''}${candidate.fileName}`;
+    if (candidate.videoId !== candidate.cachedId) {
+      sendLogToBackground(`ui: Video ID khác với cached ID: ${candidate.videoId} !== ${candidate.cachedId}`, "warn");
+    }
+    li.innerHTML = `
+      <div class="asscee_ItemRow">
+        <span class="asscee_Text asscee_ItemTitle" title="${displayName}\n${li.title}">
+          ${displayName}
+        </span>
+        <div class="asscee_LRGroup">
+            <button class="asscee_BtnSqr asscee_ItemSelectBtns" title="Sử dụng và lưu cache">✓</button>
+            <button class="asscee_BtnSqr asscee_ItemDeleteBtns" title="Xóa cache">✕</button>
+        </div>
+      </div>
+      <div class="asscee_ItemRow">
+        <span class="asscee_Text asscee_SubText asscee_ItemIdSub" title="${candidate.sourceType}: ${candidate.groupName}\n${li.title}">
+          ${candidate.sourceType}: ${candidate.groupName}
+        </span>
+        <span class="asscee_Text asscee_SubText asscee_ItemTimeSub" title="${timeInfo.exact ? 'Thời điểm thêm: ' + timeInfo.exact + '\n' : ''}${li.title}">
+          ${timeInfo.relative || ''}
+        </span>
+      </div>
+    `;
+    const selectBtn = li.querySelector(".asscee_ItemSelectBtns");
+    selectBtn.addEventListener("click", () => {
+      selectBtn.disabled = true;
+    });
+    const deleteBtn = li.querySelector(".asscee_ItemDeleteBtns");
+    deleteBtn.addEventListener("click", () => {
+      deleteBtn.disabled = true;
+    });
+
+  });
 }
 
 /**

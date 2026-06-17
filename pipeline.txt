@@ -169,7 +169,8 @@ v0.0.0.3 17jun26
 
     6.2.4. Hạng mục 1.4. Tính năng trong tab 2: Quản lý phụ đề
     (đang viết đoạn này)
-      6.2.4.1.
+      6.2.4.1. getYouTubeVideoId(): lấy YouTube Video ID từ URL hiện tại
+      6.2.4.2. renderSubFileArray(): render danh sách tệp phụ đề
 
 1. Phần định nghĩa khung HTML và giao thức với các Thực thể của nó
 1.1. Phần xử lí các thao tác chọn trang hiển thị

@@ -43,7 +43,7 @@ asscee_footerMisc */
 /* Danh sách class
 asscee_UI
 asscee_BarTitle
-asscee_TitleLeftGrp
+asscee_LRGroup
 asscee_BtnSqr
 asscee_Text
 asscee_SubText
@@ -64,7 +64,9 @@ asscee_Footer
 asscee_TextInBox 
 asscee_ItemDeleteBtns 
 asscee_ItemIdSub
-asscee_ItemTimeSub*/
+asscee_ItemTimeSub
+asscee_ItemDeleteBtns (trống)
+ */
 
 /* id asscee_closeBtn (class asscee_BtnSqr) */
 #asscee_closeBtn:hover {
@@ -112,8 +114,8 @@ asscee_ItemTimeSub*/
   height: 40px !important;
   cursor: grab !important;
 }
-/* class asscee_TitleLeftGrp */
-.asscee_TitleLeftGrp {
+/* class asscee_LRGroup */
+.asscee_LRGroup {
   display: flex !important;
   align-items: center !important;
   gap: 8px !important;
