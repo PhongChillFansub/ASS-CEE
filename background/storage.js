@@ -81,20 +81,21 @@ export async function addSubData(videoId, subtitleObj = {}) {
 export async function getSubDataList() {
   // Lấy toàn bộ dữ liệu đang có trong storage
   const allData = await chrome.storage.local.get(null);
-  const cacheList = {};
-  // Lọc và gom các key có tiền tố "sub_" lại thành cấu trúc cũ
+  const cacheList = []; // 1. Chuyển thành Mảng trống
+  // Lọc và gom các key có tiền tố "sub_"
   for (const [key, value] of Object.entries(allData)) {
     if (key.startsWith(`${SUBTITLE_DATA_KEY_BASE}_`)) {
-      const videoId = key.replace(`${SUBTITLE_DATA_KEY_BASE}_`, ""); // Cắt bỏ chữ "sub_" để lấy lại videoId gốc
-      cacheList[videoId] = {
+      const videoId = key.replace(`${SUBTITLE_DATA_KEY_BASE}_`, ""); // Lấy videoId gốc từ key
+      // 2. Sử dụng .push() để thêm đối tượng trực tiếp vào mảng
+      cacheList.push({
         videoId,
         cachedId: value.videoId,
         cachedAt: value.cachedAt || null,
         ...value.fileObj
-      };
+      });
     }
   }
-  return cacheList; // obj dạng { "videoId": {videoId, cachedId, cachedAt, ...candidate} } 
+  return cacheList; // Trả về mảng dạng: [ { videoId, cachedId, cachedAt, ...candidate }, ... ]
 }
 /**
  * Hàm lấy dữ liệu file sub (obj) dựa trên videoId
