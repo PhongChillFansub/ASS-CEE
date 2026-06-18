@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.0.3 17jun26
+// v0.0.0.3 19jun26
 /**
  * 6.1.1. Hàm gửi log về background.js
  * @param {string} message nội dung
@@ -81,6 +81,18 @@ function getRelativeTimeString(timestamp) {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const exact = `${hours}:${minutes}:${seconds} ${day}/${month}/${date.getFullYear()}`;
   return { relative, exact };
+}
+/**
+ * Hàm hỗ trợ mã hóa các ký tự đặc biệt để tránh lỗi hiển thị và XSS
+ */
+function escapeHTML(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 // 6.2. Phần hàm chạy các hạng mục
 var uiData = window.uiData || {}; // Obj lưu toàn bộ dữ liệu UI, có bảo tồn do chạy nhiều lần file ui.js này
@@ -546,175 +558,121 @@ function getYouTubeVideoId() {
  * 6.2.4.2. Hàm render danh sách tệp phụ đề (mục 1.4)
  * @param {Array} candidates danh sách các file phụ đề 
  * (xem mục 2.3.2 (candidates) với quét file online, 2.4.3.2 (cacheList) với quét cache)
- * @param {string} videoId
+ * (chú ý: candidate.videoId/cachedId là thuộc tính chỉ cacheList có, candidates ko có)
+ * @param {string} searchId Id mà user tìm kiếm (thanh tìm kiếm. nếu để trống tức là tìm toàn bộ nguồn/cache)
+ * @param {string} targetId Id trích từ tab hiện tại
+ * @param {boolean} cacheSearchMode chế độ quét cache hay quét online (true = cache, false = online)
  */
-function renderSubFileArray(candidates, videoId){
+function renderSubFileArray(candidates, searchId, targetId, cacheSearchMode = false) {
   if (!uiData.subFileArray) {
     sendLogToBackground("ui: ko có khung linkList để render?", "error");
     return;
   }
-  uiData.subFileArray = "";
+  uiData.subFileArray.innerHTML = "";
   if (!candidates || candidates.length === 0) {
     const emptyLi = document.createElement("li");
     emptyLi.className = "asscee_Text asscee_SubText";
     emptyLi.textContent = "Danh sách tệp phụ đề kết quả trống.";
-    uiData.scanResultList.appendChild(emptyLi);
+    uiData.subFileArray.appendChild(emptyLi);
     return;
   }
   candidates.forEach((candidate) => {
     const li = document.createElement("li");
-    const timeInfo = candidate.cachedAt ? getRelativeTimeString(candidate.cachedAt) : '';
+    const timeInfo = candidate.cachedAt ? getRelativeTimeString(candidate.cachedAt) : {};
+    const relativeTime = timeInfo.relative || '';
+    const exactTime = timeInfo.exact ? `Thời điểm thêm: ${timeInfo.exact}\n` : '';
+    // Chuẩn hóa chuỗi hiển thị tránh lỗi bảo mật
+    const safeId = escapeHTML(candidate.id);
+    const safeUrl = escapeHTML(candidate.url);
+    const safeFileName = escapeHTML(candidate.fileName);
+    const safeGroupName = escapeHTML(candidate.groupName);
+    const safeSourceType = escapeHTML(candidate.sourceType);
+    const safeVideoId = candidate.videoId ? escapeHTML(candidate.videoId) : '';
     li.className = "asscee_LinkItem";
-    li.title = `Bấm để chuyển sang tab/truy cập:\n${candidate.url}`;
-    const displayName = `${candidate.videoId ? candidate.videoId + ': ' : ''}${candidate.fileName}`;
+    li.title = `Bấm để chuyển sang tab/truy cập:\n${safeUrl}`;
+    const displayName = `${safeVideoId ? safeVideoId + ': ' : ''}${safeFileName}`;
     if (candidate.videoId !== candidate.cachedId) {
       sendLogToBackground(`ui: Video ID khác với cached ID: ${candidate.videoId} !== ${candidate.cachedId}`, "warn");
     }
     li.innerHTML = `
       <div class="asscee_ItemRow">
-        <span class="asscee_Text asscee_ItemTitle" title="${displayName}\n${li.title}">
+        <span class="asscee_Text asscee_ItemTitle" title="${displayName}\nID: ${safeId}\n${li.title}">
           ${displayName}
         </span>
         <div class="asscee_LRGroup">
-            <button class="asscee_BtnSqr asscee_ItemSelectBtns" title="Sử dụng và lưu cache">✓</button>
+            <button class="asscee_BtnSqr asscee_ItemSelectBtns" title="Sử dụng và lưu cache với videoId hiện tại">✓</button>
             <button class="asscee_BtnSqr asscee_ItemDeleteBtns" title="Xóa cache">✕</button>
         </div>
       </div>
       <div class="asscee_ItemRow">
-        <span class="asscee_Text asscee_SubText asscee_ItemIdSub" title="${candidate.sourceType}: ${candidate.groupName}\n${li.title}">
-          ${candidate.sourceType}: ${candidate.groupName}
+        <span class="asscee_Text asscee_SubText asscee_ItemIdSub" title="${safeSourceType}: ${safeGroupName}\n${li.title}">
+          ${safeSourceType}: ${safeGroupName}
         </span>
-        <span class="asscee_Text asscee_SubText asscee_ItemTimeSub" title="${timeInfo.exact ? 'Thời điểm thêm: ' + timeInfo.exact + '\n' : ''}${li.title}">
-          ${timeInfo.relative || ''}
+        <span class="asscee_Text asscee_SubText asscee_ItemTimeSub" title="${exactTime}${li.title}">
+          ${relativeTime}
         </span>
       </div>
     `;
-    const selectBtn = li.querySelector(".asscee_ItemSelectBtns");
-    selectBtn.addEventListener("click", () => {
-      selectBtn.disabled = true;
-    });
-    const deleteBtn = li.querySelector(".asscee_ItemDeleteBtns");
-    deleteBtn.addEventListener("click", () => {
-      deleteBtn.disabled = true;
-    });
-
-  });
-}
-
-/**
- * Hàm render danh sách phụ đề tìm được từ nguồn (dùng trong mục 1.4.)
- * @param {Array} candidates danh sách các file phụ đề tìm được
- * @param {string} videoId ID video tương ứng
- */
-function renderScanResults(candidates, videoId) {
-  if (!uiData.scanResultList) return;
-  uiData.scanResultList.innerHTML = "";
-
-  if (!candidates || candidates.length === 0) {
-    const emptyLi = document.createElement("li");
-    emptyLi.className = "asscee_Text asscee_SubText";
-    emptyLi.style.textAlign = "center";
-    emptyLi.style.padding = "10px 0";
-    emptyLi.textContent = "Không tìm thấy phụ đề nào khớp.";
-    uiData.scanResultList.appendChild(emptyLi);
-    return;
-  }
-
-  candidates.forEach((candidate) => {
-    const li = document.createElement("li");
-    li.className = "asscee_LinkItem";
-    li.innerHTML = `
-      <div class="asscee_ItemRow">
-        <span class="asscee_Text asscee_ItemTitle" title="${candidate.fileName}">${candidate.fileName}</span>
-        <button class="asscee_BtnSqr asscee_SelectSubBtn" title="Sử dụng phụ đề này">✓</button>
-      </div>
-      <div class="asscee_ItemRow">
-        <span class="asscee_Text asscee_SubText">Nguồn: ${candidate.groupName || 'Chưa rõ'} (${candidate.sourceType || 'online'})</span>
-      </div>
-    `;
-
-    // Sự kiện khi chọn phụ đề từ danh sách quét được
-    const selectBtn = li.querySelector(".asscee_SelectSubBtn");
-    selectBtn.addEventListener("click", () => {
-      selectBtn.disabled = true;
+    const itemSelectBtn = li.querySelector(".asscee_ItemSelectBtns");
+    if (!targetId || (cacheSearchMode && candidate.videoId === targetId)) {
+      itemSelectBtn.style.display = "none"; // Ẩn nút chọn phụ đề khi không có videoId mục tiêu (ko đọc được targetId từ tab hiện tại)
+      // Hoặc khi đang quét cache mà videoId của candidate trùng với videoId mục tiêu (Tức là đã áp dụng phụ đề này cho video đang xem, nên ko cần hiện nút chọn nữa)
+    } else {
+      itemSelectBtn.style.display = "inline-block"; // Hiện nút chọn phụ đề trong các trường hợp còn lại
+    }
+    itemSelectBtn.addEventListener("click", () => {
+      itemSelectBtn.disabled = true;
       chrome.runtime.sendMessage({
         type: "SUB.SELECT",
-        payload: { videoId: videoId, candidate: candidate }
+        payload: { videoId: targetId, candidate: candidate }
       }, (response) => {
-        selectBtn.disabled = false;
+        itemSelectBtn.disabled = false;
         if (chrome.runtime.lastError) {
           console.error("Lỗi khi áp dụng phụ đề:", chrome.runtime.lastError.message);
           return;
         }
-        sendLogToBackground(`ui: Đã chọn áp dụng phụ đề trực tuyến cho video ID: ${videoId}`);
-        initCachedSubList(); // Tải lại danh sách cache để hiển thị trạng thái mới
+        sendLogToBackground(`ui: Đã chọn áp dụng phụ đề cho video ID: ${targetId}:`, candidate);
       });
     });
-
-    uiData.scanResultList.appendChild(li);
-  });
-}
-
-/**
- * Hàm render danh sách phụ đề đã được lưu trong bộ nhớ cache (dùng trong mục 1.4.)
- * @param {Array} subList danh sách phụ đề trong cache
- */
-function renderCachedSubList(subList) {
-  if (!uiData.cachedSubList) return;
-  uiData.cachedSubList.innerHTML = "";
-
-  if (!subList || subList.length === 0) {
-    const emptyLi = document.createElement("li");
-    emptyLi.className = "asscee_Text asscee_SubText";
-    emptyLi.style.textAlign = "center";
-    emptyLi.style.padding = "10px 0";
-    emptyLi.textContent = "Chưa lưu phụ đề nào trong cache.";
-    uiData.cachedSubList.appendChild(emptyLi);
-    return;
-  }
-
-  subList.forEach((sub) => {
-    const li = document.createElement("li");
-    li.className = "asscee_LinkItem";
-    const timeInfo = sub.savedAt ? getRelativeTimeString(sub.savedAt).relative : "Đã lưu";
-    
-    li.innerHTML = `
-      <div class="asscee_ItemRow">
-        <span class="asscee_Text asscee_ItemTitle" title="${sub.fileName || 'Không tên'}">${sub.fileName || 'Không tên'}</span>
-        <button class="asscee_BtnSqr asscee_DeleteCacheBtn" title="Xóa khỏi bộ nhớ đệm">×</button>
-      </div>
-      <div class="asscee_ItemRow">
-        <span class="asscee_Text asscee_SubText">Video ID: ${sub.videoId || 'Chưa rõ'}</span>
-        <span class="asscee_Text asscee_SubText">${timeInfo}</span>
-      </div>
-    `;
-
-    // Sự kiện xóa phụ đề khỏi cache
-    const deleteBtn = li.querySelector(".asscee_DeleteCacheBtn");
-    deleteBtn.addEventListener("click", () => {
+    const itemDeleteBtn = li.querySelector(".asscee_ItemDeleteBtns");
+    if (!targetId || !cacheSearchMode) {
+      itemDeleteBtn.style.display = "none"; // Ẩn nút xóa cache khi đang quét online hoặc không có videoId mục tiêu (ko đọc được targetId từ tab hiện tại)
+    } else {
+      itemDeleteBtn.style.display = "inline-block"; // Hiện nút xóa cache khi đang quét cache và có videoId mục tiêu 
+      // (Tức là đang xem danh sách cache, nên cần hiện nút xóa để quản lí cache)
+    }
+    itemDeleteBtn.addEventListener("click", () => {
+      itemDeleteBtn.disabled = true;
       chrome.runtime.sendMessage({
         type: "SUB.REMOVE",
-        payload: { videoId: sub.videoId }
+        payload: { videoId: candidate.videoId }
       }, (response) => {
+        itemDeleteBtn.disabled = false;
         if (chrome.runtime.lastError) {
           console.error("Lỗi khi xóa cache phụ đề:", chrome.runtime.lastError.message);
           return;
         }
-        if (response && response.type === "SUB.REMOVED") {
-          renderCachedSubList(response.payload);
+        if (response && response.type === "SUB.REMOVED" && response.payload === true) {
+          chrome.runtime.sendMessage({ type: "SUB.GET_ALL" }, (cacheResponse) => {
+            if (cacheResponse && cacheResponse.type === "SUB.LIST") {
+              renderSubFileArray(cacheResponse.payload, searchId, targetId, true);
+            } else {
+              sendLogToBackground("ui: Không thể tải lại danh sách cache sau khi xóa.", "warn");
+            }
+          });
         } else {
-          initCachedSubList();
+          sendLogToBackground("ui: Xóa cache tệp phụ đề thất bại.", "warn");
+          alert("Xóa cache tệp phụ đề thất bại. Vui lòng xem console.");
         }
-        sendLogToBackground(`ui: Đã xóa phụ đề cache của video ID: ${sub.videoId}`);
+        sendLogToBackground(`ui: Đã xóa phụ đề cache của video ID: ${candidate.videoId}`);
       });
     });
-
-    uiData.cachedSubList.appendChild(li);
+    uiData.subFileArray.appendChild(li);
   });
 }
-
 /**
- * Lấy danh sách phụ đề đã lưu trong cache từ background gửi về
+ * 6.2.4.3. Tải danh sách tệp phụ đề từ background.js và render vào tab 2
+ * 
  */
 function initCachedSubList() {
   chrome.runtime.sendMessage({ type: "SUB.GET_ALL" }, (response) => {

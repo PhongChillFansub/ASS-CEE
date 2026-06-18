@@ -1,4 +1,4 @@
-v0.0.0.3 17jun26
+v0.0.0.3 19jun26
 1. Cấu trúc extension:
   - manifest.JSON
   - background
@@ -171,6 +171,7 @@ v0.0.0.3 17jun26
     (đang viết đoạn này)
       6.2.4.1. getYouTubeVideoId(): lấy YouTube Video ID từ URL hiện tại
       6.2.4.2. renderSubFileArray(): render danh sách tệp phụ đề
+      6.2.4.3. initSubFileArray(): hàm thực hiện tải danh sách tệp phụ đề từ background.js và chạy render.
 
 1. Phần định nghĩa khung HTML và giao thức với các Thực thể của nó
 1.1. Phần xử lí các thao tác chọn trang hiển thị
