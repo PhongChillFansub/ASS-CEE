@@ -34,7 +34,8 @@ v0.0.0.3 19jun26
         candidate = {       // Qua 2 hàm con là scanGitHub() và scanGDrive()
           id,
           fileName,
-          url,
+          fetchUrl,
+          viewUrl,
           sourceType: 'gdrive' hoặc 'github',
           groupName         // folderName trong folderData (mục 2.1)
         }
@@ -92,7 +93,6 @@ v0.0.0.3 19jun26
             payload = { videoId, folderMode }
           sendResponse (tổng): resolveSubtitles(videoId, folderMode)
             nếu folderMode falsy:
-              { type: 'SUB.READY', payload: cached }
               { type: 'SUB.EMPTY', payload: [] }
               { type: 'SUB.WAIT', payload: candidates }
             nếu folderMode truthy:
@@ -102,19 +102,23 @@ v0.0.0.3 19jun26
             payload = { videoId, candidate }
           sendResponse (tổng): processSubtitles(videoId, candidate, rawText)
               { type: 'SUB.READY', payload: subObj }
-
-    3.5. type === "SUB.GET_ALL"
-            payload = undefined
-          sendResponse (tổng): { type: 'SUB.LIST', payload: await getSubDataList() }
     
-    3.6. type === "SUB.REMOVE"
+    3.6. type === "SUB.USE_CACHE"
+            payload = { videoId }
+          sendResponse (tổng): { type: 'SUB.READY', await useSubData(videoId) }
+    
+    3.6. type === "SUB.GET_ALL"
+            payload = { videoId }
+          sendResponse (tổng): { type: 'SUB.LIST', payload: await getSubDataList(videoId) }
+    
+    3.7. type === "SUB.REMOVE"
             payload = { videoId }
           sendResponse (tổng): { type: 'SUB.REMOVED', payload: await removeSubData(videoId) };
 
-    3.7. type === "SUB.LOCAL"
+    3.8. type === "SUB.LOCAL"
             payload = { videoId, rawText, fileName }
           sendResponse (tổng): processSubtitles(videoId, localFileData (xử lí từ fileName), rawText)
-    3.8. Dữ liệu khác chuẩn/chạy handlers bị lỗi
+    3.9. Dữ liệu khác chuẩn/chạy handlers bị lỗi
           sendResponse (tổng): { type: 'ERROR', payload: err.message hoặc 'Unknown action' }
 
 4. Giao thức giữa background/background.js (gửi) và content/*.js
@@ -165,13 +169,20 @@ v0.0.0.3 19jun26
     6.2.3. Hạng mục 1.3. Tính năng trong tab 1: Quản lí nguồn
       6.2.3.1. renderLinkList(): render danh sách nguồn
       6.2.3.2. initSourceList(): hàm thực hiện tải danh sách nguồn từ background.js và chạy render.
-      6.2.3.3. buildSourceManagerTab(): Hàm chạy mục 1.3.
+      6.2.3.3. buildSourceManagerTab(): Hàm chạy mục 1.3
 
     6.2.4. Hạng mục 1.4. Tính năng trong tab 2: Quản lý phụ đề
     (đang viết đoạn này)
       6.2.4.1. getYouTubeVideoId(): lấy YouTube Video ID từ URL hiện tại
-      6.2.4.2. renderSubFileArray(): render danh sách tệp phụ đề
-      6.2.4.3. initSubFileArray(): hàm thực hiện tải danh sách tệp phụ đề từ background.js và chạy render.
+      6.2.4.2. updateYouTubeIdInUI(): hàm cập nhật YouTube ID tab hiện tại
+      6.2.4.3. renderSubFileArray(): render danh sách tệp phụ đề
+      6.2.4.4. initSubFileArray(): hàm thực hiện tải danh sách tệp phụ đề từ background.js và chạy render.
+        - Cụ thể: nhận searchId (đoạn Id mà người dùng nhập), targetId (Id trên tab đang hiển thị), cacheSearchMode chế độ quét cache/online (true = cache, false = online)
+          + targetId sẽ truyền trực tiếp cho renderSubFileArray()
+          + Xử lí searchId và cacheSearchMode: Nếu searchId trống thì tìm toàn bộ. Nếu searchId ko trống thì tìm theo Id (trùng)
+            - nếu tìm toàn bộ trong cache: thì SUB.GET_ALL với {videoId: searchId} 
+            - nếu tìm toàn bộ trong các nguồn online: thì SUB.SEARCH với {videoId: searchId, folderMode = false}
+      6.2.4.5. buildSubtitleManagerTab(): Hàm chạy mục 1.4
 
 1. Phần định nghĩa khung HTML và giao thức với các Thực thể của nó
 1.1. Phần xử lí các thao tác chọn trang hiển thị

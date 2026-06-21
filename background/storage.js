@@ -1,12 +1,12 @@
 // Code bằng tay
-// v0.0.0.3 17jun26
+// v0.0.0.3 21jun26
 // storage.js
 // Chức năng: chuyên xử lí lưu trữ trên chrome.storage.local.
 // 7 hàm export là:
 // 3 hàm với link folder: addSource, getSourceList, removeSource
 const SUBTITLE_SOURCES_KEY = "ASSCEE_sourceList"; // Lưu tất cả link folder trong 1 key.
 // 4 hàm với file sub: addSubData, getSubDataList, useSubData, removeSubData
-const SUBTITLE_DATA_KEY_BASE = "ASSCEE"; 
+const SUBTITLE_DATA_KEY_BASE = "ASSCEE_subData"; 
 // Lưu các file sub trong key riêng biệt (do 1 file sub, thuần text đã có thể nặng đến 7MB)
 /**
  * Hàm thêm nguồn (URL của folder GitHub/GDrive) vào bộ nhớ extension.
@@ -76,9 +76,10 @@ export async function addSubData(videoId, subtitleObj = {}) {
 }
 /**
  * Hàm lấy toàn bộ danh sách dữ liệu sub đang được lưu cache
+ * @param {string} searchId Id của video cần lấy dữ liệu (nếu để trống thì trả về tất cả)
  * @returns {Promise<Object>} Object chứa tất cả videoId và subtitleObj đi kèm
  */
-export async function getSubDataList() {
+export async function getSubDataList(searchId = "") {
   // Lấy toàn bộ dữ liệu đang có trong storage
   const allData = await chrome.storage.local.get(null);
   const cacheList = []; // 1. Chuyển thành Mảng trống
@@ -94,6 +95,10 @@ export async function getSubDataList() {
         ...value.fileObj
       });
     }
+  }
+  // Nếu searchId được cung cấp, chỉ trả về các mục phù hợp
+  if (searchId) {
+    return cacheList.filter(item => item.videoId === searchId);
   }
   return cacheList; // Trả về mảng dạng: [ { videoId, cachedId, cachedAt, ...candidate }, ... ]
 }
@@ -119,15 +124,16 @@ export async function removeSubData(videoId) {
     console.warn(`[ASS-CEE] storage: videoId trống, ko có obj để xóa.`);
     return false;
   }
-  const storageData = await chrome.storage.local.get(SUBTITLE_DATA_KEY);
-  const data = storageData[SUBTITLE_DATA_KEY] || {};
-  if (!data[videoId]) {
+  // Xác định đúng key dựa trên videoId tương tự như hàm useSubData
+  const subKey = `${SUBTITLE_DATA_KEY_BASE}_${videoId}`;
+  // Kiểm tra xem dữ liệu có tồn tại trước khi xóa (để hiển thị log chính xác)
+  const data = await chrome.storage.local.get(subKey);
+  if (!data[subKey]) {
     console.warn(`[ASS-CEE] storage: obj ${videoId} ko có dữ liệu để xóa.`);
     return false;
   }
-  // Tiến hành xóa key videoId khỏi object bằng cách phân rã (destructuring)
-  const { [videoId]: deletedVideo, ...updated } = data;
-  await chrome.storage.local.set({ [SUBTITLE_DATA_KEY]: updated });
+  // Tiến hành xóa key cụ thể này khỏi chrome.storage.local
+  await chrome.storage.local.remove(subKey);
   console.log(`[ASS-CEE] storage: Đã xóa cache sub obj của vid: ${videoId}.`);
   return true;
 }

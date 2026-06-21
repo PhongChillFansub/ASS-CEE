@@ -1,0 +1,875 @@
+// Code bằng tay
+// v0.0.0.3 21jun26
+/**
+ * 6.1.1. Hàm gửi log về background.js
+ * @param {string} message nội dung
+ * @param {string} type loại nội dung (default: "info" -> log, "warn" -> warn, "error" -> error)
+ */
+function sendLogToBackground(message, type = 'info') {
+  chrome.runtime.sendMessage({
+    type: 'LOG',
+    payload: {
+      type: type,
+      text: message,
+      url: window.location.href,
+      timestamp: new Date().toISOString()
+    }
+  }).catch(err => {
+    console.warn("[ASS-CEE] ui: Không thể gửi log về background:", err);
+  });
+}
+/**
+ * 6.1.2. Hàm điều khiển ẩn/hiện của UI
+ * @param {string} containerId [outdated] Id để giao tiếp với content.js (bản cũ điều khiển ẩn/hiện ở content.js)
+ * Bản mới điều khiển trực tiếp trên này
+ * @param {boolean} forceShow trạng thái (boolean), nếu undefined thì đảo ngược trạng thái hiện tại
+ * @returns gửi log về background
+ */
+function toggleOverlay(containerId, forceShow) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const shouldShow = typeof forceShow === 'boolean' 
+    ? forceShow 
+    : window.getComputedStyle(container).display === 'none';
+  if (shouldShow) {
+    container.style.setProperty('display', 'block', 'important');
+    sendLogToBackground("ui: Đã hiện giao diện UI.");
+  } else {
+    container.style.setProperty('display', 'none', 'important');
+    sendLogToBackground("ui: Đã ẩn giao diện UI.");
+  }
+}
+/**
+ * 6.1.3. Tính thời gian tương đối
+ * @param {string} timestamp thời gian
+ * @returns {Object} thời gian tương đối và chính xác
+ */
+function getRelativeTimeString(timestamp) {
+  const date = new Date(timestamp);
+  if (isNaN(date.getTime())) {
+    return { relative: "Không rõ", exact: "Thời gian không hợp lệ" };
+  }
+  const now = new Date();
+  const diffInSeconds = Math.floor((now - date) / 1000);
+  let relative = "";
+  if (diffInSeconds < 60) {
+    relative = "Vừa xong";
+  } else if (diffInSeconds < 3600) {
+    const minutes = Math.floor(diffInSeconds / 60);
+    relative = `${minutes} phút trước`;
+  } else if (diffInSeconds < 86400) {
+    const hours = Math.floor(diffInSeconds / 3600);
+    relative = `${hours} giờ trước`;
+  } else if (diffInSeconds < 2592000) {
+    const days = Math.floor(diffInSeconds / 86400);
+    relative = `${days} ngày trước`;
+  } else if (diffInSeconds < 31536000) {
+    const months = Math.floor(diffInSeconds / 2592000);
+    relative = `${months} tháng trước`;
+  } else {
+    const years = Math.floor(diffInSeconds / 31536000);
+    relative = `${years} năm trước`;
+  }
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const exact = `${hours}:${minutes}:${seconds} ${day}/${month}/${date.getFullYear()}`;
+  return { relative, exact };
+}
+/**
+ * Hàm hỗ trợ mã hóa các ký tự đặc biệt tránh XSS
+ * @param {string} str chuỗi cần mã hóa
+ * @returns {string} chuỗi đã được mã hóa
+ */
+function escapeHTML(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+// 6.2. Phần hàm chạy các hạng mục
+var uiData = window.uiData || {}; // Obj lưu toàn bộ dữ liệu UI, có bảo tồn do chạy nhiều lần file ui.js này
+/**
+ * 6.2.0. Hàm chạy mục 1.0. Khởi tạo khung UI và API của nó.
+ */
+function buildMainHTML() {
+  uiData.extensionName = 'ASS-CEE';
+  uiData.tabMap = {
+    'tab1': 'Quản lý nguồn',
+    'tab2': 'Quản lý phụ đề',
+    'tab3': 'Thông tin chung'
+  };
+  uiData.tabListBtnIcon = '☰';
+  uiData.closeBtnIcon = '✕';
+  uiData.container = document.createElement('div');
+  uiData.container.id = uiData.containerId;
+  uiData.container.innerHTML = `
+    <div id="asscee_ui" class="asscee_UI">
+      <!-- Khung giao diện -->
+
+      <div id="asscee_titleBar" class="asscee_BarTitle">
+        <!-- Thanh tiêu đề -->  
+        <div id="asscee_titleLeftGrp" class="asscee_LRGroup">
+          <!-- Chia thanh tiêu đề thành 2 phần: nút Danh sách trang và Tiêu đề ở trái -->
+          <button id="asscee_tabListBtn" class="asscee_BtnSqr"></button>
+          <span id="asscee_title" class="asscee_Text"></span>
+        </div>
+          <!-- Nút ẩn giao diện ở bên phải -->
+        <button id="asscee_closeBtn" class="asscee_BtnSqr"></button>
+        <!-- Hết thanh tiêu đề -->
+      </div>
+      
+      <div id="asscee_tabListExpand" class="asscee_ListExpand">
+        <!-- Phần Danh sách trang (mở khi bấm tabBtn)-->
+        <button class="asscee_TextBtn active" data-asscee_tab-target="tab1"></button>
+        <button class="asscee_TextBtn" data-asscee_tab-target="tab2"></button>
+        <button class="asscee_TextBtn" data-asscee_tab-target="tab3"></button>
+      </div>
+
+      <div id="asscee_workspace" class="asscee_Workspace">
+        <!-- Phần nội dung các trang-->
+        <div id="asscee_tab1_content" class="asscee_TabPane active"></div>
+        <div id="asscee_tab2_content" class="asscee_TabPane"></div>
+        <div id="asscee_tab3_content" class="asscee_TabPane"></div>
+      </div>
+
+      <div class="asscee_Footer">
+        <!-- Phần footer -->
+        <span id="asscee_footerInfo" class="asscee_Text"></span>
+        <span id="asscee_footerMisc" class="asscee_TextInBox"></span>
+      </div>
+
+    </div>
+  `;
+  document.body.appendChild(uiData.container); // Lệnh này sẽ hiển thị UI ngay
+  // Phần khởi tạo DOM API
+  uiData.barTitle = uiData.container.querySelector('#asscee_titleBar'); // toàn bộ thanh tiêu đề
+  uiData.tabListBtn = uiData.container.querySelector('#asscee_tabListBtn'); // nút đổi trang hiển thị (thanh tiêu đề) 
+  uiData.titleText = uiData.container.querySelector('#asscee_title'); // tiêu đề (thanh tiêu đề)
+  uiData.closeBtn = uiData.container.querySelector('#asscee_closeBtn'); // nút tạm ẩn giao diện (thanh tiêu đề)
+  uiData.tabListExpand = uiData.container.querySelector('#asscee_tabListExpand'); // phần danh sách trang hiển thị
+  uiData.tabItemBtns = uiData.container.querySelectorAll('[data-asscee_tab-target]'); // các nút chọn trang (danh sách trang hiển thị). 
+  // Ở đây chọn theo tag data để thuận cho việc chèn các nút chuyển tab bên trong tab khác, chứ ko chỉ có trong danh sách.
+  uiData.tabContents = uiData.container.querySelectorAll('.asscee_TabPane');
+  uiData.footerInfo = uiData.container.querySelector('#asscee_footerInfo');
+  uiData.footerMisc = uiData.container.querySelector('#asscee_footerMisc');
+  // Phần cài đặt các nội dung cơ bản
+  uiData.tabListBtn.textContent = uiData.tabListBtnIcon; // Nút danh sách trang hiển thị
+  uiData.closeBtn.textContent = uiData.closeBtnIcon; // Nút tạm ẩn UI
+  uiData.tabItemBtns.forEach(btn => { // Nội dung các mục trong trang hiển thị
+      const targetId = btn.getAttribute('data-asscee_tab-target');
+      btn.textContent = uiData.tabMap[targetId] || 'undefined';
+    });
+}
+/**
+ * 6.2.1.1. Hàm xử lí lựa chọn trang (dùng trong mục 1.1.)
+ * @param {string} tabId ở đây là giá trị của thuộc tính data-asscee_tab-target
+ * @returns {void} Kết quả: thay đổi thuộc tính active của tab
+ */
+function selectTab(tabId) {
+  const tabLabel = uiData.tabMap[tabId] || 'Tab không xác định';
+  uiData.titleText.textContent = `${uiData.extensionName} (${tabLabel})`;
+  sendLogToBackground(`Người dùng chuyển sang tab: ${tabLabel}`);
+  uiData.tabItemBtns.forEach(btn => {
+    const target = btn.getAttribute('data-asscee_tab-target');
+    if (target === tabId) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+  uiData.tabContents.forEach(content => {
+    if (content.id === `asscee_${tabId}_content`) {
+      content.classList.add('active');
+    } else {
+      content.classList.remove('active');
+    }
+  });
+}
+/**
+ * 6.2.1.2. Hàm chạy mục 1.1. Khởi tạo logic trên danh sách trang hiển thị
+ */
+function buildTabListLogic() {
+    // Xử lí thao tác bấm nút tabListBtn
+  uiData.tabListBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    uiData.tabListExpand.classList.toggle('show');
+    const isShowing = uiData.tabListExpand.classList.contains('show');
+    sendLogToBackground(`ui: Người dùng ${isShowing ? "mở" : "đóng"} danh mục menu lựa chọn Tab`);
+  });
+    // Xử lí thao tác bấm vào toàn trang (kể cả những vùng đã định dạng khác)
+  document.addEventListener('click', () => {
+    if (uiData.tabListExpand.classList.contains('show')) {
+      // Đóng phần tabListExpand
+      uiData.tabListExpand.classList.remove('show');
+      sendLogToBackground("ui: Tự động đóng menu lựa chọn Tab khi click vùng trống");
+    }
+  });
+  // Xử lí thao tác bấm nút closeBtn
+  uiData.closeBtn.addEventListener('click', () => {
+    uiData.container.style.setProperty('display', 'none', 'important');
+    sendLogToBackground("ui: Người dùng nhấp nút tạm ẩn giao diện Extension");
+  });
+  // Xử lí thao tác bấm nút tabItemBtns
+  uiData.tabItemBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tabId = btn.getAttribute('data-asscee_tab-target');
+      selectTab(tabId);
+    });
+  });
+  selectTab('tab1');
+}
+/**
+ * 6.2.2.1. Hàm trung tâm, xử lí tọa độ UI khi di chuyển (dùng trong mục 1.2.)
+ * @param {number} clientX vị trí con trỏ (x)
+ * @param {number} clientY vị trí con trỏ (y)
+ * @returns {Object} uiData.container.style.left, uiData.container.style.top = newLeft, newTop:
+ * vị trí mới của góc trên bên trái UI
+ */
+function handleMove(clientX, clientY) {
+  let newLeft = clientX - uiData.offsetX;
+  let newTop = clientY - uiData.offsetY;
+  // Tính toán tọa độ thô của UI
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const extWidth = 400; 
+  const extHeight = 400;
+  // Lấy kích thước khung UI và của cửa sổ trình duyệt
+  newLeft = Math.max(0, Math.min(newLeft, viewportWidth - extWidth));
+  newTop = Math.max(0, Math.min(newTop, viewportHeight - extHeight));
+  // Bảo vệ tọa độ UI (tránh UI bay ra ngoài cửa sổ)
+  uiData.container.style.right = 'auto';
+  uiData.container.style.bottom = 'auto';
+  // Cài đặt lại UI, lấy góc trên bên trái làm gốc
+  uiData.container.style.left = `${newLeft}px`;
+  uiData.container.style.top = `${newTop}px`;
+  // Áp dụng tọa độ
+}
+/**
+ * 6.2.2.2. Hàm chuyển trạng thái UI sang kéo thả (chuyển vị trí), khi bấm vào thanh tiêu đề (dùng trong mục 1.2.)
+ * @param {number} clientX vị trí con trỏ (x)
+ * @param {number} clientY vị trí con trỏ (y)
+ * @returns {void} Đầu ra: mở thao tác di chuyển UI (addEventListener) bằng chuột
+ */
+function barTitleOnClick(clientX, clientY) {
+  uiData.isDragging = true; // Bật trạng thái kéo thả UI
+  uiData.barTitle.style.cursor = 'grabbing'; // Đổi icon của con trỏ sang 'grabbing' (tay nắm)
+  const rect = uiData.container.getBoundingClientRect(); // Lấy tọa độ 4 góc của UI để tính offset
+  uiData.offsetX = clientX - rect.left; // Tính toán offsetX
+  uiData.offsetY = clientY - rect.top; // Tính toán offsetY
+  document.addEventListener('mousemove', barTitleOnClickHold, { passive: false });
+  document.addEventListener('mouseup', barTitleOnRelease);
+  // Mở cặp thao tác di chuyển khi nhấn giữ + di chuyển, và thả chuột.
+  document.addEventListener('touchmove', barTitleOnTouchHold, { passive: false });
+  document.addEventListener('touchend', barTitleOnRelease);
+  // Tương tự với màn hình cảm ứng (chưa test)
+}
+/**
+ * 6.2.2.3. Hàm xử lí nhấn giữ + di chuyển chuột (dùng trong mục 1.2.)
+ * @param {MouseEvent} e (ko rõ)
+ * @returns {void} chạy handleMove()
+ */
+function barTitleOnClickHold(e) {
+  if (!uiData.isDragging) return;
+  e.preventDefault();
+  handleMove(e.clientX, e.clientY);
+}
+/**
+ * 6.2.2.4. Hàm xử lí nhấn giữ + di chuyển chạm (chưa test) (dùng trong mục 1.2.)
+ * @param {TouchEvent} e (ko rõ)
+ * @returns {void} chạy handleMove()
+ */
+function barTitleOnTouchHold(e) {
+  if (!uiData.isDragging) return;
+  e.preventDefault();
+  const touch = e.touches[0];
+  handleMove(touch.clientX, touch.clientY);
+}
+/**
+ * 6.2.2.5. Hàm xử lí thả chuột/chạm (dùng trong mục 1.2.)
+ * @returns {void} Đầu ra: tắt thao tác di chuyển UI (removeEventListener)
+ */
+function barTitleOnRelease() {
+  if (uiData.isDragging) {
+    uiData.isDragging = false; // Tắt trạng thái kéo thả UI
+    uiData.barTitle.style.cursor = 'grab'; // Đưa icon con trỏ về 'grab'
+    document.removeEventListener('mousemove', barTitleOnClickHold);
+    document.removeEventListener('mouseup', barTitleOnRelease);
+    document.removeEventListener('touchmove', barTitleOnTouchHold);
+    document.removeEventListener('touchend', barTitleOnRelease);
+    // Đóng các thao tác kéo thả UI
+    sendLogToBackground(`ui: Đã dời vị trí Extension tới tọa độ mới: left=${uiData.container.style.left}, top=${uiData.container.style.top}`);
+  }
+}
+/**
+ * 6.2.2.6. Hàm chạy mục 1.2. Tính năng di chuyển giao diện
+ */
+function buildDragFeature() {
+uiData.isDragging = false; // Trạng thái kéo thả UI
+  uiData.offsetX = 0; // Vị trí của chuột so với góc trên bên trái của UI, chiều X
+  uiData.offsetY = 0; // Vị trí tương tự, chiều Y
+  // Xử lí thao tác bấm chuột vào thanh tiêu đề 
+  uiData.barTitle.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
+    if (e.target.closest('#asscee_tabListBtn') || e.target.closest('#asscee_closeBtn') || e.target.closest('#asscee_tabListExpand')) return;
+    // Bỏ qua trường hợp bấm vào nút tabListBtn, closeBtn và tabListExpand (???)
+    // Khi này, vẫn tính khi bấm vào title (dòng tiêu đề)
+    barTitleOnClick(e.clientX, e.clientY);
+    sendLogToBackground("ui: Bắt đầu di chuyển giao diện Extension UI (chuột)");
+  });
+  // Xử lí thao tác bấm chạm vào thanh tiêu đề (chưa test)
+  uiData.barTitle.addEventListener('touchstart', (e) => {
+    if (e.target.closest('#asscee_tabListBtn') || e.target.closest('#asscee_closeBtn') || e.target.closest('#asscee_tabListExpand')) return;
+    // Bỏ qua trường hợp bấm vào nút tabListBtn, closeBtn và tabListExpand (???)
+    // Khi này, vẫn tính khi bấm vào title (dòng tiêu đề)
+    const touch = e.touches[0];
+    barTitleOnClick(touch.clientX, touch.clientY);
+    sendLogToBackground("ui: Bắt đầu di chuyển giao diện Extension UI (cảm ứng)");
+  }, { passive: true });
+  // Xử lí thao tác nhả chạm (fallback trên toàn cửa sổ do touchstart có passive: true. Gemini bảo thế. chưa test)
+  document.addEventListener('touchend', () => {
+    if (uiData.isDragging) {
+      uiData.isDragging = false;
+      sendLogToBackground(`ui: Đã dời vị trí Extension (cảm ứng) tới tọa độ mới: left=${uiData.container.style.left}, top=${uiData.container.style.top}`);
+    }
+  });
+}
+/**
+ * 6.2.3.1. Hàm render danh sách nguồn (dùng trong mục 1.3.)
+ * @param {Array<Object>} linksArray danh sách nguồn (nhận getSourceList() từ background/storage.js, xem pipeline mục 2.2)
+ * @returns {void} Đầu ra: render danh sách nguồn vào uiData.linkList trong tab 1, gắn sự kiện cho từng item
+ */
+function renderLinkList(linksArray) {
+  if (!uiData.linkList) {
+    sendLogToBackground("ui: [ASS-CEE] ko có khung linkList để render?", "error");
+    return;
+  }
+  uiData.linkList.innerHTML = "";
+  if (!linksArray || linksArray.length === 0) {
+    const emptyLi = document.createElement("li");
+    emptyLi.className = "asscee_Text";
+    emptyLi.textContent = "Chưa có nguồn nào được thêm.";
+    uiData.linkList.appendChild(emptyLi);
+    return;
+  }
+  linksArray.forEach((item) => {
+    const li = document.createElement("li");
+    li.className = "asscee_LinkItem";
+    li.style.cursor = "pointer";
+    li.title = `Bấm để chuyển sang tab/truy cập:\n${item.url}`;
+    const timeInfo = getRelativeTimeString(item.savedAt);
+    const line1Left = item.folderName;
+    const line2Left = `ID: ${item.folderId}`;
+    li.innerHTML = `
+      <div class="asscee_ItemRow">
+        <span class="asscee_Text asscee_ItemTitle" title="${line1Left}\n${li.title}">${line1Left}</span>
+        <button class="asscee_BtnSqr asscee_ItemDeleteBtns" title="Xóa nguồn">×</button>
+      </div>
+      <div class="asscee_ItemRow">
+        <span class="asscee_Text asscee_SubText asscee_ItemIdSub" title="${line2Left}\n${li.title}">${line2Left}</span>
+        <span class="asscee_Text asscee_SubText asscee_ItemTimeSub" title="Thời điểm thêm: ${timeInfo.exact}\n${li.title}">${timeInfo.relative}</span>
+      </div>
+    `;
+    li.addEventListener("click", (e) => { 
+      if (e.target.closest(".asscee_ItemDeleteBtns")) return;
+      window.open(item.url, "_blank");
+    });
+    const deleteBtn = li.querySelector(".asscee_ItemDeleteBtns");
+    deleteBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const targetTime = item.savedAt;
+      chrome.runtime.sendMessage({
+        type: "SOURCE.REMOVE",
+        payload: { savedAt: targetTime }
+      }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.error("Lỗi kết nối background:", chrome.runtime.lastError.message);
+          return;
+        }
+        if (response && response.type === "SOURCE.REMOVED") {
+          renderLinkList(response.payload);
+        } else if (response && response.type === "ERROR") {
+          console.error("Lỗi từ backend:", response.payload);
+        }
+      });
+    });
+    uiData.linkList.appendChild(li);
+  });
+}
+/**
+ * 6.2.3.2. Tải danh sách nguồn từ background.js và render vào tab 1
+ */
+async function initSourceList() {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage({ type: "SOURCE.GET_ALL" }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.error("Không thể lấy danh sách nguồn:", chrome.runtime.lastError.message);
+        resolve();
+        return;
+      }
+      if (response && response.type === "SOURCE.LIST") {
+        renderLinkList(response.payload);
+      }
+      resolve();
+    });
+  });
+}
+/**
+ * 6.2.3.3. Hàm chạy mục 1.3. Tính năng trong tab 1: Quản lí nguồn
+ */
+async function buildSourceManagerTab() {
+  if (!uiData.tabContents[0]) {
+    sendLogToBackground("ui: ko có khung tabContents[0] để render? Mục 1.3 bị bỏ qua.", "error");
+    return;
+  }
+  uiData.tabContents[0].innerHTML = `
+    <!-- Tab 1: Quản lí nguồn (folder)-->
+    <div id="asscee_linkInputBar" class="asscee_InputBar"> <!-- Thanh ghi thêm nguồn -->
+      <input 
+        type="text" 
+        id="asscee_linkInput"
+        class="asscee_Input"
+        autocomplete="off"
+      />
+      <!-- placeholder="Thêm nguồn (link folder GitHub/GDrive)..."? -->
+      <button id="asscee_addFolderBtn" class="asscee_BtnSqr"></button>
+      <!-- Nút thêm nguồn -->
+    </div>
+    <div class="asscee_Divider"> <!-- Phần ngăn cách-->
+      <span id="asscee_dividerText" class="asscee_Text"></span>
+      <div class="asscee_DividerLine"></div>
+    </div>
+    <div class="asscee_ListContainer"> <!-- Phần danh sách nguồn -->
+      <ul id="asscee_linkList" class="asscee_List">
+        </ul>
+    </div>
+  `;
+  uiData.linkInput = uiData.tabContents[0].querySelector('#asscee_linkInput');
+  uiData.linkList = uiData.tabContents[0].querySelector('#asscee_linkList');
+  uiData.addFolderBtn = uiData.tabContents[0].querySelector('#asscee_addFolderBtn');
+  uiData.tabContents[0].querySelector('#asscee_dividerText').textContent = "Danh sách nguồn";
+  uiData.linkInput.placeholder = "Thêm nguồn (link folder GitHub/GDrive)...";
+  uiData.addFolderBtn.title = "(+) Nếu có link, nút này thêm thư mục vào danh sách.\n(↺) Nếu ko có link, nút này sẽ tải lại các nguồn đã có.";
+  const updateAddFolderBtnIcon = () => {
+    const urlValue = uiData.linkInput.value.trim();
+    uiData.addFolderBtn.textContent = urlValue ? "+" : "↺";
+  };
+  uiData.linkInput.addEventListener("input", updateAddFolderBtnIcon);
+  updateAddFolderBtnIcon();
+  uiData.addFolderBtn.addEventListener("click", async () => {
+    const urlValue = uiData.linkInput.value.trim();
+    if (!urlValue) {
+      uiData.addFolderBtn.disabled = true;
+      try {
+        const response = await chrome.runtime.sendMessage({
+          type: 'SUB.SEARCH',
+          payload: { videoId: "", folderMode: true }
+        });
+        if (response && response.payload) {
+          renderLinkList(response.payload);
+        } else {
+          console.warn("Không nhận được dữ liệu hợp lệ từ background.");
+        }
+      } catch (error) {
+        console.error("Lỗi khi refetch folder:", error);
+      } finally {
+        uiData.addFolderBtn.disabled = false;
+        updateAddFolderBtnIcon();
+      }
+      return;
+    }
+    // Khóa nút khi thêm nguồn
+    uiData.addFolderBtn.disabled = true;
+    chrome.runtime.sendMessage({
+      type: "SOURCE.ADD",
+      payload: { url: urlValue }
+    }, async (response) => {
+      uiData.addFolderBtn.disabled = false;
+      if (chrome.runtime.lastError) {
+        console.error("Lỗi khi thêm nguồn:", chrome.runtime.lastError.message);
+        return;
+      }
+      if (response && response.type === "SOURCE.ADDED") {
+        const results = response.payload;
+        const successes = results.filter(r => r.success);
+        const failures = results.filter(r => !r.success);
+        if (successes.length > 0) {
+          uiData.linkInput.value = "";
+          updateAddFolderBtnIcon();
+          await initSourceList(); // Đã an toàn để gọi await ở đây
+        }
+        let reportMessage = "";
+        if (successes.length > 0 && failures.length === 0) {
+          reportMessage = `Đã thêm thành công ${successes.length} nguồn!`;
+        } else if (successes.length === 0 && failures.length > 0) {
+          const errorDetails = failures.map(f => `- ${f.error}`).join("\n");
+          reportMessage = `Thêm nguồn thất bại:\n${errorDetails}`;
+        } else {
+          const errorDetails = failures.map(f => `- Link: ${f.url || 'Ẩn danh'}\n Lỗi: ${f.error}`).join("\n");
+          reportMessage = `Kết quả xử lý:\n- Thành công: ${successes.length} nguồn\n- Thất bại: ${failures.length} nguồn\n\nChi tiết lỗi:\n${errorDetails}`;
+        }
+        alert(reportMessage);
+      } else if (response && response.type === "SOURCE.NOT_ADDED") {
+        alert("Thêm nguồn thất bại: " + response.payload);
+      }
+    });
+  });
+  await initSourceList();
+}
+/**
+ * 6.2.4.1. Hàm lấy YouTube Video ID từ URL hiện tại
+ * @returns {string} videoId hoặc chuỗi rỗng
+ */
+function getYouTubeVideoId() {
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('v') || "";
+  } catch (e) {
+    return "";
+  }
+}
+/**
+ * 6.2.4.2. Hàm cập nhật ID vào UI
+ */
+function updateYouTubeIdInUI() {
+  uiData.currentId = getYouTubeVideoId(); // Hàm lấy ID hiện tại của bạn
+  if (uiData.currentId && uiData && uiData.searchInput) {
+    uiData.searchInput.value = uiData.currentId;
+    sendLogToBackground(`ui: Cập nhật ID video YouTube hiện tại: ${uiData.currentId}`);
+  }
+}
+// Lắng nghe khi người dùng bấm xem video khác trên YouTube (không load lại trang)
+document.addEventListener("yt-navigate-finish", () => {
+  updateYouTubeIdInUI();
+});
+/**
+ * 6.2.4.3. Hàm render danh sách tệp phụ đề (mục 1.4)
+ * @param {Array} candidates danh sách các file phụ đề 
+ * (xem mục 2.3.2 (candidates) với quét file online, 2.4.3.2 (cacheList) với quét cache)
+ * (chú ý: candidate.videoId/cachedId là thuộc tính chỉ cacheList có, candidates ko có)
+ * @param {string} searchId Id mà user tìm kiếm (thanh tìm kiếm. nếu để trống tức là tìm toàn bộ nguồn/cache)
+ * @param {string} targetId Id trích từ tab hiện tại
+ * @param {boolean} cacheSearchMode chế độ quét cache hay quét online (true = cache, false = online)
+ */
+function renderSubFileArray(candidates, searchId, targetId, cacheSearchMode = false) {
+  if (!uiData.subFileArray) {
+    sendLogToBackground("ui: ko có khung linkList để render?", "error");
+    return;
+  }
+  uiData.tabContents[1].querySelector('#asscee_dividerText').textContent = `Kết quả tìm kiếm (${candidates.length} tệp)`;
+  uiData.subFileArray.innerHTML = "";
+  if (!candidates || candidates.length === 0) {
+    const emptyLi = document.createElement("li");
+    emptyLi.className = "asscee_Text asscee_SubText";
+    emptyLi.textContent = "Danh sách tệp phụ đề kết quả trống.";
+    uiData.subFileArray.appendChild(emptyLi);
+    return;
+  }
+  candidates.forEach((candidate) => {
+    const li = document.createElement("li");
+    const timeInfo = candidate.cachedAt ? getRelativeTimeString(candidate.cachedAt) : {};
+    const relativeTime = timeInfo.relative || '';
+    const exactTime = timeInfo.exact ? `Thời điểm thêm: ${timeInfo.exact}\n` : '';
+    const safeId = escapeHTML(candidate.id);
+    const safeUrl = escapeHTML(candidate.viewUrl);
+    const safeFileName = escapeHTML(candidate.fileName);
+    const safeGroupName = escapeHTML(candidate.groupName);
+    const safeSourceType = escapeHTML(candidate.sourceType);
+    const safeVideoId = candidate.videoId ? escapeHTML(candidate.videoId) : '';
+    li.className = "asscee_LinkItem";
+    li.title = `Bấm để chuyển sang tab/truy cập thư mục của tệp này:\n${safeUrl}`;
+    li.style.cursor = "pointer";
+    const displayName = `${safeVideoId ? safeVideoId + ': ' : ''}${safeFileName}`;
+    if (candidate.videoId !== candidate.cachedId) {
+      sendLogToBackground(`ui: Video ID khác với cached ID: ${candidate.videoId} !== ${candidate.cachedId}`, "warn");
+    }
+    li.innerHTML = `
+      <div class="asscee_ItemRow">
+        <span class="asscee_Text asscee_ItemTitle" title="${displayName}\nID: ${safeId}\n${li.title}">
+          ${displayName}
+        </span>
+        <div class="asscee_LRGroup">
+            <button class="asscee_BtnSqr asscee_ItemSelectBtns" title="Sử dụng và lưu cache với videoId hiện tại">✓</button>
+            <button class="asscee_BtnSqr asscee_ItemDeleteBtns" title="Xóa cache">✕</button>
+        </div>
+      </div>
+      <div class="asscee_ItemRow">
+        <span class="asscee_Text asscee_SubText asscee_ItemIdSub" title="${safeSourceType}: ${safeGroupName}\n${li.title}">
+          ${safeSourceType}: ${safeGroupName}
+        </span>
+        <span class="asscee_Text asscee_SubText asscee_ItemTimeSub" title="${exactTime}${li.title}">
+          ${relativeTime}
+        </span>
+      </div>
+    `; 
+    li.addEventListener("click", (e) => { 
+      if (e.target.closest("button")) return;
+      window.open(candidate.viewUrl, "_blank");
+    });
+    const itemSelectBtn = li.querySelector(".asscee_ItemSelectBtns");
+    if (!targetId || (cacheSearchMode && candidate.videoId === targetId)) {
+      itemSelectBtn.title = itemSelectBtn.title + "\n(Đang bị vô hiệu hóa)";
+      itemSelectBtn.disabled = true;
+      itemSelectBtn.style.display = "none";
+    } else {
+      itemSelectBtn.disabled = false;
+      itemSelectBtn.style.display = "inline-block";
+    }
+    itemSelectBtn.addEventListener("click", () => {
+      itemSelectBtn.disabled = true;
+      chrome.runtime.sendMessage({
+        type: "SUB.SELECT",
+        payload: { videoId: targetId, candidate: candidate }
+      }, (response) => {
+        itemSelectBtn.disabled = false;
+        if (chrome.runtime.lastError) {
+          console.error("Lỗi khi áp dụng phụ đề:", chrome.runtime.lastError.message);
+          return;
+        }
+        sendLogToBackground(`ui: Đã chọn áp dụng phụ đề cho video ID: ${targetId}:`, "info");
+      });
+    });
+    const itemDeleteBtn = li.querySelector(".asscee_ItemDeleteBtns");
+    if (!targetId || !cacheSearchMode) {
+      itemDeleteBtn.disabled = true;
+      itemDeleteBtn.style.display = "none";
+      itemDeleteBtn.title = itemDeleteBtn.title + "\n(Đang bị vô hiệu hóa)";
+    } else {
+      itemDeleteBtn.disabled = false;
+      itemDeleteBtn.style.display = "inline-block";
+    }
+    itemDeleteBtn.addEventListener("click", () => {
+      itemDeleteBtn.disabled = true;
+      chrome.runtime.sendMessage({
+        type: "SUB.REMOVE",
+        payload: { videoId: candidate.videoId }
+      }, (response) => {
+        itemDeleteBtn.disabled = false;
+        if (chrome.runtime.lastError) {
+          console.error("Lỗi khi xóa cache phụ đề:", chrome.runtime.lastError.message);
+          return;
+        }
+        if (response && response.type === "SUB.REMOVED" && response.payload === true) {
+          chrome.runtime.sendMessage({ type: "SUB.GET_ALL", payload: { videoId: searchId } }, (cacheResponse) => {
+            if (cacheResponse && cacheResponse.type === "SUB.LIST") {
+              renderSubFileArray(cacheResponse.payload, searchId, targetId, true);
+            } else {
+              sendLogToBackground("ui: Không thể tải lại danh sách cache sau khi xóa.", "warn");
+            }
+          });
+        } else {
+          sendLogToBackground("ui: Xóa cache tệp phụ đề thất bại.", "warn");
+          alert("Xóa cache tệp phụ đề thất bại. Vui lòng xem console.");
+        }
+        sendLogToBackground(`ui: Đã xóa phụ đề cache của video ID: ${candidate.videoId}`);
+      });
+    });
+    uiData.subFileArray.appendChild(li);
+  });
+}
+/**
+ * 6.2.4.4. Tải danh sách tệp phụ đề từ background.js và render vào tab 2
+ * @param {string} searchId Id mà user tìm kiếm (thanh tìm kiếm. nếu để trống tức là tìm toàn bộ nguồn/cache)
+ * @param {string} targetId Id trích từ tab hiện tại
+ * @param {boolean} cacheSearchMode chế độ quét cache hay quét online (true = cache, false = online)
+ */
+async function initSubFileArray(searchId = "", targetId = "", cacheSearchMode = false) {
+  return new Promise((resolve) => {
+    const messageType = cacheSearchMode ? "SUB.GET_ALL" : "SUB.SEARCH";
+    const payload = cacheSearchMode ? { videoId: searchId } : { videoId: searchId, folderMode: false };
+    chrome.runtime.sendMessage({ type: messageType, payload: payload }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.error("Không thể lấy danh sách phụ đề:", chrome.runtime.lastError.message);
+        resolve();
+        return;
+      }
+      if (response) {
+        const candidates = response.payload || [];
+        renderSubFileArray(candidates, searchId, targetId, cacheSearchMode);
+      } else {
+        sendLogToBackground("ui: Không nhận được phản hồi hợp lệ khi tải danh sách phụ đề.", "warn");
+      }
+      resolve(); // Giải phóng Promise
+    });
+  });
+}
+/**
+ * 6.2.4.5. Hàm chạy mục 1.4. Tính năng trong tab 2: Quản lý phụ đề
+ */
+function buildSubtitleManagerTab() {
+  if (!uiData.tabContents[1]) {
+    sendLogToBackground("ui: [ASS-CEE] không có khung tabContents[1] để render. Mục 1.4 bị bỏ qua.", "error");
+    return;
+  }
+  uiData.tabContents[1].innerHTML = `
+    <div id="asscee_searchInputBar" class="asscee_InputBar" style="display: flex; flex-direction: row; align-items: center; gap: 6px; width: 100%;">
+      <input 
+        type="text" 
+        id="asscee_searchInput"
+        class="asscee_Input"
+        placeholder="Tìm kiếm..."
+        autocomplete="off"
+        style="flex: 1; min-width: 0; padding: 6px 8px;"
+      />
+      <input 
+        type="file" 
+        id="asscee_localFileInput" 
+        accept=".ass" 
+        style="display: none;" 
+      />
+      <div style="display: flex; gap: 4px; flex-shrink: 0;">
+        <button 
+          id="asscee_localSubBtn" 
+          class="asscee_BtnSqr" 
+          title="Tải phụ đề từ máy (.ass)"
+          style="padding: 6px 8px; cursor: pointer;"
+        >📁</button>
+        <button 
+          id="asscee_cacheSubBtn" 
+          class="asscee_BtnSqr" 
+          title="Tìm kiếm trong cache"
+          style="padding: 6px 8px; cursor: pointer;"
+        >💾</button>
+        <button 
+          id="asscee_scanSubBtn" 
+          class="asscee_BtnSqr" 
+          title="Quét phụ đề từ các nguồn thư mục đã có"
+          style="padding: 6px 8px; cursor: pointer;"
+        >🌐</button>
+      </div>
+    </div>
+
+    <div class="asscee_Divider">
+      <span id="asscee_dividerText" class="asscee_Text">Kết quả tìm kiếm</span>
+      <div class="asscee_DividerLine"></div>
+    </div>
+    <div class="asscee_ListContainer">
+      <ul id="asscee_subFileArray" class="asscee_List">
+        <li class="asscee_Text asscee_SubText" style="text-align: center; padding: 10px 0;">Kết quả tìm kiếm sẽ hiển thị ở đây.</li>
+      </ul>
+    </div>
+  `;
+  uiData.searchInput = uiData.tabContents[1].querySelector('#asscee_searchInput');
+  uiData.localSubBtn = uiData.tabContents[1].querySelector('#asscee_localSubBtn');
+  uiData.localSubInput = uiData.tabContents[1].querySelector('#asscee_localFileInput');
+  uiData.cacheSubBtn = uiData.tabContents[1].querySelector('#asscee_cacheSubBtn');
+  uiData.scanSubBtn = uiData.tabContents[1].querySelector('#asscee_scanSubBtn');
+  uiData.subFileArray = uiData.tabContents[1].querySelector('#asscee_subFileArray');
+  updateYouTubeIdInUI();
+  // 1. Quét online
+  uiData.scanSubBtn.addEventListener('click', async () => {
+    const searchId = uiData.searchInput.value.trim();
+    uiData.scanSubBtn.disabled = true;
+    try {
+      await initSubFileArray(searchId, uiData.currentId, false); 
+    } catch (error) {
+      console.error("Lỗi khi quét phụ đề trực tuyến:", error);
+      sendLogToBackground(`ui: Lỗi quét phụ đề trực tuyến: ${error.message}`, "error");
+    } finally {
+      uiData.scanSubBtn.disabled = false;
+    }
+  });
+  // 2. Tìm trong cache
+  uiData.cacheSubBtn.addEventListener('click', async () => {
+    const searchId = uiData.searchInput.value.trim();
+    uiData.cacheSubBtn.disabled = true;
+    try {
+      await initSubFileArray(searchId, uiData.currentId, true);
+    } catch (error) {
+      console.error("Lỗi khi quét phụ đề từ cache:", error);
+      sendLogToBackground(`ui: Lỗi quét phụ đề từ cache: ${error.message}`, "error");
+    } finally {
+      uiData.cacheSubBtn.disabled = false;
+    }
+  });
+  // 3. Tải file cục bộ
+  uiData.localSubBtn.addEventListener('click', () => {
+    updateYouTubeIdInUI();
+    uiData.localSubInput.click();
+  });
+  uiData.localSubInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const searchId = uiData.searchInput.value.trim();
+    if (!uiData.currentId) {
+      alert("Tính năng nạp phụ đề cục bộ yêu cầu bạn phải ở trên trang video YouTube có ID hợp lệ.\nVui lòng mở một video YouTube và thử lại.");
+      uiData.localSubInput.value = "";
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+      const rawText = evt.target.result;
+      chrome.runtime.sendMessage({
+        type: "SUB.LOCAL",
+        payload: {
+          videoId: uiData.currentId,
+          rawText: rawText,
+          fileName: file.name
+        }
+      }, async (response) => {
+        uiData.localSubInput.value = "";
+        if (chrome.runtime.lastError) {
+          console.error("Lỗi nạp file cục bộ:", chrome.runtime.lastError.message);
+          return;
+        }
+        sendLogToBackground(`ui: Đã lưu thành công phụ đề cục bộ cho video ID: ${uiData.currentId}, file: ${file.name}`);
+        await initSubFileArray(searchId, uiData.currentId, true);
+      });
+    };
+    reader.readAsText(file);
+  });
+}
+// Phần chạy chính của ui.js
+(async function() {
+  'use strict';
+  uiData.containerId = 'asscee_overlayRoot';
+  if (document.getElementById(uiData.containerId)) return;
+  sendLogToBackground("ui: Đang khởi tạo giao diện nội bộ.");
+  try {
+    buildMainHTML();
+    sendLogToBackground("ui: chạy xong mục 1. Khởi tạo khung UI và API của nó.");
+  } catch (error) {
+    sendLogToBackground(`ui: chạy lỗi mục 1. Khởi tạo khung UI và API của nó: ${error.message}`, "error");
+    console.error("[ASS-CEE] ui: chạy lỗi mục 1. Khởi tạo khung UI và API của nó:", error);
+    return;
+  }
+  try { // Phần chạy mục 1.1.
+    buildTabListLogic(); 
+    sendLogToBackground("ui: chạy xong mục 1.1. Khởi tạo logic trên danh sách trang hiển thị.");
+  } catch (error) {
+    sendLogToBackground(`ui: chạy lỗi mục 1.1. Khởi tạo logic trên danh sách trang hiển thị: ${error.message}`, "error");
+    console.error("[ASS-CEE] ui: chạy lỗi mục 1.1. Khởi tạo logic trên danh sách trang hiển thị:", error);
+  }
+  try { // Phần chạy mục 1.2.
+    buildDragFeature();
+    sendLogToBackground("ui: chạy xong mục 1.2. Tính năng di chuyển giao diện.");
+  } catch (error) {
+    sendLogToBackground(`ui: chạy lỗi mục 1.2. Tính năng di chuyển giao diện: ${error.message}`, "error");
+    console.error("[ASS-CEE] ui: chạy lỗi mục 1.2. Tính năng di chuyển giao diện:", error);
+  }
+  try { // Phần chạy mục 1.3.
+    await buildSourceManagerTab();
+    sendLogToBackground("ui: chạy xong mục 1.3. Tính năng trong tab 1: Quản lí nguồn.");
+  } catch (error) {
+    sendLogToBackground(`ui: chạy lỗi mục 1.3. Tính năng trong tab 1: Quản lí nguồn: ${error.message}`, "error");
+    console.error("[ASS-CEE] ui: chạy lỗi mục 1.3. Tính năng trong tab 1: Quản lí nguồn:", error);
+  }
+  try { // Phần chạy mục 1.4.
+    buildSubtitleManagerTab();
+    sendLogToBackground("ui: chạy xong mục 1.4. Tính năng trong tab 2: Quản lý phụ đề.");
+  } catch (error) {
+    sendLogToBackground(`ui: chạy lỗi mục 1.4. Tính năng trong tab 2: Quản lý phụ đề: ${error.message}`, "error");
+    console.error("[ASS-CEE] ui: chạy lỗi mục 1.4. Tính năng trong tab 2: Quản lý phụ đề:", error);
+  }
+  toggleOverlay(uiData.containerId, false);
+  chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if (msg.action === "TOGGLE_OVERLAY_SIGNAL") {
+      toggleOverlay(uiData.containerId);
+    }
+  });
+})();

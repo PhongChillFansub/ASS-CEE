@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.0.3 17jun26
+// v0.0.0.3 21jun26
 import { fetchSubtitleText, fetchSubtitleFile } from './fetcher.js';
 // 2 hàm fetchSubtitleText, fetchSubtitleFile
 import { addSource, getSourceList, removeSource, addSubData, getSubDataList, useSubData, removeSubData } from './storage.js';
@@ -9,7 +9,10 @@ import parser from './parser.js';
 // 1 hàm parser
 // Phần xử lí của background khi nhấn vào icon extension
 chrome.action.onClicked.addListener(async (tab) => {
-  if (!tab.url || tab.url.startsWith("chrome://") || tab.url.startsWith("edge://")) return;
+  if (!tab.url || tab.url.startsWith("chrome://") || tab.url.startsWith("coccoc://") || tab.url.startsWith("edge://")) {
+    console.log("[ASS-CEE] background: Không thể nạp ui.js trên trang này do hạn chế của trình duyệt.");
+    return;
+  }
   const tabId = tab.id;
   try {
     // Thử gửi tin nhắn trước
@@ -66,7 +69,7 @@ const handlers = {
     const logPrefix = isSameLocation 
       ? `[${timestamp}]\n`
       : `[${timestamp}][${tabInfo}]\n[${url}]\n`;
-    console[type || "log"](`${logPrefix} [ASS-CEE] ${text}`);
+    console[type || "log"](`${logPrefix}[ASS-CEE] ${text}`);
     return { type: 'LOGGED' }; // return là thứ được try..catch tổng gửi trong sendResponse.
   },
   'SOURCE.ADD': async (payload) => { // Yêu cầu thêm nguồn
@@ -130,11 +133,15 @@ const handlers = {
     const rawText = await fetchSubtitleText(candidate);
     return processSubtitles(videoId, candidate, rawText); // processSubtitles()?
   },
-  'SUB.GET_ALL': async () => { // Yêu cầu xem cache file sub
-    // const undefined = payload
-    return { type: 'SUB.LIST', payload: await getSubDataList() };
+  'SUB.USE_CACHE': async (payload) => { // Yêu cầu sử dụng cache file sub
+    // const { videoId } = payload;
+    return { type: 'SUB.READY', payload: await useSubData(payload.videoId) };
   },
-  'SUB.REMOVE': async () => { // Yêu cầu xóa cache file sub (xóa theo videoId)
+  'SUB.GET_ALL': async (payload) => { // Yêu cầu xem cache file sub
+    // const { videoId } = payload
+    return { type: 'SUB.LIST', payload: await getSubDataList(payload.videoId) };
+  },
+  'SUB.REMOVE': async (payload) => { // Yêu cầu xóa cache file sub (xóa theo videoId)
     // const { videoId } = payload
     return { type: 'SUB.REMOVED', payload: await removeSubData(payload.videoId) };
   },
@@ -144,7 +151,8 @@ const handlers = {
     const localFileData = { // Tương tự candidate
       id: `local-${Date.now()}`,
       fileName,
-      url: 'local',
+      fetchUrl: 'local',
+      viewUrl: 'local',
       sourceType: 'local',
       groupName: 'local'
     }
@@ -152,20 +160,13 @@ const handlers = {
   }
 }
 /**
- * Hàm xử lý và điều phối tìm kiếm phụ đề dựa trên videoId
- * @param {*} videoId 
- * @returns SUB.READY: có thể dùng ngay, .EMPTY: trống, .WAIT: có ít nhất 1 file tương ứng, cần content-side xử lí
+ * Hàm xử lý và điều phối tìm kiếm phụ đề dựa trên videoId (ko tìm cache)
+ * @param {*} videoId Id của video cần tìm kiếm phụ đề
+ * @param {*} folderMode Nếu true thì sẽ tìm tất cả file sub có trong các nguồn (dùng khi refetch), nếu false thì sẽ tìm file sub tương ứng với videoId (dùng khi tìm kiếm bình thường)
+ * @returns .EMPTY: trống, .WAIT: có ít nhất 1 file tương ứng, cần content-side xử lí
  */
 async function resolveSubtitles(videoId, folderMode) {
   // Đầu ra luôn là dạng { type: "", payload: "" }
-  const cached = await useSubData(videoId);
-  // Lấy cache
-  if (cached) {
-    console.log(`[ASS-CEE] background: Đã tìm thấy cache cho vid ${videoId}.`);
-    return { type: 'SUB.READY', payload: cached }; // cached = value của key SUBTITLE_DATA_KEY (xem mục 2.4.3 pipeline)
-  } 
-  console.log(`[ASS-CEE] background: Ko có cache cho vid ${videoId}. Đang tìm nguồn...`)
-  // Lấy danh sách nguồn để quét
   const sources = await getSourceList();
   if (sources.length === 0) {
     console.log(`[ASS-CEE] background: Không có thư mục nào để quét.`);
@@ -213,7 +214,8 @@ async function resolveSubtitles(videoId, folderMode) {
  * @param {*} candidate {
     id,
     fileName,
-    url,
+    fetchUrl,
+    viewUrl,
     sourceType: 'gdrive' hoặc 'github',
     groupName
   } 
