@@ -1,18 +1,25 @@
 {
   "manifest_version": 3,
-  "name": "ASS-CEE 21jun26",
+  "name": "ASS-CEE 25jun26",
   "author": "PhongChillFansub",
-  "version": "0.0.0.3",
+  "version": "0.0.0.4",
   "description": "Hiển thị phụ đề Aegisub trên YouTube",
-  "permissions": ["storage", "activeTab", "scripting", "unlimitedStorage"],
+  "permissions": ["storage", "activeTab", "scripting", "unlimitedStorage", "webNavigation"],
   "host_permissions": [
     "https://www.youtube.com/*",
+    "https://www.bilibili.tv/*",
+    "https://www.bilibili.com/*",
+    "https://www.search.bilibili.com/*",
     "https://drive.google.com/*",
     "https://docs.google.com/*",
     "https://*.usercontent.google.com/*",
     "https://www.googleapis.com/*",
     "https://*.googleusercontent.com/*"
   ],
+  "minimum_chrome_version": "91",
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  },
   "background": {
     "service_worker": "background/background.js",
     "type": "module"
@@ -23,11 +30,13 @@
   "content_scripts": [{
     "matches": ["https://www.youtube.com/watch?v=*"],
     "js": [
-      "content/ui.js"
+      "content/ui.js",
+      "content/renderer.js"
     ],
     "css": [
       "content/ui.css"
     ],
+    "all_frames": true,
     "run_at": "document_idle"
   }]
 }

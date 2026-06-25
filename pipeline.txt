@@ -1,4 +1,8 @@
-v0.0.0.3 19jun26
+v0.0.0.4 25jun26
+Các hướng tính năng mới cho UI
+- (Hiện tại) Xử lí render
+- (Tiềm năng) Hỗ trợ trên BiliBili, VK Video bên cạnh YouTube?
+
 1. Cấu trúc extension:
   - manifest.JSON
   - background
@@ -10,7 +14,7 @@ v0.0.0.3 19jun26
     + parser.js (chuyên hóa đọc file sub chuyển thành cấu trúc JS).
     + storage.js (chuyên hóa lưu dữ liệu danh sách nguồn và dữ liệu file sub).
   - content
-    + content.js (script chạy chính của content)
+    + [cũ, ko còn chạy nữa] content.js (script chạy chính của content?)
     + renderer.js (chuyên hóa render)
     + ui.js (chuyên hóa điều khiển và quản lí khung HTML của UI)
         + ui_work.html (nơi viết, chỉnh sửa khung HTML của UI, ko sử dụng)
@@ -49,13 +53,13 @@ v0.0.0.3 19jun26
       events: []    // Phần [Events]
     }
     2.4.3. background.js, storage.js: Lưu mỗi obj file sub trong 1 Cache Key riêng (trong chrome.storage.local)
-      2.4.3.1. Đối với cache
-        const SUBTITLE_DATA_KEY = `${SUBTITLE_DATA_KEY_BASE}_${videoId}`    // cấu trúc key: ASSCEE_<videoId>
+      2.4.3.1. Đối với cache (subObj, đầu ra hàm useSubData())
+        const SUBTITLE_DATA_KEY = `${SUBTITLE_DATA_KEY_BASE}_${videoId}`    // cấu trúc key: ASSCEE_subData_<videoId>
         SUBTITLE_DATA_KEY = {
           videoId,
           fileObj = candidate,      // xem mục 2.3.2
           parsedData,               // xem mục 2.4.2
-          cachedAt: time            // (storage.js > addSubData())
+          cachedAt: time           // (storage.js > addSubData())
         }
       2.4.3.2. Đối với đầu ra hàm getSubDataList():
         cacheList = [cacheData,...] 
@@ -63,7 +67,7 @@ v0.0.0.3 19jun26
           videoId: (Id dùng đặt tên trong SUBTITLE_DATA_KEY: ${SUBTITLE_DATA_KEY_BASE}_${videoId})
           cachedId: (Id lưu trong SUBTITLE_DATA_KEY[videoId])
           cachedAt: time
-          ...fileObj              // xem mục 2.3.2
+          ...fileObj = candidate              // xem mục 2.3.2
         }
 
 3. Giao thức giữa background/background.js (nhận) và content/*.js
@@ -105,7 +109,7 @@ v0.0.0.3 19jun26
     
     3.6. type === "SUB.USE_CACHE"
             payload = { videoId }
-          sendResponse (tổng): { type: 'SUB.READY', await useSubData(videoId) }
+          sendResponse (tổng): { type: 'SUB.READY', payload: await useSubData(videoId) }
     
     3.6. type === "SUB.GET_ALL"
             payload = { videoId }
@@ -118,7 +122,12 @@ v0.0.0.3 19jun26
     3.8. type === "SUB.LOCAL"
             payload = { videoId, rawText, fileName }
           sendResponse (tổng): processSubtitles(videoId, localFileData (xử lí từ fileName), rawText)
-    3.9. Dữ liệu khác chuẩn/chạy handlers bị lỗi
+
+    3.9. type === "RENDER" (UI gửi yêu cầu render thủ công cho background)
+            payload = { videoId }
+          sendResponse (tổng): { type: 'RENDER.REQUEST_RESULT', payload: boolean }
+
+    3.10. Dữ liệu khác chuẩn/chạy handlers bị lỗi
           sendResponse (tổng): { type: 'ERROR', payload: err.message hoặc 'Unknown action' }
 
 4. Giao thức giữa background/background.js (gửi) và content/*.js
@@ -149,7 +158,12 @@ v0.0.0.3 19jun26
     6.1.1. sendLogToBackground(): gửi log từ ui.js về background.js (content-side sang background-side)
     6.1.2. toggleOverlay(): hàm điều khiển ẩn/hiện UI
     6.1.3. getRelativeTimeString(): hàm xử lí thời gian tương đối (N (đơn vị) trước) và tuyệt đối (HH:MM:SS DD/MM/YYYY)
+    6.1.4. escapeHTML(): Hàm hỗ trợ mã hóa các ký tự đặc biệt tránh XSS
+    6.1.5. decodeHTML(): Hàm ngược của 6.1.4.
+    6.1.6. getYouTubeVideoId(): Hàm lấy YouTube Video ID từ URL hiện tại
+
   - Đặt obj uiData để quản lí dữ liệu toàn file
+
   6.2. Các hàm phục vụ tính năng (build* và các hàm con chạy trong hàm build*)
     6.2.0. Hạng mục 1.0: Khởi tạo khung UI và API của nó.
       buildMainHTML(): Hàm chạy mục 1.0
@@ -184,10 +198,9 @@ v0.0.0.3 19jun26
             - nếu tìm toàn bộ trong các nguồn online: thì SUB.SEARCH với {videoId: searchId, folderMode = false}
       6.2.4.5. buildSubtitleManagerTab(): Hàm chạy mục 1.4
 
-1. Phần định nghĩa khung HTML và giao thức với các Thực thể của nó
-1.1. Phần xử lí các thao tác chọn trang hiển thị
-1.2. Phần xử lí tính năng di chuyển giao diện
-
+7. Cấu trúc renderer.js
+  7.1. Các hàm cơ bản
+    7.1.1. sendLogToBackground(): gửi log từ ui.js về background.js (content-side sang background-side)
 
 
 

@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.0.3 21jun26
+// v0.0.0.4 25jun26
 /**
  * 6.1.1. Hàm gửi log về background.js
  * @param {string} message nội dung
@@ -79,7 +79,7 @@ function getRelativeTimeString(timestamp) {
   return { relative, exact };
 }
 /**
- * Hàm hỗ trợ mã hóa các ký tự đặc biệt tránh XSS
+ * 6.1.4. Hàm hỗ trợ mã hóa các ký tự đặc biệt tránh XSS
  * @param {string} str chuỗi cần mã hóa
  * @returns {string} chuỗi đã được mã hóa
  */
@@ -92,6 +92,22 @@ function escapeHTML(str) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
+/**
+ * 6.1.5. Hàm mã hóa ngược lại của 6.1.4.
+ * @param {*} text 
+ * @returns {*} text đã mã hóa ngược lại
+ */
+const decodeHTML = text => new DOMParser().parseFromString(text, 'text/html').body.textContent;
+/**
+ * 6.1.6. Hàm lấy YouTube Video ID từ URL hiện tại
+ * @returns {string} videoId hoặc chuỗi rỗng
+ */
+function getYouTubeVideoId() { return new URLSearchParams(window.location.search).get('v'); }
+/**
+ * 6.1.7. (ẩn) Hàm lấy videoId từ tab (BiliBili) (bỏ qua, thử nghiệm)
+ * @returns {string} videoId dạng "BV<id:base58>?<p>"
+ */
+function getBilibiliVideoId () { return `${window.location.pathname.match(/\/video\/(BV\w+)/)?.[1]}?${new URLSearchParams(window.location.search).get('p') || 1}`; }
 // 6.2. Phần hàm chạy các hạng mục
 var uiData = window.uiData || {}; // Obj lưu toàn bộ dữ liệu UI, có bảo tồn do chạy nhiều lần file ui.js này
 /**
@@ -101,8 +117,9 @@ function buildMainHTML() {
   uiData.extensionName = 'ASS-CEE';
   uiData.tabMap = {
     'tab1': 'Quản lý nguồn',
-    'tab2': 'Quản lý phụ đề',
-    'tab3': 'Thông tin chung'
+    'tab2': 'Quản lý dữ liệu',
+    'tab3': 'Quản lý phụ đề',
+    'tab4': 'Thông tin chung'
   };
   uiData.tabListBtnIcon = '☰';
   uiData.closeBtnIcon = '✕';
@@ -129,6 +146,7 @@ function buildMainHTML() {
         <button class="asscee_TextBtn active" data-asscee_tab-target="tab1"></button>
         <button class="asscee_TextBtn" data-asscee_tab-target="tab2"></button>
         <button class="asscee_TextBtn" data-asscee_tab-target="tab3"></button>
+        <button class="asscee_TextBtn" data-asscee_tab-target="tab4"></button>
       </div>
 
       <div id="asscee_workspace" class="asscee_Workspace">
@@ -136,6 +154,7 @@ function buildMainHTML() {
         <div id="asscee_tab1_content" class="asscee_TabPane active"></div>
         <div id="asscee_tab2_content" class="asscee_TabPane"></div>
         <div id="asscee_tab3_content" class="asscee_TabPane"></div>
+        <div id="asscee_tab4_content" class="asscee_TabPane"></div>
       </div>
 
       <div class="asscee_Footer">
@@ -160,7 +179,9 @@ function buildMainHTML() {
   uiData.footerMisc = uiData.container.querySelector('#asscee_footerMisc');
   // Phần cài đặt các nội dung cơ bản
   uiData.tabListBtn.textContent = uiData.tabListBtnIcon; // Nút danh sách trang hiển thị
+  uiData.tabListBtn.title = "Danh sách trang (Tab)"; // Tooltip cho nút danh sách trang hiển thị
   uiData.closeBtn.textContent = uiData.closeBtnIcon; // Nút tạm ẩn UI
+  uiData.closeBtn.title = "Tạm ẩn giao diện Extension"; // Tooltip cho nút tạm ẩn UI
   uiData.tabItemBtns.forEach(btn => { // Nội dung các mục trong trang hiển thị
       const targetId = btn.getAttribute('data-asscee_tab-target');
       btn.textContent = uiData.tabMap[targetId] || 'undefined';
@@ -522,33 +543,21 @@ async function buildSourceManagerTab() {
   await initSourceList();
 }
 /**
- * 6.2.4.1. Hàm lấy YouTube Video ID từ URL hiện tại
- * @returns {string} videoId hoặc chuỗi rỗng
+ * 6.2.4.1. Hàm cập nhật ID vào UI
  */
-function getYouTubeVideoId() {
-  try {
-    const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get('v') || "";
-  } catch (e) {
-    return "";
-  }
-}
-/**
- * 6.2.4.2. Hàm cập nhật ID vào UI
- */
-function updateYouTubeIdInUI() {
+function updateVideoIdInUI() {
   uiData.currentId = getYouTubeVideoId(); // Hàm lấy ID hiện tại của bạn
-  if (uiData.currentId && uiData && uiData.searchInput) {
+  if (uiData && uiData.currentId && uiData.searchInput) {
     uiData.searchInput.value = uiData.currentId;
     sendLogToBackground(`ui: Cập nhật ID video YouTube hiện tại: ${uiData.currentId}`);
   }
 }
 // Lắng nghe khi người dùng bấm xem video khác trên YouTube (không load lại trang)
 document.addEventListener("yt-navigate-finish", () => {
-  updateYouTubeIdInUI();
+  updateVideoIdInUI();
 });
 /**
- * 6.2.4.3. Hàm render danh sách tệp phụ đề (mục 1.4)
+ * 6.2.4.2. Hàm render danh sách tệp phụ đề (mục 1.4)
  * @param {Array} candidates danh sách các file phụ đề 
  * (xem mục 2.3.2 (candidates) với quét file online, 2.4.3.2 (cacheList) với quét cache)
  * (chú ý: candidate.videoId/cachedId là thuộc tính chỉ cacheList có, candidates ko có)
@@ -572,25 +581,33 @@ function renderSubFileArray(candidates, searchId, targetId, cacheSearchMode = fa
   }
   candidates.forEach((candidate) => {
     const li = document.createElement("li");
-    const timeInfo = candidate.cachedAt ? getRelativeTimeString(candidate.cachedAt) : {};
-    const relativeTime = timeInfo.relative || '';
-    const exactTime = timeInfo.exact ? `Thời điểm thêm: ${timeInfo.exact}\n` : '';
-    const safeId = escapeHTML(candidate.id);
-    const safeUrl = escapeHTML(candidate.viewUrl);
-    const safeFileName = escapeHTML(candidate.fileName);
-    const safeGroupName = escapeHTML(candidate.groupName);
-    const safeSourceType = escapeHTML(candidate.sourceType);
-    const safeVideoId = candidate.videoId ? escapeHTML(candidate.videoId) : '';
+    const timeInfo = candidate.cachedAt ? getRelativeTimeString(candidate.cachedAt) : {}; // { relative, exact }
+    const exactTimeText = timeInfo.exact ? `Thời điểm thêm: ${timeInfo.exact}\n` : '';
+    const safeItem = Object.fromEntries(Object.entries(candidate).map(([k, v]) => [k, escapeHTML(v)])); 
+    // Chống XSS (dùng hàm 6.1.4, safeItem -> candidate xem 2.3.2. và 2.4.3.2.) {id, fileName, fetchUrl, viewUrl, sourceType, groupName<, videoId, cachedId, cachedAt>}
+    const displayName = `${safeItem.videoId ? safeItem.videoId + ': ' : ''}${safeFileName}`; 
+    // Tên hiển thị dòng 1 (nếu videoId trống (tìm online thay vì cache) thì ko hiện)
+    const baseTitle = `Bấm để chuyển sang tab/truy cập thư mục nguồn của tệp này:\n${safeItem.viewUrl}`;
+    // baseTitle là title nền hiển thị khi di chuột trên item.
+    // Mặc định: nếu tìm cache.
+    li.title = baseTitle;
+    const nameTitle = `${displayName}\nID: ${safeItem.videoId}\n\n${baseTitle}`;
+    const folderTitle = `${safeItem.sourceType}: ${safeItem.groupName}\n\n${baseTitle}`;
+    const timeTitle = `${exactTimeText}\n\n${baseTitle}`;
+    if (!cacheSearchMode) {
+      li.title = `Tệp: ${displayName}\nThư mục: ${safeItem.SourceType}, ${safeItem.groupName}\n${exactTimeText}\n\n${baseTitle}`;
+      nameTitle = li.title;
+      folderTitle = li.title;
+      timeTitle = li.title;
+    }
     li.className = "asscee_LinkItem";
-    li.title = `Bấm để chuyển sang tab/truy cập thư mục của tệp này:\n${safeUrl}`;
     li.style.cursor = "pointer";
-    const displayName = `${safeVideoId ? safeVideoId + ': ' : ''}${safeFileName}`;
     if (candidate.videoId !== candidate.cachedId) {
       sendLogToBackground(`ui: Video ID khác với cached ID: ${candidate.videoId} !== ${candidate.cachedId}`, "warn");
     }
     li.innerHTML = `
       <div class="asscee_ItemRow">
-        <span class="asscee_Text asscee_ItemTitle" title="${displayName}\nID: ${safeId}\n${li.title}">
+        <span class="asscee_Text asscee_ItemTitle" title="${nameTitle}">
           ${displayName}
         </span>
         <div class="asscee_LRGroup">
@@ -599,11 +616,11 @@ function renderSubFileArray(candidates, searchId, targetId, cacheSearchMode = fa
         </div>
       </div>
       <div class="asscee_ItemRow">
-        <span class="asscee_Text asscee_SubText asscee_ItemIdSub" title="${safeSourceType}: ${safeGroupName}\n${li.title}">
-          ${safeSourceType}: ${safeGroupName}
+        <span class="asscee_Text asscee_SubText asscee_ItemIdSub" title="${folderTitle}">
+          ${safeItem.sourceType}: ${safeItem.groupName}
         </span>
-        <span class="asscee_Text asscee_SubText asscee_ItemTimeSub" title="${exactTime}${li.title}">
-          ${relativeTime}
+        <span class="asscee_Text asscee_SubText asscee_ItemTimeSub" title="${timeTitle}">
+          ${timeInfo.relative}
         </span>
       </div>
     `; 
@@ -643,7 +660,9 @@ function renderSubFileArray(candidates, searchId, targetId, cacheSearchMode = fa
       itemDeleteBtn.disabled = false;
       itemDeleteBtn.style.display = "inline-block";
     }
-    itemDeleteBtn.addEventListener("click", () => {
+    itemDeleteBtn.addEventListener("click", (e) => {
+      e.stopPropagation(); 
+      e.preventDefault();
       itemDeleteBtn.disabled = true;
       chrome.runtime.sendMessage({
         type: "SUB.REMOVE",
@@ -655,6 +674,7 @@ function renderSubFileArray(candidates, searchId, targetId, cacheSearchMode = fa
           return;
         }
         if (response && response.type === "SUB.REMOVED" && response.payload === true) {
+          sendLogToBackground(`ui: Đã xóa phụ đề cache của video ID: ${candidate.videoId}`);
           chrome.runtime.sendMessage({ type: "SUB.GET_ALL", payload: { videoId: searchId } }, (cacheResponse) => {
             if (cacheResponse && cacheResponse.type === "SUB.LIST") {
               renderSubFileArray(cacheResponse.payload, searchId, targetId, true);
@@ -663,17 +683,16 @@ function renderSubFileArray(candidates, searchId, targetId, cacheSearchMode = fa
             }
           });
         } else {
-          sendLogToBackground("ui: Xóa cache tệp phụ đề thất bại.", "warn");
+          sendLogToBackground(`ui: Xóa cache tệp phụ đề thất bại cho video ID: ${candidate.videoId}`, "warn");
           alert("Xóa cache tệp phụ đề thất bại. Vui lòng xem console.");
         }
-        sendLogToBackground(`ui: Đã xóa phụ đề cache của video ID: ${candidate.videoId}`);
       });
     });
     uiData.subFileArray.appendChild(li);
   });
 }
 /**
- * 6.2.4.4. Tải danh sách tệp phụ đề từ background.js và render vào tab 2
+ * 6.2.4.3. Tải danh sách tệp phụ đề từ background.js và render vào tab 2
  * @param {string} searchId Id mà user tìm kiếm (thanh tìm kiếm. nếu để trống tức là tìm toàn bộ nguồn/cache)
  * @param {string} targetId Id trích từ tab hiện tại
  * @param {boolean} cacheSearchMode chế độ quét cache hay quét online (true = cache, false = online)
@@ -699,7 +718,7 @@ async function initSubFileArray(searchId = "", targetId = "", cacheSearchMode = 
   });
 }
 /**
- * 6.2.4.5. Hàm chạy mục 1.4. Tính năng trong tab 2: Quản lý phụ đề
+ * 6.2.4.4. Hàm chạy mục 1.4. Tính năng trong tab 2: Quản lý phụ đề
  */
 function buildSubtitleManagerTab() {
   if (!uiData.tabContents[1]) {
@@ -724,6 +743,12 @@ function buildSubtitleManagerTab() {
       />
       <div style="display: flex; gap: 4px; flex-shrink: 0;">
         <button 
+          id="asscee_updateIdBtn" 
+          class="asscee_BtnSqr" 
+          title="Lấy Video ID (YouTube) từ tab hiện tại"
+          style="padding: 6px 8px; cursor: pointer;"
+        >🆔</button>
+        <button 
           id="asscee_localSubBtn" 
           class="asscee_BtnSqr" 
           title="Tải phụ đề từ máy (.ass)"
@@ -732,13 +757,13 @@ function buildSubtitleManagerTab() {
         <button 
           id="asscee_cacheSubBtn" 
           class="asscee_BtnSqr" 
-          title="Tìm kiếm trong cache"
+          title="Tìm kiếm trong cache (tìm theo ID)"
           style="padding: 6px 8px; cursor: pointer;"
         >💾</button>
         <button 
           id="asscee_scanSubBtn" 
           class="asscee_BtnSqr" 
-          title="Quét phụ đề từ các nguồn thư mục đã có"
+          title="Quét phụ đề từ các nguồn thư mục đã có\n(tìm tự do trên tên tệp)"
           style="padding: 6px 8px; cursor: pointer;"
         >🌐</button>
       </div>
@@ -755,12 +780,17 @@ function buildSubtitleManagerTab() {
     </div>
   `;
   uiData.searchInput = uiData.tabContents[1].querySelector('#asscee_searchInput');
-  uiData.localSubBtn = uiData.tabContents[1].querySelector('#asscee_localSubBtn');
+  uiData.updateIdBtn = uiData.tabContents[1].querySelector('#asscee_updateIdBtn');
   uiData.localSubInput = uiData.tabContents[1].querySelector('#asscee_localFileInput');
+  uiData.localSubBtn = uiData.tabContents[1].querySelector('#asscee_localSubBtn');
   uiData.cacheSubBtn = uiData.tabContents[1].querySelector('#asscee_cacheSubBtn');
   uiData.scanSubBtn = uiData.tabContents[1].querySelector('#asscee_scanSubBtn');
   uiData.subFileArray = uiData.tabContents[1].querySelector('#asscee_subFileArray');
-  updateYouTubeIdInUI();
+  updateVideoIdInUI();
+  // Lấy videoId từ tab hiện tại
+  uiData.updateIdBtn.addEventListener('click', async () => {
+    updateVideoIdInUI();
+  });
   // 1. Quét online
   uiData.scanSubBtn.addEventListener('click', async () => {
     const searchId = uiData.searchInput.value.trim();
@@ -789,16 +819,15 @@ function buildSubtitleManagerTab() {
   });
   // 3. Tải file cục bộ
   uiData.localSubBtn.addEventListener('click', () => {
-    updateYouTubeIdInUI();
+    updateVideoIdInUI();
     uiData.localSubInput.click();
   });
   uiData.localSubInput.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const searchId = uiData.searchInput.value.trim();
+    const searchId = uiData.searchInput.value;
     if (!uiData.currentId) {
       alert("Tính năng nạp phụ đề cục bộ yêu cầu bạn phải ở trên trang video YouTube có ID hợp lệ.\nVui lòng mở một video YouTube và thử lại.");
-      uiData.localSubInput.value = "";
       return;
     }
     const reader = new FileReader();
@@ -837,6 +866,8 @@ function buildSubtitleManagerTab() {
     sendLogToBackground(`ui: chạy lỗi mục 1. Khởi tạo khung UI và API của nó: ${error.message}`, "error");
     console.error("[ASS-CEE] ui: chạy lỗi mục 1. Khởi tạo khung UI và API của nó:", error);
     return;
+  } finally {
+    toggleOverlay(uiData.containerId, false);
   }
   try { // Phần chạy mục 1.1.
     buildTabListLogic(); 
@@ -866,10 +897,10 @@ function buildSubtitleManagerTab() {
     sendLogToBackground(`ui: chạy lỗi mục 1.4. Tính năng trong tab 2: Quản lý phụ đề: ${error.message}`, "error");
     console.error("[ASS-CEE] ui: chạy lỗi mục 1.4. Tính năng trong tab 2: Quản lý phụ đề:", error);
   }
-  toggleOverlay(uiData.containerId, false);
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.action === "TOGGLE_OVERLAY_SIGNAL") {
       toggleOverlay(uiData.containerId);
     }
   });
+  window.isAssCeeLoaded = true; // Để cho background kiểm tra.
 })();

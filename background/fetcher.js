@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.0.3 21jun26
+// v0.0.0.4 25jun26
 const FETCH_TIMEOUT = 60000; // Tối đa 60 giây kết nối và nhận dữ liệu. Dùng cho hàm fetchWithTimeout().
 const VALID_FILE_SIGNATURE = ["[Script Info]", "[V4+ Styles]", "[Events]"];
 // Danh sách các nội dung mà parser dùng để đánh dấu. Dùng cho hàm validateSubtitleContent().
@@ -37,8 +37,7 @@ export async function fetchSubtitleText(candidate) {
 	} else {
 		console.warn(`[ASS-CEE] fetcher: Không tìm thấy thông tin dung lượng file sub ${candidate.id}, ${candidate.fileName}`);
 	}
-	// Lấy text của file sub.
-    validateSubtitleContent(text);
+    validateSubtitleContent(text); // Lấy text của file sub.
 	// Kiểm tra tính hợp lệ của file sub (check tồn tại các dòng đánh dấu như [Script Info], [V4+ Styles], [Events])
     console.log(`[ASS-CEE] fetcher: Đã fetch text của file ${candidate.fileName} xong.`);
     return text;
@@ -150,7 +149,7 @@ async function scanGitHub(source, videoId, folderGet, folderMode) {
             return [];
             // Kiểm tra nếu trả về ko phải array các file
         }
-        if (!videoId && folderMode) {
+        if (folderMode) {
             // Nếu ko có videoId (có chủ ý: để lấy dữ liệu folderGet.groupName và .id)
             console.log(`[ASS-CEE] fetcher: Đã lấy xong dữ liệu thư mục GitHub lần đầu: ${folderGet.groupName})`)
             return [];
@@ -158,7 +157,7 @@ async function scanGitHub(source, videoId, folderGet, folderMode) {
         for (const item of items) { // 3. Quét các file tìm được
             if (item.type !== "file") continue; 
             // Vì chỉ quét các file nên bỏ qua các folder và file ko phải file sub
-            if (item.name.endsWith('.ass') && (isMatchingSubtitle(item.name, videoId) || !folderMode)) {
+            if (item.name.endsWith('.ass') && (!videoId || isMatchingSubtitle(item.name, videoId))) {
                 // isMatchingSubtitle()?
                 results.push({
                     id: item.sha,
@@ -201,10 +200,9 @@ async function scanGDrive(source, videoId, folderName = { groupName: '',id: '' }
 	// .split('/folder/')[1] để lấy 1A2b3C4d5E6f?usp=sharing; .split('?')[0] để lấy 1A2b3C4d5E6f
     if (!folderId) {
         console.warn(`[ASS-CEE] fetcher: Link chuẩn chưa em?\n(GDrive: ${source.url})`);
-        return []
+        return [];
     }
 	// Nếu ko tìm thấy Id (vd: split('/folder/') ko hoạt động) thì trả về trống.
-	console.log(`[ASS-CEE] fetcher: Đang tìm thư mục GDrive ${folderId}`);
     const results = [];
     try {
         // 2. Tạo URL proxy giao diện nhúng và tải mã HTML về
@@ -258,21 +256,20 @@ async function scanGDrive(source, videoId, folderName = { groupName: '',id: '' }
         // Regex chấp nhận ID và Tên file (.ass) với MỌI ĐỘ DÀI (kể cả cực ngắn), 
         // nhưng vẫn giữ nguyên cơ chế chống nhảy cóc sang file khác.
         const entryRegex = /href="[^"]*\/file\/d\/([a-zA-Z0-9_-]+)[^"]*"[^>]*>(?:(?!<\/a>)[\s\S])*?<div class="flip-entry-title">([^<]+)<\/div>/g;
-        let totalEntriesFound = 0;
-        let tempMatch;
-        const rawMatches = [];
-        
+        // let totalEntriesFound = 0;
+        // let tempMatch;
+        // const rawMatches = [];
         // Chạy thử một vòng lặp nháp để đếm số file khớp cấu trúc thô trước khi lọc
-        while ((tempMatch = entryRegex.exec(html)) !== null) {
-            totalEntriesFound++;
-            rawMatches.push({ id: tempMatch[1], name: tempMatch[2] });
-        }
-        // console.log(`[ASS-CEE] fetcher: Tìm thấy tổng cộng ${totalEntriesFound} tệp thô khớp định dạng GDrive.`);
-        if (totalEntriesFound > 0) {
-            // console.log("[ASS-CEE] fetcher: Danh sách tệp thô ví dụ:", rawMatches.slice(0, 3));
-        }
-        if (!videoId && folderMode) {
-            // Nếu ko có videoId (có chủ ý: để lấy dữ liệu folderName.groupName và .id)
+        // while ((tempMatch = entryRegex.exec(html)) !== null) {
+        //     totalEntriesFound++;
+        //     rawMatches.push({ id: tempMatch[1], name: tempMatch[2] });
+        // }
+        // // console.log(`[ASS-CEE] fetcher: Tìm thấy tổng cộng ${totalEntriesFound} tệp thô khớp định dạng GDrive.`);
+        // if (totalEntriesFound > 0) {
+        //     // console.log("[ASS-CEE] fetcher: Danh sách tệp thô ví dụ:", rawMatches.slice(0, 3));
+        // }
+        if (folderMode) {
+            // Nếu đang ở chế độ folder, trả về danh sách thư mục
             console.log(`[ASS-CEE] fetcher: Đã lấy xong dữ liệu thư mục GDrive lần đầu: ${folderName.groupName})`)
             return [];
         }
@@ -283,7 +280,7 @@ async function scanGDrive(source, videoId, folderName = { groupName: '',id: '' }
         while ((match = entryRegex.exec(html)) !== null) {
             const [_, id, name] = match;
             // 6. Kiểm tra điều kiện định dạng và mã video
-            if (name.endsWith('.ass') && (isMatchingSubtitle(name, videoId) || !folderMode)) {
+            if (name.endsWith('.ass') && (!videoId || isMatchingSubtitle(name, videoId))) {
 				// isMatchingSubtitle()?
                 results.push({
                     id: id,
@@ -307,18 +304,18 @@ async function scanGDrive(source, videoId, folderName = { groupName: '',id: '' }
 	// phụ thuộc các hàm ngoài là fetchWithTimeout() và isMatchingSubtitle()
 }
 /**
- * Hàm kiểm tra file sub có tương ứng với ID cần tìm ko
+ * Hàm kiểm tra file sub có tương ứng với ID cần tìm ko (tìm theo .include, cho phép người dùng tìm ko theo ID.)
  * @param {*} fileName tên file sub
  * @param {*} videoId ID video cần tìm
- * @returns boolean?
+ * @returns boolean.
  */
 function isMatchingSubtitle(fileName, videoId) {
-	// Hàm check tên file có đúng id ko. Quy tắc: "#<id>", ngăn cách bởi các kí tự khác chữ, số, gạch dưới và gạch ngang
-    // Phù hợp với quy tắc base64 URL safe của videoId trên YT. 
-    if (!videoId) return false;
-    // Nếu không có videoId hoặc videoId trống ("" để chỉ scan lấy tên folder), trả về false luôn
-    const regex = new RegExp(`#${videoId}(?![\\w-])`);
-    return regex.test(fileName);
+    // Nếu không có videoId hoặc videoId trống, trả về true để cho phép tìm kiếm không theo ID (hiển thị tất cả)
+    if (!videoId) return true;
+    // Phòng trường hợp tên file bị rỗng hoặc không phải chuỗi
+    if (!fileName) return false;
+    // Kiểm tra xem tên file có chứa videoId hay không (phân biệt chữ hoa - chữ thường theo quy tắc ID của YouTube)
+    return fileName.includes(videoId);
 }
 /**
  * Hàm kết nối mạng có timeout (Gemini). Yêu cầu biến FETCH_TIMEOUT. (Gemini)
@@ -330,7 +327,7 @@ function isMatchingSubtitle(fileName, videoId) {
 async function fetchWithTimeout(url, id = "undefined", type = "undefined") {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
-    const logLabel = `[ASS-CEE] fetcher: ${id}`;
+    const logLabel = `[ASS-CEE] fetcher: ${type}, ${id}`;
     // console.log(`${logLabel} Đang tải ${type} ${id}.`);
 	console.time(logLabel);
     const progressInterval = setInterval(() => {console.timeLog(logLabel, `(Đang kết nối)`);}, 1000);

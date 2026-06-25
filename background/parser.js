@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.0.2 05jun26
+// v0.0.0.4 23jun26
 // parser.js
 // Chức năng: xử lí kế tiếp, giai đoạn từ giai đoạn có file sub thô (rawText) đến cấu trúc file sub JS (line.raw)
 // hàm export là parseAegisubRaw (từ rawText đến cấu trúc JS)
@@ -25,22 +25,13 @@ const toCamelCase = (str, indices = [0]) => {
         return char;
     }).join('');
 };
-function convertTimeStringToMs(timeStr) {
-  // Hàm chuyển timeString theo chuẩn định dạng file Aegisub (h:mm:ss.cs, vd:0:00:13.21 về ms, dạng 1 số nguyên)
-  // Sử dụng khi parse các dòng [Event] trong file sub
-  const parts = timeStr.split(':');
-  const secondsParts = parts[2].split('.');
-  // Tách timeStr thành parts (h, mm, ss.cs). Tách ss.cc (parts[2]) thành secondsParts (ss, cs)
-  const hours = parseInt(parts[0], 10);
-  // Lưu giờ. parseInt(string, radix): chuyển string (số) theo hệ radix từ 2 đến 36.
-  const minutes = parseInt(parts[1], 10);
-  // Lưu phút
-  const seconds = parseInt(secondsParts[0], 10);
-  const centiseconds = parseInt(secondsParts[1], 10);
-  // Lưu giây và phần centi-giây
-  return (hours * 3600 + minutes * 60 + seconds) * 1000 + centiseconds * 10;
-  // Tính toán, trả kết quả. 
-}
+const convertTimeStringToMs = t => {
+    try {
+        return t.split(':').reduce((acc, v) => acc * 60 + +v, 0) || 0;
+    } catch {
+        return 0;
+    }
+};
 function convertAegisubColorToCss(ascStr) {
   // Hàm chuyển đổi string màu trong Aegisub (&HAABBGGRR với style, &HBBGGRR& với inline) thành định dạng CSS (rgba())
   let hex = ascStr.replace(/&H|&/g, ''); // Loại bỏ ký tự định dạng &H và & của string màu (định dạng mới AABBGGRR/BBGGRR)
@@ -61,10 +52,10 @@ export default function parser(rawText) {
 	// Script Info cần lấy các thông tin:
 	// 1. ScriptType (chỉ hỗ trợ "v4.00+", nếu ko thì trả về lỗi file sub không chuẩn); 
 	// 2. WrapStyle (0-3):(
-	//0: Smart wrapping, top line is wider
-	//1: End-of-line word wrapping, only \N breaks
-	//2: No word wrapping, both \n and \N break
-	//3: Smart wrapping, bottom line is wider
+	//		0: Smart wrapping, top line is wider
+	//		1: End-of-line word wrapping, only \N breaks
+	//		2: No word wrapping, both \n and \N break
+	//		3: Smart wrapping, bottom line is wider
 	// );
 	// 3. ScaledBorderAndShadow (yes/no): Nếu bật, thì giá trị border/shadow gắn chặt với tỉ lệ video (PlayResX/Y)
 	//Nếu ko, thì giá trị border/shadow là giá trị tuyệt đối, ko phụ thuộc tỉ lệ video 
@@ -73,12 +64,8 @@ export default function parser(rawText) {
 	// Info lưu dưới dạng obj do file sub có cấu trúc key: value
 	// Styles và Events lưu dưới dạng array do file sub có cấu trúc khác, và trong Lua Automation của Aegisub cũng xử lí tương tự.
 	if (!rawText) {
-	console.error(
-		"%c[ASS-CEE]%c parser: Đã có ai làm gì đâu? Đã làm gì đâu? (rawText trống)", 
-		"color: red; font-weight: bold;",
-		"color: white;"
-	);
-	return parsedData
+		console.warn("[ASS-CEE] parser: Đã có ai làm gì đâu? Đã làm gì đâu? (rawText trống)");
+		return parsedData;
 	};
 	// Nếu ko có rawText, trả về Data trống và gửi log lỗi text trống.
 	const subtitles = rawText.split(/\r\n/); // Tạm thời chỉ hỗ trợ file sub trên Windows. 
@@ -86,7 +73,7 @@ export default function parser(rawText) {
 	// to-do: tùy chọn hỗ trợ Windows (\r\n), Unix (\n)???, Mac (\r)???
 	let currentSection = '';
 	// index phân đoạn (phần trong dấu []).
-	let styleFormat = [];
+	let styleFormat = []; 
 	let eventFormat = [];
 	// Array vì các key và value theo trật tự trong mỗi dòng, và dòng Format (của cả 2 phần) có trật tự cố định
 	for (let line of subtitles) {
@@ -94,16 +81,8 @@ export default function parser(rawText) {
 		line = line.trimStart();
 		// Xóa khoảng trắng ở đầu dòng dữ liệu (ko cần thiết?)
 		const beIgnored = !line || line.startsWith(';');
-		if (beIgnored) { continue };
-		// Nếu line trống (""), hoặc bắt đầu bằng ";" thì bỏ qua
-		// line trống ngăn cách giữa các đoạn. ";" là phần credit của app (trong phần Script Info).
-		if (line.startsWith('[') && line.endsWith(']')) {
-			// Dòng dữ liệu này ghi phân đoạn. 
-			currentSection = line.trim()
-			// Lưu tên phân đoạn
-			continue;
-			// Dòng ko có dữ liệu nào khác nên bỏ qua
-		}
+		if (beIgnored) { continue }; // Nếu line trống (""), hoặc bắt đầu bằng ";" thì bỏ qua. ";" là phần credit của app (trong phần Script Info).
+		if (line.startsWith('[') && line.endsWith(']')) { currentSection = line.trim(); continue; } // Lưu phân đoạn
 		if (currentSection === '[Script Info]') {
 			// Trong đoạn Script Info, lưu các thông số:
 			// 		Title: để hiển thị.
@@ -113,25 +92,13 @@ export default function parser(rawText) {
 			// 		PlayResY: để xử lí phụ đề.
 			// 		ScaledBorderAndShadow: để xử lí phụ đề.
 			// Tuy nhiên, ở đây lưu tất cả data.
-			const index = line.indexOf(':');
-			// Lấy dấu ":" để phân cách
-            if (index !== -1) {
-                const key = line.substring(0, index).trim();
-				// .substring(a,b) lấy từ a đến b-1, ko lấy b
-                const value = line.substring(index + 1).trim();
-				// .substring(b+1) lấy từ b+1 đến hết string.
-                parsedData.info[key] = value;
-				if (key === 'ScriptType' && value !== 'v4.00+') {
-					// ScriptType trong file ko phải v4.00+
-					console.error(
-						`%c[ASS-CEE]%c parser: %cTin%c File chuẩn chưa em? (Extension ko hỗ trợ tốt với ScriptType=${value})`, 
-						"color: red; font-weight: bold;",
-						"",
-						"color: gray; text-decoration: line-through;",
-						""
-					);
+			const [, key, value] = line.match(/^([^:]+):(.*)$/) || []; // gán bằng Regex: tách thành phần trước và sau dấu ":" thứ nhất
+			if (key) {
+				const k = key.trim(), v = value.trim();
+				parsedData.info[k] = v;
+				if (k === 'ScriptType' && v !== 'v4.00+') { // Ko đảm bảo nếu ScriptType trong file ko phải v4.00+
+					console.warn(`[ASS-CEE] parser: Tin... File chuẩn chưa em? (Extension ko hỗ trợ tốt với ScriptType=${v})`);
 				}
-				// Phần kiểm tra lỗi.
 			}
 		} else if (currentSection === 'V4+ Styles') {
 			// Trong đoạn V4+ Styles, dòng format lưu các key, dòng Style lưu value
@@ -222,10 +189,6 @@ export default function parser(rawText) {
 					return lineB.endTime - lineA.endTime;
 			});
 	}
-	console.log(
-		"%c[ASS-CEE]%c parser: Đã xử lí xong.", 
-		"font-weight: bold;",
-		""
-	);
+	console.log("[ASS-CEE] parser: Đã xử lí xong.");
 	return parsedData;
 }

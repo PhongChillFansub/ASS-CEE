@@ -1,4 +1,4 @@
-/* v0.0.0.3 21jun26 */
+/* v0.0.0.4 23jun26 */
 #asscee_overlayRoot {
   /* Phần quy định UI cho "khung UI" */
   position: fixed !important;
@@ -145,7 +145,7 @@ asscee_ItemDeleteBtns (trống)
 .asscee_BtnSqr:disabled {
   opacity: 0.5;                /* Làm mờ nút đi 50% */
   cursor: not-allowed;         /* Đổi con trỏ chuột thành hình biển báo cấm */
-  background-color: #cccccc;   /* Đổi màu nền sang xám (nếu muốn) */
+  background-color: #c00000;   /* Đổi màu nền sang xám (nếu muốn) */
   /* pointer-events: none;        Chặn hoàn toàn các sự kiện click chuột */
 }
 /* class asscee_Text */

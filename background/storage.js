@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.0.3 21jun26
+// v0.0.0.4 25jun26
 // storage.js
 // Chức năng: chuyên xử lí lưu trữ trên chrome.storage.local.
 // 7 hàm export là:
@@ -61,6 +61,7 @@ export async function removeSource(time) {
  * Hàm lưu dữ liệu file sub (obj) dựa trên videoId
  * @param {*} videoId đầu vào
  * @param {*} subtitleObj đầu vào dạng subObj (quy định trong file background.js, xem pipeline.txt)
+ * @returns Ko có đầu ra trực tiếp. subObj là đầu ra gián tiếp (dạng tham chiếu)
  */
 export async function addSubData(videoId, subtitleObj = {}) {
     // Chỉ lưu dữ liệu subtitleObj chứa parsedData (xem pipeline.txt)
@@ -83,16 +84,16 @@ export async function getSubDataList(searchId = "") {
   // Lấy toàn bộ dữ liệu đang có trong storage
   const allData = await chrome.storage.local.get(null);
   const cacheList = []; // 1. Chuyển thành Mảng trống
-  // Lọc và gom các key có tiền tố "sub_"
+  // Lọc và gom các key có tiền tố SUBTITLE_DATA_KEY_BASE+"_"
   for (const [key, value] of Object.entries(allData)) {
     if (key.startsWith(`${SUBTITLE_DATA_KEY_BASE}_`)) {
       const videoId = key.replace(`${SUBTITLE_DATA_KEY_BASE}_`, ""); // Lấy videoId gốc từ key
       // 2. Sử dụng .push() để thêm đối tượng trực tiếp vào mảng
       cacheList.push({
-        videoId,
+        ...value.fileObj,         // Đưa cái này lên ĐẦU để giải phóng các thuộc tính bên trong (để thuận tiện cho việc ghi cache này sang id khác)
+        videoId,                  // Ghi đè videoId chuẩn xác lấy từ Key lưu trữ ở cuối (id mới)
         cachedId: value.videoId,
-        cachedAt: value.cachedAt || null,
-        ...value.fileObj
+        cachedAt: value.cachedAt || null
       });
     }
   }
