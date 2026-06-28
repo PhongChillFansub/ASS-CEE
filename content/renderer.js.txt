@@ -25,11 +25,7 @@ function sendLogToBackground(message, type = 'info', extra = undefined) {
 function updateVideoIdInRenderer() {
   const getYouTubeVideoId = () => { return new URLSearchParams(window.location.search).get('v'); }
   const url = window.location.href;
-  renderData.isLocalVideo = false;
-  renderData.videoMode = 'youtube';
   if (url.startsWith('file:///')) {
-    renderData.isLocalVideo = true;
-    renderData.videoMode = 'local';
     try {
       // Giải mã các ký tự đặc biệt (URL encoded)
       // Lấy phần tên file sau dấu gạch chéo cuối cùng
@@ -41,12 +37,13 @@ function updateVideoIdInRenderer() {
       sendLogToBackground("renderer: (7.1.2) fileName local:" + fileName,"log");
     } catch (error) {
       sendLogToBackground("renderer: (7.1.2) Không thể giải mã URL file local:" + error.message,"warn");
+      renderData.currentId = getYouTubeVideoId();
     }
   } else {
     renderData.currentId = getYouTubeVideoId();
   }
   if (renderData?.currentId) {
-    sendLogToBackground(`renderer: (7.1.2) Cập nhật ID video (hỗ trợ ${renderData.videoMode}) hiện tại: ${renderData.currentId}`);
+    sendLogToBackground(`renderer: (7.1.2) Cập nhật ID video (hỗ trợ YT, local) hiện tại: ${renderData.currentId}`);
   } else {
     sendLogToBackground(`renderer: (7.1.2) Ko thể tách ID từ url ${url}`,"warn");
   }
@@ -107,29 +104,8 @@ function selectVideo(renderData) {
     if (selectedVideo) {
         const videoRect = selectedVideo.getBoundingClientRect();
         sendLogToBackground(`renderer: (7.1.3) Video được chọn là [ID: ${selectedVideo.dataset.detectedId}] - Kích thước: ${Math.round(videoRect.width)}x${Math.round(videoRect.height)}`);
-        if (renderData.isLocalVideo) {
-            // Dành cho local: video tag là frame, overlay phải nằm ngoài <video> vì <div> không phải con hợp lệ của <video>.
-            const originalParent = selectedVideo.parentNode || selectedVideo;
-            let localParent = originalParent;
-            if (originalParent === document.body || originalParent === document.documentElement) {
-                const wrapper = document.createElement('div');
-                wrapper.style.position = 'relative';
-                wrapper.style.display = 'inline-block';
-                wrapper.style.width = `${Math.round(videoRect.width)}px`;
-                wrapper.style.height = `${Math.round(videoRect.height)}px`;
-                originalParent.insertBefore(wrapper, selectedVideo);
-                wrapper.appendChild(selectedVideo);
-                localParent = wrapper;
-                sendLogToBackground(`renderer: (7.1.3) Local video wrapper created around <video> to avoid body/html positioning issues.`, "log");
-            }
-            renderData.containerParent = localParent;
-            renderData.video = selectedVideo; // Dùng video element để truy cập currentTime / playback timing.
-            renderData.videoSource = selectedVideo.querySelector('source') || null; // Dòng này chỉ để ghi log
-            sendLogToBackground(`renderer: (7.1.3) Local video detected. containerParent = ${renderData.containerParent.tagName}, videoSource = ${renderData.videoSource ? '<source>' : 'none'}`,"log");
-        } else {
-            renderData.containerParent = selectedVideo.closest('#movie_player') || selectedVideo.parentNode;
-            renderData.video = selectedVideo;
-        }
+        // 2. Tìm thẻ cha (container) của video để chèn phụ đề vào trong đó
+        renderData.containerParent = selectedVideo.closest('#movie_player') || selectedVideo.parentNode;
         // Đầu ra gián tiếp thứ hai: tham chiếu đến node cha của khung phụ đề
         if (!renderData.containerParent) {
             sendLogToBackground("renderer: (7.1.3) Không tìm được parent hợp lệ cho video.","warn");
@@ -151,10 +127,11 @@ function selectVideo(renderData) {
         if (!overlay) {
             overlay = document.createElement('div');
             overlay.id = renderData.containerId;
-            overlay.style.zIndex = '10';
+            overlay.style.zIndex = '2147483646';
             renderData.containerParent.appendChild(overlay);
         }
         renderData.container = overlay; // Đầu ra gián tiếp thứ tư: tham chiếu đến node khung phụ đề
+        renderData.video = selectedVideo; // Đầu ra gián tiếp thứ năm: tham chiếu đến node video
     } else {
         sendLogToBackground(`renderer: (7.1.3) Không tìm thấy video chính nào đủ điều kiện hiển thị.`,"warn");
     }
@@ -245,10 +222,7 @@ renderData.renderState = { // Lưu dữ liệu render (mục 7.3. render)
     pendingStyles: null, // Có dùng
     currentEvents: [],
     currentEventsIndex: null,
-    activeElements: {}, // Có dùng
-    frameId: null,
-    paused: false,
-    stopRequested: false
+    activeElements: {} // Có dùng
 }; 
 // 7.2. Phần các hàm tính năng bám bắt video
 /**
@@ -397,7 +371,7 @@ function styleObjToCss(styleObj) {
     const text = {
         // Font & Định dạng chữ
         'font-family': `"${styleObj.fontName}", sans-serif`, // to-do: cảnh báo người dùng nếu ko có font styleObj.fontName để hiển thị?
-        'font-size': `${(styleObj.fontSize/renderData.dpr).toFixed(4)}px`,
+        'font-size': `${styleObj.fontSize}px`,
         'letter-spacing': `${styleObj.spacing}px`,
         'font-weight': styleObj.bold ? 'bold' : 'normal',
         'font-style': styleObj.italic ? 'italic' : 'normal',
@@ -460,7 +434,7 @@ function styleObjToCss(styleObj) {
         text['background-color'] = 'transparent';
         if (outlinePx > 0) {
             text['paint-order'] = 'stroke fill';
-            text['-webkit-text-stroke'] = `${outlinePx}px ${styleObj.outlineColour}`;
+            text['-webkit-text-stroke'] = `${outlinePx * 2}px ${styleObj.outlineColour}`;
         }
         if (shadowPx > 0) {
             text['text-shadow'] = `${shadowPx + outlinePx}px ${shadowPx + outlinePx}px 0px ${styleObj.backColour}`;
@@ -495,7 +469,6 @@ function scaler (oldStyle, newStyles, pushMode) {
     // bold, italic, underline, strikeOut, scaleX, scaleY, spacing, angle, borderStyle, outline, shadow, ...
     // alignment, marginL, marginR, marginV, encoding
     // Chỉnh sửa ở các thông số (theo thay đổi height): fontSize, spacing, marginL, marginR, marginV., kèm outline, shadow nếu info.ScaledBorderAndShadow = "yes"
-    const info = renderData.subObj.parsedData.info;
     const keysToScale = ['fontSize', 'spacing', 'marginL', 'marginR', 'marginV'];
     if (info.ScaledBorderAndShadow === "yes") { keysToScale.push('outline', 'shadow');}
     keysToScale.forEach(key => {
@@ -513,8 +486,7 @@ function scaler (oldStyle, newStyles, pushMode) {
 };
 /**
  * 7.3.3. Hàm tính toán style mới (chuyển đổi từ khung PlayResX-Y sang khung width-height của phụ đề)
- * @returns trả về gián tiếp renderData.renderState.pendingStyles đã tính toán sẵn
- * @returns tín hiệu tạm ngừng hoặc dừng hẳn render
+ * @returns trả về renderData.renderState.pendingStyles đã tính toán sẵn
  */
 function pendingStylesCalculate() {
     // Áp dụng sửa đổi cho cả các styles trong renderData.subObj.parsedData.styles và renderData.FALLBACK_DEFAULT_STYLE
@@ -526,25 +498,11 @@ function pendingStylesCalculate() {
     // styles nguyên bản
     // Lọc bỏ các style (trong styles) ko phải object?
     const containerRect = renderData.container.getBoundingClientRect();
-    renderData.dpr = window.devicePixelRatio || 1;
-    renderData.scaleWidth = (containerRect.width)/info.PlayResX;
+    renderData.scaleWidth = containerRect.width/info.PlayResX;
     renderData.scaleHeight = containerRect.height/info.PlayResY;
-    const isRenderableSize = containerRect.width > 240 && containerRect.height > 240;
-    if (!isRenderableSize) {
-        if (containerRect.width === 0 || containerRect.height === 0) {
-            emitRenderControl('RENDER.STOP');
-            sendLogToBackground(`renderer: (7.3.3) Khung ko còn hợp lệ (không thể nhìn thấy), kết thúc render.`);
-            return;
-        }
-        if (!renderData.renderState.paused) {
-            emitRenderControl('RENDER.PAUSE');
-        }
-        const msg = `renderer: (7.3.3) Kích thước container quá nhỏ, dưới 240px (${Math.round(containerRect.width)}x${Math.round(containerRect.height)}px). Tạm ngừng render để tránh vỡ font.`
-        sendLogToBackground(msg, "warn");
+    if (containerRect.width < 240 || containerRect.height < 240) { // Kiểm tra nếu một trong hai chiều của container quá nhỏ (dưới 240px)
+        sendLogToBackground(`renderer: (7.3.3) Kích thước container quá nhỏ, dưới 240px (${Math.round(containerRect.width)}x${Math.round(containerRect.height)}px). Ngừng render để tránh vỡ font.`, "warn");
         return;
-    }
-    if (renderData.renderState.paused || renderData.renderState.stopRequested) {
-        emitRenderControl('RENDER.RESUME');
     }
     // Chạy cho FALLBACK để gán vào renderData.defaultStyle (truyền false)
     scaler(renderData.FALLBACK_DEFAULT_STYLE, null, false);
@@ -553,7 +511,7 @@ function pendingStylesCalculate() {
     orgStyles.forEach(style => {
         scaler(style, renderData.renderState.pendingStyles, true);
     });
-    sendLogToBackground(`renderer: (7.3.3) Đã áp dụng styles mới.`,"log",renderData.renderState.pendingStyles);
+    sendLogToBackground(`renderer: (7.3.3) Đã áp dụng styles mới xong.`);
 }
 /**
  * 7.3.4. Hàm áp dụng snapshot style đang chờ vào state hiện tại trước khi frame loop render tiếp.
@@ -562,18 +520,6 @@ function applyPendingStyles() {
     if (renderData.renderState.pendingStyles) {
         renderData.renderState.currentStyles = renderData.renderState.pendingStyles;
         renderData.renderState.pendingStyles = null;
-        const state = renderData.renderState;
-        const container = renderData.container;
-        if (container && state.activeElements && Object.keys(state.activeElements).length > 0) {
-            Object.values(state.activeElements).forEach(el => {
-                if (el && el.parentNode === container) {
-                    el.remove();
-                }
-            });
-            state.activeElements = {};
-            state.currentEvents = [];
-            state.currentEventsIndex = null;
-        }
     }
 }
 /**
@@ -584,7 +530,6 @@ function renderSubtitleFrame() {
     const video = renderData.video;
     const container = renderData.container;
     if (!video || !container) return;
-    applyPendingStyles();
     const events = renderData.subObj.parsedData.events;
     const currentTime = Number.isFinite(video.currentTime) ? video.currentTime : 0;
     const state = renderData.renderState;
@@ -612,14 +557,14 @@ function renderSubtitleFrame() {
         // Nếu là dòng mới, tiến hành tạo DOM
         const line = events[index];
         const styleName = line.style || 'Default';
-        let styleCss = renderData.renderState.currentStyles?.[styleName];
+        const styleCss = renderData.renderState.currentStyles[styleName];
         if (!styleCss) {
             sendLogToBackground(`renderer: (7.3.5) style ${line.style} này ko có trong currentStyles?`,"warn");
             styleCss = renderData.defaultStyle;
         }
         const layoutContainer = document.createElement('div'); // Vỏ
         const textNode = document.createElement('span'); // Ruột
-        textNode.innerText = line.text.replace(/\{[^}]*\}/g, ''); // Text (tạm thời xóa hết tag trong text, sẽ xử lí sau)
+        textNode.innerText = line.text;
         Object.assign(layoutContainer.style, styleCss.container);
         Object.assign(textNode.style, styleCss.text);
         layoutContainer.appendChild(textNode);
@@ -641,87 +586,40 @@ function renderSubtitleFrame() {
     state.currentEventsIndex = currentActiveIndices;
 }
 /**
- * 7.3.6. Hàm dừng vòng lặp render theo frame.
- * @param {boolean} keepState có giữ state hiện tại hay không
- */
-function stopRenderLoop(keepState = false) {
-    const state = renderData.renderState;
-    if (state.frameId) {
-        window.cancelAnimationFrame(state.frameId);
-    }
-    state.frameId = null;
-    state.paused = false;
-    state.stopRequested = true;
-    if (!keepState) {
-        state.currentEvents = [];
-        state.currentEventsIndex = null;
-    }
-    window.isAssCeeRendererLoaded = false;
-}
-/**
- * 7.3.6.0. Hàm phát tín hiệu điều khiển vòng lặp render cho renderer và các context khác.
- * @param {string} action 'RENDER.STOP' | 'RENDER.PAUSE' | 'RENDER.RESUME'
- */
-function emitRenderControl(action) {
-    switch (action) {
-        case 'RENDER.STOP':
-            stopRenderLoop();
-            break;
-        case 'RENDER.PAUSE':
-            pauseRenderLoop();
-            break;
-        case 'RENDER.RESUME':
-            resumeRenderLoop();
-            break;
-        default:
-            return;
-    }
-    sendLogToBackground(`renderer: ${action}.`);
-}
-/**
- * 7.3.6.1. Hàm tạm dừng vòng lặp render theo frame.
- */
-function pauseRenderLoop() {
-    const state = renderData.renderState;
-    state.paused = true;
-    state.stopRequested = false;
-    if (state.frameId) {
-        window.cancelAnimationFrame(state.frameId);
-        state.frameId = null;
-    }
-}
-/**
- * 7.3.6.2. Hàm tiếp tục vòng lặp render sau khi tạm dừng.
- */
-function resumeRenderLoop() {
-    const state = renderData.renderState;
-    state.paused = false;
-    state.stopRequested = false;
-    if (renderData.container) {
-        startRenderLoop();
-    }
-}
-/**
- * 7.3.6.3. Hàm chạy vòng lặp render theo frame (Copilot -> Gemini vibe, chưa review)
+ * 7.3.6. Hàm chạy vòng lặp render theo frame (Copilot -> Gemini vibe, chưa review)
  */
 function startRenderLoop() {
-    const state = renderData.renderState;
-    // Nếu đang loop rồi, đang paused, đã stop, hoặc không có container thì block luôn
-    if (state.frameId || !renderData.container || state.paused || state.stopRequested) return;
+    // Nếu đang loop rồi hoặc không có container thì block luôn
+    if (renderData.renderState.frameId || !renderData.container) return;
     const tick = () => {
-        if (state.paused || state.stopRequested || !renderData.container) {
-            state.frameId = null;
-            return;
-        }
         renderSubtitleFrame();
-        // Chỉ đăng ký frame tiếp theo nếu container vẫn tồn tại và loop chưa bị pause/stop
-        if (state.paused || state.stopRequested || !renderData.container) {
-            state.frameId = null;
+        // Chỉ đăng ký frame tiếp theo nếu container vẫn tồn tại
+        if (renderData.container) {
+            renderData.renderState.frameId = window.requestAnimationFrame(tick);
         } else {
-            state.frameId = window.requestAnimationFrame(tick);
+            renderData.renderState.frameId = null; // Xóa ID nếu container bị hủy
         }
     };
-    state.frameId = window.requestAnimationFrame(tick);
+    renderData.renderState.frameId = window.requestAnimationFrame(tick);
+}
+/**
+ * 7.3.7. Gửi log khi dừng vid (Gemini vibe, chưa review)
+ * @returns 
+ */
+function initVideoEvents() {
+    const video = renderData.video;
+    if (!video) return;
+    const logSubState = (eventType) => {
+        const state = renderData.renderState;
+        sendLogToBackground(`renderer: (7.3.7) [Video ${eventType}] State hiện tại:`,"log", {
+            currentEventsIndex: state.currentEventsIndex || [],
+            currentEvents: state.currentEvents || []
+        });
+    };
+    // Khi bấm tạm dừng video
+    video.addEventListener('pause', () => logSubState('Pause'));
+    // Khi người dùng tua video (giữ chuột kéo thanh timeline)
+    video.addEventListener('seeking', () => logSubState('Seeking'));
 }
 renderData.FALLBACK_DEFAULT_STYLE = {
     name: "Default",                            // Tên style (style.name, line.styleref.name, syl.style.name)
@@ -781,35 +679,12 @@ function render(){ // Hàm chạy chính của renderer
     // Áp dụng dữ liệu tính toán được vào khung phụ đề.
     observeParentLayout(renderData.containerParent, renderData.container, renderData.videoAR);
     // Lập trình hàm bám bắt video.
-    // pendingStylesCalculate(); 
-    // Cập nhật style mới tính toán (ở đây là chạy lần đầu)
-    // Trong refresh (observeParentLayout) đã có 1 lần pendingStylesCalculate.
-    if (renderData.renderState.stopRequested || renderData.renderState.paused) {
-        sendLogToBackground(`renderer: renderLoop không khởi tạo do trạng thái paused/stopRequested sau khi tính styles.`, "warn");
-        return;
-    }
-    renderData.renderState.stopRequested = false;
-    renderData.renderState.paused = false;
+    pendingStylesCalculate(); // Cập nhật style mới tính toán (ở đây là chạy lần đầu)
     sendLogToBackground(`renderer: Đã chuẩn bị xong. Tiến hành renderLoop.`);
     startRenderLoop(); // Chạy vòng lặp render theo frame
 }
 // Phần chạy chính của renderer.
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => { // Nhận thủ công (UI bắt background gửi) 
-    if (msg?.type === 'RENDER.PAUSE') {
-        pauseRenderLoop();
-        sendResponse({ type: 'RENDER.CONTROL', action: 'PAUSED' });
-        return;
-    }
-    if (msg?.type === 'RENDER.RESUME') {
-        resumeRenderLoop();
-        sendResponse({ type: 'RENDER.CONTROL', action: 'RESUMED' });
-        return;
-    }
-    if (msg?.type === 'RENDER.STOP') {
-        stopRenderLoop();
-        sendResponse({ type: 'RENDER.CONTROL', action: 'STOPPED' });
-        return;
-    }
     if (msg?.type === 'RENDER' && (msg.payload !== null && typeof msg.payload === 'object' && !Array.isArray(msg.payload))) {
         const currentUrl = window.location.href;
         if (currentUrl.startsWith('about:')) {

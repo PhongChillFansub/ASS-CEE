@@ -1,7 +1,8 @@
-v0.0.0.4 25jun26
+v0.0.0.5 28jun26
 Các hướng tính năng mới cho UI
-- (Hiện tại) Xử lí render
-- (Tiềm năng) Hỗ trợ trên BiliBili, VK Video bên cạnh YouTube?
+1. Chạy trên iframe (background.js) => Hỗ trợ trên BiliBili, VK Video bên cạnh YouTube?
+2. Sửa lỗi sai vị trí của sub (renderer.js)
+3. Hỗ trợ xử lí tag Aegisub (renderer.js)
 
 1. Cấu trúc extension:
   - manifest.JSON
@@ -152,33 +153,43 @@ Các hướng tính năng mới cho UI
     - class="asscee_footer": phần footer
       - span id/class="asscee_footerInfo": phần hiển thị thông tin thêm (vd: khi di chuột đến vị trí nút/dòng cần chú thích)
       - span id/class="asscee_footerMisc": hiển thị thông tin khác (tạm thời trống)
-      
-6. Cấu trúc ui.js
-  6.1. Các hàm tính năng cơ bản
-    6.1.1. sendLogToBackground(): gửi log từ ui.js về background.js (content-side sang background-side)
-    6.1.2. toggleOverlay(): hàm điều khiển ẩn/hiện UI
-    6.1.3. getRelativeTimeString(): hàm xử lí thời gian tương đối (N (đơn vị) trước) và tuyệt đối (HH:MM:SS DD/MM/YYYY)
-    6.1.4. escapeHTML(): Hàm hỗ trợ mã hóa các ký tự đặc biệt tránh XSS
-    6.1.5. decodeHTML(): Hàm ngược của 6.1.4.
-    6.1.6. getYouTubeVideoId(): Hàm lấy YouTube Video ID từ URL hiện tại
 
-  - Đặt obj uiData để quản lí dữ liệu toàn file
+6. Cấu trúc code
+  6.1. background.js (ko tính các hàm import)
+    1. renderSendData(): Hàm thực thi gửi dữ liệu cho renderer (thực ra là cho cả content-side nhưng chỉ renderer nhận)
+    2. onClickedListener(): Hàm lập trình xử lí của background khi nhấn vào icon extension (chạy luôn)
+    3. onHandlersListener(): Hàm lập trình giao tiếp của background-side với content-side (chạy luôn)
+    - Phần định nghĩa giao thức (cho onHandlersListener() ở trên)
+    4. resolveSubtitles(): Hàm xử lý và điều phối tìm kiếm phụ đề dựa trên videoId 
+      (ko tìm bố... à nhầm, cache, vì đã có hàm của storage tìm hộ)
+    5. processSubtitles(): Hàm xử lý và lưu cache.
+
+  6.2. ui.js
+    1. Các hàm bổ trợ cơ bản
+      1.1. sendLogToBackground(): gửi log từ ui.js về background.js (content-side sang background-side)
+      1.2. toggleOverlay(): hàm điều khiển ẩn/hiện UI
+      1.3. getRelativeTimeString(): tính thời gian (N (đơn vị) trước) và tuyệt đối (HH:MM:SS DD/MM/YYYY)
+      1.4. updateVideoIdInUI(): Hàm cập nhật video ID vào UI (hiện tại chỉ hỗ trợ YT.)
+    - Đặt obj uiData để quản lí dữ liệu toàn file
+    2. Các hàm hạng mục tính năng
+      2.1. buildMainHTML(): Hạng mục 1. Khởi tạo khung UI và API của nó.
+      2.2. buildTabListLogic(): Hạng mục 2. Khởi tạo logic trên danh sách trang hiển thị.
+        2.2.1. selectTab(): xử lí lựa chọn trang
+      2.3. buildDragFeature(): Hạng mục 3. Tính năng di chuyển giao diện.
+        2.3.1. handleMove(): xử lí tọa độ UI khi di chuyển
+        2.3.2. barTitleOnClick(): chuyển trạng thái UI sang kéo thả (chuyển vị trí), khi bấm vào thanh tiêu đề
+        2.3.3. barTitleOnClickHold(): xử lí hành động giữ nhấn + di chuyển chuột
+        2.3.4. barTitleOnTouchHold(): xử lí nhấn giữ + di chuyển chạm
+        2.3.5. barTitleOnRelease(): xử lí thả chuột/chạm
+      2.4.
+
+6. Cấu trúc ui.js
+
 
   6.2. Các hàm phục vụ tính năng (build* và các hàm con chạy trong hàm build*)
-    6.2.0. Hạng mục 1.0: Khởi tạo khung UI và API của nó.
-      buildMainHTML(): Hàm chạy mục 1.0
-
-    6.2.1. Hạng mục 1.1: Khởi tạo logic trên danh sách trang hiển thị
-      6.2.1.1. selectTab(): xử lí lựa chọn Trang
-      6.2.1.2. buildTabListLogic(): Hàm chạy mục 1.1
     
-    6.2.2. Hạng mục 1.2: Tính năng di chuyển giao diện
-      6.2.2.1. handleMove(): xử lí tọa độ UI khi di chuyển
-      6.2.2.2. barTitleOnClick(): xử lí hành động nhấn chuột trên barTitle (chuyển trạng thái kéo thả UI)
-      6.2.2.3. barTitleOnClickHold(): xử lí hành động giữ nhấn + di chuyển chuột
-      6.2.2.4. barTitleOnTouchHold(): xử lí nhấn giữ + di chuyển chạm
-      6.2.2.5. barTitleOnRelease(): xử lí thả chuột/chạm
-      6.2.2.6. buildDragFeature(): Hàm chạy mục 1.2
+      
+
     
     6.2.3. Hạng mục 1.3. Tính năng trong tab 1: Quản lí nguồn
       6.2.3.1. renderLinkList(): render danh sách nguồn
@@ -187,23 +198,74 @@ Các hướng tính năng mới cho UI
 
     6.2.4. Hạng mục 1.4. Tính năng trong tab 2: Quản lý phụ đề
     (đang viết đoạn này)
-      6.2.4.1. getYouTubeVideoId(): lấy YouTube Video ID từ URL hiện tại
-      6.2.4.2. updateYouTubeIdInUI(): hàm cập nhật YouTube ID tab hiện tại
-      6.2.4.3. renderSubFileArray(): render danh sách tệp phụ đề
-      6.2.4.4. initSubFileArray(): hàm thực hiện tải danh sách tệp phụ đề từ background.js và chạy render.
+      6.2.4.1. renderSubFileArray(): render danh sách tệp phụ đề
+      6.2.4.2. initSubFileArray(): hàm thực hiện tải danh sách tệp phụ đề từ background.js và chạy render.
         - Cụ thể: nhận searchId (đoạn Id mà người dùng nhập), targetId (Id trên tab đang hiển thị), cacheSearchMode chế độ quét cache/online (true = cache, false = online)
           + targetId sẽ truyền trực tiếp cho renderSubFileArray()
           + Xử lí searchId và cacheSearchMode: Nếu searchId trống thì tìm toàn bộ. Nếu searchId ko trống thì tìm theo Id (trùng)
             - nếu tìm toàn bộ trong cache: thì SUB.GET_ALL với {videoId: searchId} 
             - nếu tìm toàn bộ trong các nguồn online: thì SUB.SEARCH với {videoId: searchId, folderMode = false}
-      6.2.4.5. buildSubtitleManagerTab(): Hàm chạy mục 1.4
+      6.2.4.3. buildSubtitleManagerTab(): Hàm chạy mục 1.4
 
 7. Cấu trúc renderer.js
-  7.1. Các hàm cơ bản
-    7.1.1. sendLogToBackground(): gửi log từ ui.js về background.js (content-side sang background-side)
-
-
-
+  7.0. Cấu trúc đầy đủ của renderData.subObj (tức là subObj hoặc useSubData(), xem mục 2.4.3.1.)
+  renderData.subObj = {
+    videoId,
+    fileObj: {
+        id,
+        fileName,
+        fetchUrl,
+        viewUrl,
+        sourceType,
+        groupName
+    },
+    parsedData: {
+      info: {
+         Title,                      
+            // Tiêu đề (tùy chọn)
+			ScriptType,                 
+            // Phiên bản script (nên là v4.00+)
+			WrapStyle: 0,                  
+            // Cách xuống dòng tự động (0 (mặc định): tự động, dòng trên dài hơn; 1: tự động, chỉ xuống khi chạm rìa (\N); 2: thủ công (\N, \n); 3: tự động, dòng dưới rộng hơn)
+			PlayResX,                   
+            // Độ phân giải video, X (px)
+			PlayResY,                   
+            // Độ phân giải video, Y (px)
+			ScaledBorderAndShadow: true       
+            // Có scale border và shadow theo PlayRes? (0: không, 1: có (mặc định)) (ảnh hưởng đến cách tính kích thước outline/shadow)
+        },
+        styles: array các style có cấu trúc như FALLBACK_DEFAULT_STYLE,
+        events: [{
+            Layer, 
+            Start, 
+            End, 
+            Style, 
+            Name, 
+            // Actor
+            MarginL, 
+            // theo style chứ ko theo line
+            MarginR, 
+            // theo style chứ ko theo line
+            MarginV, 
+            // theo style chứ ko theo line
+            Effect, 
+            // có quan trọng ko?
+            Text
+        }]
+    },
+    cachedAt
+  }
+  7.1. Các hàm tính năng cơ bản
+    7.1.1. (6.1.1.) sendLogToBackground(): gửi log từ ui.js về background.js (content-side sang background-side)
+    7.1.2. (6.1.4. sửa đổi) updateVideoIdInRenderer(): Hàm cập nhật video ID vào UI (hỗ trợ yt, local)
+  7.2. Các hàm chạy tính năng bám bắt video
+    7.2.1. computeAspectFitBounds(): Hàm tính toán khung phụ đề (dựa trên tỉ lệ khung hình cố định của video)
+    7.2.2. applyOverlayBounds(): Hàm áp dụng tọa độ-kích thước mới tính toán vào khung phụ đề hiện có
+    7.2.3. observeParentLayout(): Hàm thiết lập trình bám bắt video
+      7.2.3.1. Hàm refresh() (trong hàm 7.2.3.): Quy định những việc phải làm của Observer
+  7.3. Các hàm chạy tính năng render
+  7.4. Các hàm chạy chính
+    7.4.1.
 
 
 

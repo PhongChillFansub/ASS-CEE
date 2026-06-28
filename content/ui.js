@@ -1,9 +1,10 @@
 // Code bằng tay
-// v0.0.0.4 25jun26
+// v0.0.0.5 28jun26
+var uiData = window.uiData || {}; // Obj lưu toàn bộ dữ liệu UI, có bảo tồn do chạy nhiều lần file ui.js này
 /**
- * 6.1.1. Hàm gửi log về background.js
+ * (6.2.)1.1. Hàm gửi log về background.js
  * @param {string} message nội dung
- * @param {string} type loại nội dung (default: "info" -> log, "warn" -> warn, "error" -> error)
+ * @param {string} type loại nội dung (default: "info" -> log, "warn" -> warn, "error" -> error, "table" -> table)
  * @param {*} extra dữ liệu bổ sung
  */
 function sendLogToBackground(message, type = 'info', extra = undefined) {
@@ -14,14 +15,14 @@ function sendLogToBackground(message, type = 'info', extra = undefined) {
       text: message,
       extra: extra, // Dữ liệu bổ sung (array, object, số, v.v.)
       url: window.location.href,
-      timestamp: new Date().toISOString()
+      timestamp: Date.now()
     }
   }).catch(err => {
     console.warn("[ASS-CEE] ui: Không thể gửi log về background:", err);
   });
 }
 /**
- * 6.1.2. Hàm điều khiển ẩn/hiện của UI
+ * 1.2. Hàm điều khiển ẩn/hiện của UI
  * @param {string} containerId [outdated] Id để giao tiếp với content.js (bản cũ điều khiển ẩn/hiện ở content.js)
  * Bản mới điều khiển trực tiếp trên này
  * @param {boolean} forceShow trạng thái (boolean), nếu undefined thì đảo ngược trạng thái hiện tại
@@ -35,16 +36,16 @@ function toggleOverlay(containerId, forceShow) {
     : window.getComputedStyle(container).display === 'none';
   if (shouldShow) {
     container.style.setProperty('display', 'block', 'important');
-    sendLogToBackground("ui: Đã hiện giao diện UI.");
+    sendLogToBackground("ui: (1.2) Đã hiện giao diện UI.");
   } else {
     container.style.setProperty('display', 'none', 'important');
-    sendLogToBackground("ui: Đã ẩn giao diện UI.");
+    sendLogToBackground("ui: (1.2) Đã ẩn giao diện UI.");
   }
 }
 /**
- * 6.1.3. Tính thời gian tương đối
+ * 1.3. Hàm tính thời gian (N (đơn vị) trước) và tuyệt đối (HH:MM:SS DD/MM/YYYY)
  * @param {string} timestamp thời gian
- * @returns {Object} thời gian tương đối và chính xác
+ * @returns {Object} thời gian tương đối và tuyệt đối
  */
 function getRelativeTimeString(timestamp) {
   const date = new Date(timestamp);
@@ -81,39 +82,42 @@ function getRelativeTimeString(timestamp) {
   return { relative, exact };
 }
 /**
- * 6.1.4. Hàm lấy YouTube Video ID từ URL hiện tại
- * @returns {string} videoId hoặc chuỗi rỗng
+ * 1.4. Hàm cập nhật video ID vào UI
+ * @param {object} uiData Yêu cầu có sẵn uiData
+ * @returns cập nhật lên uiData.currentId
  */
-function getYouTubeVideoId() { return new URLSearchParams(window.location.search).get('v'); }
-// /**
-//  * 6.1.?. Hàm hỗ trợ mã hóa các ký tự đặc biệt tránh XSS
-//  * @param {string} str chuỗi cần mã hóa
-//  * @returns {string} chuỗi đã được mã hóa
-//  */
-// function escapeHTML(str) {
-//   if (!str) return '';
-//   return String(str)
-//     .replace(/&/g, '&amp;')
-//     .replace(/</g, '&lt;')
-//     .replace(/>/g, '&gt;')
-//     .replace(/"/g, '&quot;')
-//     .replace(/'/g, '&#39;');
-// }
-// /**
-//  * 6.1.?. Hàm mã hóa ngược lại của 6.1.4.
-//  * @param {*} text 
-//  * @returns {*} text đã mã hóa ngược lại
-//  */
-// const decodeHTML = text => new DOMParser().parseFromString(text, 'text/html').body.textContent;
-// /**
-//  * 6.1.?. (ẩn) Hàm lấy videoId từ tab (BiliBili) (bỏ qua, thử nghiệm)
-//  * @returns {string} videoId dạng "BV<id:base58>?<p>"
-//  */
-// function getBilibiliVideoId () { return `${window.location.pathname.match(/\/video\/(BV\w+)/)?.[1]}?${new URLSearchParams(window.location.search).get('p') || 1}`; }
-// 6.2. Phần hàm chạy các hạng mục
-var uiData = window.uiData || {}; // Obj lưu toàn bộ dữ liệu UI, có bảo tồn do chạy nhiều lần file ui.js này
+function updateVideoIdInUI() {
+  const getYouTubeVideoId = () => new URLSearchParams(window.location.search).get('v');
+  // Định dạng lưu id YT: "<11 char base64>"
+  // const getBilibiliVideoId = () => `${window.location.pathname.match(/\/video\/(BV\w+)/)?.[1]}?${new URLSearchParams(window.location.search).get('p') || 1}`;
+  // Định dạng lưu id BiliBili: "BV<10 char base58>?<p>"
+  // const getLocalVideoId = (keepFileExtension) => decodeURIComponent(window.location.href).split('/').pop().replace(keepFileExtension ? /^/ : /\.[^/.]+$/, "");
+  // Định dạng lưu id local: "<tên file><đuôi file (có thể tùy chỉnh)>"
+  const url = window.location.href;
+  uiData.currentId = (() => {
+    switch (true) {
+      case url.startsWith('https://www.youtube.com/watch?v='): // Tab YT
+        return getYouTubeVideoId();
+      // case url.startsWith('https://www.bilibili.com/video/'): // Tab BiliBili
+      //   return getBilibiliVideoId();
+      // case url.startsWith('file:///'): // Tab local
+      //   return getLocalVideoId(false);
+      default:
+        sendLogToBackground(`ui: (1.4) Ko thể tách ID từ url ${url}.`,"warn");
+        return null; // Trả về giá trị mặc định nếu không khớp trang nào
+    }
+  if (uiData.currentId) {
+    if (uiData.searchInput) {
+      uiData.searchInput.value = uiData.currentId;
+    } else {
+      sendLogToBackground(`ui: (1.4) searchInput trống? (chưa chạy mục Quản lí dữ liệu?)`,"warn");
+    }
+    sendLogToBackground(`ui: Cập nhật ID video hiện tại: ${uiData.currentId}`);
+  }
+  })();
+}
 /**
- * 6.2.0. Hàm chạy mục 1.0. Khởi tạo khung UI và API của nó.
+ * 2.1. Hàm chạy hạng mục 1. Khởi tạo khung UI và API của nó.
  */
 function buildMainHTML() {
   uiData.extensionName = 'ASS-CEE';
@@ -190,32 +194,7 @@ function buildMainHTML() {
     });
 }
 /**
- * 6.2.1.1. Hàm xử lí lựa chọn trang (dùng trong mục 1.1.)
- * @param {string} tabId ở đây là giá trị của thuộc tính data-asscee_tab-target
- * @returns {void} Kết quả: thay đổi thuộc tính active của tab
- */
-function selectTab(tabId) {
-  const tabLabel = uiData.tabMap[tabId] || 'Tab không xác định';
-  uiData.titleText.textContent = `${uiData.extensionName} (${tabLabel})`;
-  // sendLogToBackground(`Người dùng chuyển sang tab: ${tabLabel}`);
-  uiData.tabItemBtns.forEach(btn => {
-    const target = btn.getAttribute('data-asscee_tab-target');
-    if (target === tabId) {
-      btn.classList.add('active');
-    } else {
-      btn.classList.remove('active');
-    }
-  });
-  uiData.tabContents.forEach(content => {
-    if (content.id === `asscee_${tabId}_content`) {
-      content.classList.add('active');
-    } else {
-      content.classList.remove('active');
-    }
-  });
-}
-/**
- * 6.2.1.2. Hàm chạy mục 1.1. Khởi tạo logic trên danh sách trang hiển thị
+ * 2.2. Hàm chạy hạng mục 2. Khởi tạo logic trên danh sách trang hiển thị.
  */
 function buildTabListLogic() {
     // Xử lí thao tác bấm nút tabListBtn
@@ -248,92 +227,35 @@ function buildTabListLogic() {
   selectTab('tab1');
 }
 /**
- * 6.2.2.1. Hàm trung tâm, xử lí tọa độ UI khi di chuyển (dùng trong mục 1.2.)
- * @param {number} clientX vị trí con trỏ (x)
- * @param {number} clientY vị trí con trỏ (y)
- * @returns {Object} uiData.container.style.left, uiData.container.style.top = newLeft, newTop:
- * vị trí mới của góc trên bên trái UI
+ * 2.2.1. Hàm xử lí lựa chọn trang (dùng trong hạng mục 2)
+ * @param {string} tabId ở đây là giá trị của thuộc tính data-asscee_tab-target
+ * @returns {void} Kết quả: thay đổi thuộc tính active của tab
  */
-function handleMove(clientX, clientY) {
-  let newLeft = clientX - uiData.offsetX;
-  let newTop = clientY - uiData.offsetY;
-  // Tính toán tọa độ thô của UI
-  const viewportWidth = window.innerWidth;
-  const viewportHeight = window.innerHeight;
-  const extWidth = 400; 
-  const extHeight = 400;
-  // Lấy kích thước khung UI và của cửa sổ trình duyệt
-  newLeft = Math.max(0, Math.min(newLeft, viewportWidth - extWidth));
-  newTop = Math.max(0, Math.min(newTop, viewportHeight - extHeight));
-  // Bảo vệ tọa độ UI (tránh UI bay ra ngoài cửa sổ)
-  uiData.container.style.right = 'auto';
-  uiData.container.style.bottom = 'auto';
-  // Cài đặt lại UI, lấy góc trên bên trái làm gốc
-  uiData.container.style.left = `${newLeft}px`;
-  uiData.container.style.top = `${newTop}px`;
-  // Áp dụng tọa độ
+function selectTab(tabId) {
+  const tabLabel = uiData.tabMap[tabId] || 'Tab không xác định';
+  uiData.titleText.textContent = `${uiData.extensionName} (${tabLabel})`;
+  // sendLogToBackground(`Người dùng chuyển sang tab: ${tabLabel}`);
+  uiData.tabItemBtns.forEach(btn => {
+    const target = btn.getAttribute('data-asscee_tab-target');
+    if (target === tabId) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+  uiData.tabContents.forEach(content => {
+    if (content.id === `asscee_${tabId}_content`) {
+      content.classList.add('active');
+    } else {
+      content.classList.remove('active');
+    }
+  });
 }
 /**
- * 6.2.2.2. Hàm chuyển trạng thái UI sang kéo thả (chuyển vị trí), khi bấm vào thanh tiêu đề (dùng trong mục 1.2.)
- * @param {number} clientX vị trí con trỏ (x)
- * @param {number} clientY vị trí con trỏ (y)
- * @returns {void} Đầu ra: mở thao tác di chuyển UI (addEventListener) bằng chuột
- */
-function barTitleOnClick(clientX, clientY) {
-  uiData.isDragging = true; // Bật trạng thái kéo thả UI
-  uiData.barTitle.style.cursor = 'grabbing'; // Đổi icon của con trỏ sang 'grabbing' (tay nắm)
-  const rect = uiData.container.getBoundingClientRect(); // Lấy tọa độ 4 góc của UI để tính offset
-  uiData.offsetX = clientX - rect.left; // Tính toán offsetX
-  uiData.offsetY = clientY - rect.top; // Tính toán offsetY
-  document.addEventListener('mousemove', barTitleOnClickHold, { passive: false });
-  document.addEventListener('mouseup', barTitleOnRelease);
-  // Mở cặp thao tác di chuyển khi nhấn giữ + di chuyển, và thả chuột.
-  document.addEventListener('touchmove', barTitleOnTouchHold, { passive: false });
-  document.addEventListener('touchend', barTitleOnRelease);
-  // Tương tự với màn hình cảm ứng (chưa test)
-}
-/**
- * 6.2.2.3. Hàm xử lí nhấn giữ + di chuyển chuột (dùng trong mục 1.2.)
- * @param {MouseEvent} e (ko rõ)
- * @returns {void} chạy handleMove()
- */
-function barTitleOnClickHold(e) {
-  if (!uiData.isDragging) return;
-  e.preventDefault();
-  handleMove(e.clientX, e.clientY);
-}
-/**
- * 6.2.2.4. Hàm xử lí nhấn giữ + di chuyển chạm (chưa test) (dùng trong mục 1.2.)
- * @param {TouchEvent} e (ko rõ)
- * @returns {void} chạy handleMove()
- */
-function barTitleOnTouchHold(e) {
-  if (!uiData.isDragging) return;
-  e.preventDefault();
-  const touch = e.touches[0];
-  handleMove(touch.clientX, touch.clientY);
-}
-/**
- * 6.2.2.5. Hàm xử lí thả chuột/chạm (dùng trong mục 1.2.)
- * @returns {void} Đầu ra: tắt thao tác di chuyển UI (removeEventListener)
- */
-function barTitleOnRelease() {
-  if (uiData.isDragging) {
-    uiData.isDragging = false; // Tắt trạng thái kéo thả UI
-    uiData.barTitle.style.cursor = 'grab'; // Đưa icon con trỏ về 'grab'
-    document.removeEventListener('mousemove', barTitleOnClickHold);
-    document.removeEventListener('mouseup', barTitleOnRelease);
-    document.removeEventListener('touchmove', barTitleOnTouchHold);
-    document.removeEventListener('touchend', barTitleOnRelease);
-    // Đóng các thao tác kéo thả UI
-    // sendLogToBackground(`ui: Đã dời vị trí Extension tới tọa độ mới: left=${uiData.container.style.left}, top=${uiData.container.style.top}`);
-  }
-}
-/**
- * 6.2.2.6. Hàm chạy mục 1.2. Tính năng di chuyển giao diện
+ * 2.3. Hàm chạy hạng mục 3. Tính năng di chuyển giao diện.
  */
 function buildDragFeature() {
-uiData.isDragging = false; // Trạng thái kéo thả UI
+  uiData.isDragging = false; // Trạng thái kéo thả UI
   uiData.offsetX = 0; // Vị trí của chuột so với góc trên bên trái của UI, chiều X
   uiData.offsetY = 0; // Vị trí tương tự, chiều Y
   // Xử lí thao tác bấm chuột vào thanh tiêu đề 
@@ -362,6 +284,89 @@ uiData.isDragging = false; // Trạng thái kéo thả UI
     }
   });
 }
+/**
+ * 2.3.1. Hàm xử lí tọa độ UI khi di chuyển (dùng trong hạng mục 3)
+ * @param {number} clientX vị trí con trỏ (x)
+ * @param {number} clientY vị trí con trỏ (y)
+ * @returns {Object} uiData.container.style.left, uiData.container.style.top = newLeft, newTop:
+ * vị trí mới của góc trên bên trái UI
+ */
+function handleMove(clientX, clientY) {
+  let newLeft = clientX - uiData.offsetX;
+  let newTop = clientY - uiData.offsetY;
+  // Tính toán tọa độ thô của UI
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const extWidth = 400; 
+  const extHeight = 400;
+  // Lấy kích thước khung UI và của cửa sổ trình duyệt
+  newLeft = Math.max(0, Math.min(newLeft, viewportWidth - extWidth));
+  newTop = Math.max(0, Math.min(newTop, viewportHeight - extHeight));
+  // Bảo vệ tọa độ UI (tránh UI bay ra ngoài cửa sổ)
+  uiData.container.style.right = 'auto';
+  uiData.container.style.bottom = 'auto';
+  // Cài đặt lại UI, lấy góc trên bên trái làm gốc
+  uiData.container.style.left = `${newLeft}px`;
+  uiData.container.style.top = `${newTop}px`;
+  // Áp dụng tọa độ
+}
+/**
+ * 2.3.2. Hàm chuyển trạng thái UI sang kéo thả (chuyển vị trí), khi bấm vào thanh tiêu đề (dùng trong hạng mục 3)
+ * @param {number} clientX vị trí con trỏ (x)
+ * @param {number} clientY vị trí con trỏ (y)
+ * @returns {void} Đầu ra: mở thao tác di chuyển UI (addEventListener) bằng chuột
+ */
+function barTitleOnClick(clientX, clientY) {
+  uiData.isDragging = true; // Bật trạng thái kéo thả UI
+  uiData.barTitle.style.cursor = 'grabbing'; // Đổi icon của con trỏ sang 'grabbing' (tay nắm)
+  const rect = uiData.container.getBoundingClientRect(); // Lấy tọa độ 4 góc của UI để tính offset
+  uiData.offsetX = clientX - rect.left; // Tính toán offsetX
+  uiData.offsetY = clientY - rect.top; // Tính toán offsetY
+  document.addEventListener('mousemove', barTitleOnClickHold, { passive: false });
+  document.addEventListener('mouseup', barTitleOnRelease);
+  // Mở cặp thao tác di chuyển khi nhấn giữ + di chuyển, và thả chuột.
+  document.addEventListener('touchmove', barTitleOnTouchHold, { passive: false });
+  document.addEventListener('touchend', barTitleOnRelease);
+  // Tương tự với màn hình cảm ứng (chưa test)
+}
+/**
+ * 2.3.3. Hàm xử lí nhấn giữ + di chuyển chuột (dùng trong hạng mục 3)
+ * @param {MouseEvent} e (ko rõ)
+ * @returns {void} chạy handleMove()
+ */
+function barTitleOnClickHold(e) {
+  if (!uiData.isDragging) return;
+  e.preventDefault();
+  handleMove(e.clientX, e.clientY);
+}
+/**
+ * 2.3.4. Hàm xử lí nhấn giữ + di chuyển chạm (chưa test) (dùng trong hạng mục 3)
+ * @param {TouchEvent} e (ko rõ)
+ * @returns {void} chạy handleMove()
+ */
+function barTitleOnTouchHold(e) {
+  if (!uiData.isDragging) return;
+  e.preventDefault();
+  const touch = e.touches[0];
+  handleMove(touch.clientX, touch.clientY);
+}
+/**
+ * 2.3.5. Hàm xử lí thả chuột/chạm (dùng trong hạng mục 3)
+ * @returns {void} Đầu ra: tắt thao tác di chuyển UI (removeEventListener)
+ */
+function barTitleOnRelease() {
+  if (uiData.isDragging) {
+    uiData.isDragging = false; // Tắt trạng thái kéo thả UI
+    uiData.barTitle.style.cursor = 'grab'; // Đưa icon con trỏ về 'grab'
+    document.removeEventListener('mousemove', barTitleOnClickHold);
+    document.removeEventListener('mouseup', barTitleOnRelease);
+    document.removeEventListener('touchmove', barTitleOnTouchHold);
+    document.removeEventListener('touchend', barTitleOnRelease);
+    // Đóng các thao tác kéo thả UI
+    // sendLogToBackground(`ui: Đã dời vị trí Extension tới tọa độ mới: left=${uiData.container.style.left}, top=${uiData.container.style.top}`);
+  }
+}
+
 /**
  * 6.2.3.1. Hàm render danh sách nguồn (dùng trong mục 1.3.)
  * @param {Array<Object>} linksArray danh sách nguồn (nhận getSourceList() từ background/storage.js, xem pipeline mục 2.2)
@@ -393,7 +398,7 @@ function renderLinkList(linksArray) {
         row1.className = "asscee_ItemRow";
         const titleSpan = document.createElement("span");
           titleSpan.className = "asscee_Text asscee_ItemTitle";
-          titleSpan.textContent = item.folderName; // textContent tự bảo vệ trước XSS và giữ nguyên bản ký tự đặc biệt (ví dụ: '&')
+          titleSpan.textContent = item.folderName;
           titleSpan.title = `${item.folderName}\n${li.title}`;
         row1.appendChild(titleSpan);
         const deleteBtn = document.createElement("button");
@@ -569,22 +574,12 @@ async function buildSourceManagerTab() {
   });
   await initSourceList();
 }
-/**
- * 6.2.4.1. Hàm cập nhật ID vào UI
- */
-function updateVideoIdInUI() {
-  uiData.currentId = getYouTubeVideoId(); // Hàm lấy ID hiện tại của bạn
-  if (uiData && uiData.currentId && uiData.searchInput) {
-    uiData.searchInput.value = uiData.currentId;
-    sendLogToBackground(`ui: Cập nhật ID video YouTube hiện tại: ${uiData.currentId}`);
-  }
-}
 // Lắng nghe khi người dùng bấm xem video khác trên YouTube (không load lại trang)
 document.addEventListener("yt-navigate-finish", () => {
   updateVideoIdInUI();
 });
 /**
- * 6.2.4.2. Hàm render danh sách tệp phụ đề (mục 1.4)
+ * 6.2.4.1. Hàm render danh sách tệp phụ đề (mục 1.4)
  * @param {Array} candidates danh sách các file phụ đề 
  * (xem mục 2.3.2 (candidates) với quét file online, 2.4.3.2 (cacheList) với quét cache)
  * (chú ý: candidate.videoId/cachedId là thuộc tính chỉ cacheList có, candidates ko có)
@@ -705,7 +700,7 @@ function renderSubFileArray(candidates, searchId, targetId, cacheSearchMode = fa
           console.error("Lỗi khi áp dụng phụ đề:", chrome.runtime.lastError.message);
           return;
         }
-        sendLogToBackground(`ui: Đã chọn áp dụng phụ đề cho video ID: ${targetId}:`, "info");
+        sendLogToBackground(`ui: Đã chọn áp dụng phụ đề cho video ID: ${targetId}.`, "info");
       });
     });
     if (!targetId || !cacheSearchMode) {
@@ -730,7 +725,7 @@ function renderSubFileArray(candidates, searchId, targetId, cacheSearchMode = fa
           return;
         }
         if (response && response.type === "SUB.REMOVED" && response.payload === true) {
-          sendLogToBackground(`ui: Đã xóa phụ đề cache của video ID: ${candidate.videoId}`);
+          sendLogToBackground(`ui: Đã xóa phụ đề cache của video ID: ${candidate.videoId}.`);
           chrome.runtime.sendMessage({ type: "SUB.GET_ALL", payload: { videoId: searchId } }, (cacheResponse) => {
             if (cacheResponse && cacheResponse.type === "SUB.LIST") {
               renderSubFileArray(cacheResponse.payload, searchId, targetId, true);
@@ -750,7 +745,7 @@ function renderSubFileArray(candidates, searchId, targetId, cacheSearchMode = fa
   uiData.subFileArray.appendChild(fragment);
 }
 /**
- * 6.2.4.3. Tải danh sách tệp phụ đề từ background.js và render vào tab 2
+ * 6.2.4.2. Tải danh sách tệp phụ đề từ background.js và render vào tab 2
  * @param {string} searchId Id mà user tìm kiếm (thanh tìm kiếm. nếu để trống tức là tìm toàn bộ nguồn/cache)
  * @param {string} targetId Id trích từ tab hiện tại
  * @param {boolean} cacheSearchMode chế độ quét cache hay quét online (true = cache, false = online)
@@ -776,7 +771,7 @@ async function initSubFileArray(searchId = "", targetId = "", cacheSearchMode = 
   });
 }
 /**
- * 6.2.4.4. Hàm chạy mục 1.4. Tính năng trong tab 2: Quản lý phụ đề
+ * 6.2.4.3. Hàm chạy mục 1.4. Tính năng trong tab 2: Quản lý phụ đề
  */
 function buildSubtitleManagerTab() {
   if (!uiData.tabContents[1]) {
@@ -915,6 +910,11 @@ function buildSubtitleManagerTab() {
 (async function() {
   'use strict';
   uiData.containerId = 'asscee_overlayRoot';
+  const currentUrl = window.location.href;
+  if (currentUrl.startsWith('about:')) {
+    sendLogToBackground("[ASS-CEE] ui: Bỏ qua trang about: vì UI không chạy ở đây. " + currentUrl, "warn");
+    return;
+  }
   if (document.getElementById(uiData.containerId)) return;
   sendLogToBackground("ui: Đang khởi tạo giao diện nội bộ.");
   try {
@@ -957,8 +957,10 @@ function buildSubtitleManagerTab() {
   }
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.action === "TOGGLE_OVERLAY_SIGNAL") {
-      toggleOverlay(uiData.containerId);
+      toggleOverlay(uiData.containerId, msg.payload);
+      sendResponse({ ok: true });
+      return true;
     }
   });
-  window.isAssCeeLoaded = true; // Để cho background kiểm tra.
+  window.isAssCeeUILoaded = true; // Để cho background kiểm tra.
 })();

@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.0.4 23jun26
+// v0.0.0.4 27jun26
 // parser.js
 // Chức năng: xử lí kế tiếp, giai đoạn từ giai đoạn có file sub thô (rawText) đến cấu trúc file sub JS (line.raw)
 // hàm export là parseAegisubRaw (từ rawText đến cấu trúc JS)
@@ -68,9 +68,8 @@ export default function parser(rawText) {
 		return parsedData;
 	};
 	// Nếu ko có rawText, trả về Data trống và gửi log lỗi text trống.
-	const subtitles = rawText.split(/\r\n/); // Tạm thời chỉ hỗ trợ file sub trên Windows. 
+	const subtitles = rawText.split(/\r?\n/); 
 	// Đặt tên là subtitles/subtitle để tương ứng với array subtitles trong Lua Automation của Aegisub.
-	// to-do: tùy chọn hỗ trợ Windows (\r\n), Unix (\n)???, Mac (\r)???
 	let currentSection = '';
 	// index phân đoạn (phần trong dấu []).
 	let styleFormat = []; 
@@ -83,6 +82,22 @@ export default function parser(rawText) {
 		const beIgnored = !line || line.startsWith(';');
 		if (beIgnored) { continue }; // Nếu line trống (""), hoặc bắt đầu bằng ";" thì bỏ qua. ";" là phần credit của app (trong phần Script Info).
 		if (line.startsWith('[') && line.endsWith(']')) { currentSection = line.trim(); continue; } // Lưu phân đoạn
+		let isContinuation = currentSection === '[Events]' && 
+		                     !line.startsWith('Dialogue:') && 
+		                     !line.startsWith('Comment:') && 
+		                     !line.startsWith('Format:');
+		if (isContinuation) {
+			if (parsedData._lastRawDialogue) {
+				parsedData.events.pop(); // Loại bỏ dòng Dialogue bị lỗi, thiếu trường trước đó
+				line = parsedData._lastRawDialogue.raw + '\n' + line; // Ghép dòng lỗi đó với dòng hiện tại
+				isContinuation = false; // Đánh dấu đã khôi phục xong để tiếp tục parse phía dưới
+			} else {
+				continue; // Bỏ qua nếu là dòng rác hoặc dòng comment bị lỗi xuống dòng
+			}
+		}
+		if (!isContinuation) {
+			parsedData._lastRawDialogue = null; // Reset trạng thái nếu đây là dòng chuẩn mới
+		}
 		if (currentSection === '[Script Info]') {
 			// Trong đoạn Script Info, lưu các thông số:
 			// 		Title: để hiển thị.
@@ -100,7 +115,7 @@ export default function parser(rawText) {
 					console.warn(`[ASS-CEE] parser: Tin... File chuẩn chưa em? (Extension ko hỗ trợ tốt với ScriptType=${v})`);
 				}
 			}
-		} else if (currentSection === 'V4+ Styles') {
+		} else if (currentSection === '[V4+ Styles]') {
 			// Trong đoạn V4+ Styles, dòng format lưu các key, dòng Style lưu value
 			if (line.startsWith('Format:')) {
 				// Dòng format, ngăn cách tên các key (ở đây coi là value của array) bởi dấu ","
@@ -123,7 +138,7 @@ export default function parser(rawText) {
 					// Xét với mỗi index (styleIndex)- value (styleField) trong array styleFormat
                     let styleValue = styleValues[styleIndex] || '';
 					// Đặt biến tạm thời styleValue lấy bằng styleValues[styleIndex] (hoặc trống nếu i vượt quá. Có thể vượt quá à?) 
-                    if (styleField.toLowerCase().includes('color')) {
+                    if (styleField.toLowerCase().includes('colour')) {
 						// Nhận diện các styleValue có định dạng màu (tìm theo styleField tương ứng của nó.)
                         styleValue = convertAegisubColorToCss(styleValue);
 						// Đổi định dạng màu.
@@ -137,7 +152,7 @@ export default function parser(rawText) {
 				// Chú ý: Name của Style có thể bỏ trống ('') và vẫn hợp lệ
 				parsedData.styles.push(style);
 			}
-		} else if (currentSection === 'Events') {
+		} else if (currentSection === '[Events]') {
 			// Trong đoạn Events, cấu trúc cũng tương tự đoạn Styles.
 			if (line.startsWith('Format:')) { // Dòng format.
 				eventFormat = line.replace('Format:', '').split(',').map(s => s.trim());
@@ -176,19 +191,21 @@ export default function parser(rawText) {
 					}
 					orgline[toCamelCase(eventField)] = eventValue;
 				});
+				orgline.raw = line; // Lưu lại chuỗi gốc đề phòng dòng tiếp theo bị ngắt
+				parsedData._lastRawDialogue = orgline; // Lưu tham chiếu dòng dialogue mới nhất
 				parsedData.events.push(orgline);
       }
 		}
 	}
 	// Phần sắp xếp (để thuận tiện cho renderer). Quy tắc: theo .startTime tăng dần, theo .endTime giảm dần
-	if (parsedData.events && parsedData.events.length > 0) {
-			parsedData.events.sort((lineA, lineB) => {
-					// Tầng 1: So sánh Start Time tăng dần
-					if (lineA.startTime !== lineB.startTime) return lineA.startTime - lineB.startTime;
-					// Tầng 2: Nếu trùng Start Time -> So sánh End Time GIẢM DẦN
-					return lineB.endTime - lineA.endTime;
-			});
-	}
-	console.log("[ASS-CEE] parser: Đã xử lí xong.");
+	// if (parsedData.events && parsedData.events.length > 0) {
+	// 		parsedData.events.sort((lineA, lineB) => {
+	// 				// Tầng 1: So sánh Start Time tăng dần
+	// 				if (lineA.startTime !== lineB.startTime) return lineA.startTime - lineB.startTime;
+	// 				// Tầng 2: Nếu trùng Start Time -> So sánh End Time GIẢM DẦN
+	// 				return lineB.endTime - lineA.endTime;
+	// 		});
+	// }
+	console.log("[ASS-CEE] parser: Đã xử lí xong.", parsedData);
 	return parsedData;
 }

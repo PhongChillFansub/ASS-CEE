@@ -8,6 +8,38 @@ const VALID_FILE_SIGNATURE = ["[Script Info]", "[V4+ Styles]", "[Events]"];
 // 2 hàm export là fetchSubtitleText (từ link file sub tới rawText)
 // và fetchSubtitleFile (từ danh sách link thư mục nguồn đến danh sách link file sub)
 /**
+ * Hàm decode HTML (phần decode để chống XSS.)
+ * @param {*} text trước
+ * @returns {*} text sau
+ */
+/**
+ * Hàm decode HTML (phần decode để chống XSS) hoạt động trong Service Worker
+ * @param {string} text - Văn bản chứa thực thể HTML cần giải mã
+ * @returns {string} - Văn bản sau khi đã giải mã
+ */
+const decodeHTML = (text) => {
+  if (!text) return '';
+  return text.replace(/&([^;]+);/g, (match, entity) => {
+    // Xử lý các thực thể dạng số (ví dụ: &#39; hoặc &#x27;)
+    if (entity.startsWith('#')) {
+      const code = entity[1]?.toLowerCase() === 'x'
+        ? parseInt(entity.slice(2), 16)
+        : parseInt(entity.slice(1), 10);
+      return isNaN(code) ? match : String.fromCharCode(code);
+    }
+    // Xử lý các thực thể ký tự phổ biến
+    const htmlEntities = {
+      amp: '&',
+      lt: '<',
+      gt: '>',
+      quot: '"',
+      apos: "'",
+      nbsp: ' '
+    };
+    return htmlEntities[entity] || match;
+  });
+};
+/**
  * Hàm nhận URL GDrive của file sub qua cấu trúc obj URL file sub (candidate), tải về text của file sub
  * @param {*} candidate candidate (hoặc results.push) = {
     id,
@@ -249,7 +281,7 @@ async function scanGDrive(source, videoId, folderName = { groupName: '',id: '' }
                 .replace(/Google\s+Drive\s*-\s*/i, ""); // Xóa cụm "Google Drive - " (nếu có)
         }
         // Nếu tìm thấy thì lấy nhóm 1 và xóa khoảng trắng, nếu không thấy thì để tên mặc định
-        folderName.groupName = extractedName || "undefined_GDrive";
+        folderName.groupName = decodeHTML(extractedName) || "undefined_GDrive";
         folderName.id = folderId;
         // console.log(`[ASS-CEE] fetcher: Đã nhận diện tên thư mục: "${folderName.groupName}"`);
         // CHẨN ĐOÁN 2: Kiểm tra cấu trúc regex có khớp được dữ liệu thô nào không
@@ -280,11 +312,12 @@ async function scanGDrive(source, videoId, folderName = { groupName: '',id: '' }
         while ((match = entryRegex.exec(html)) !== null) {
             const [_, id, name] = match;
             // 6. Kiểm tra điều kiện định dạng và mã video
-            if (name.endsWith('.ass') && (!videoId || isMatchingSubtitle(name, videoId))) {
+            const decodedName = decodeHTML(name);
+            if (decodedName.endsWith('.ass') && (!videoId || isMatchingSubtitle(decodedName, videoId))) {
 				// isMatchingSubtitle()?
                 results.push({
                     id: id,
-                    fileName: name,
+                    fileName: decodedName,
                     // URL cấu hình tải trực tiếp file thô từ Drive mà không cần API Key
                     fetchUrl: `https://docs.google.com/uc?export=download&id=${id}`,
                     viewUrl: source.url,
