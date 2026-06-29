@@ -1,6 +1,8 @@
 # Aegisub SoftSub Chrome Extension Engine (ASS-CEE)
 **(Tái bút: lúc mới làm, tôi nghĩ ra quả tên khá khúm núm như vậy, hay gọi là extension (tiện ích) "Dự án 47" đi)**
 
+**[Trao đổi về tiện ích này tại đây](https://github.com/PhongChillFansub/ASS-CEE/discussions/3)**
+
 ---
 
 Tiện ích này được truyền cảm hứng từ 4 repo/extension khác là [Kull-Vietsub](https://github.com/zingky/Kull-Vietsub), [+Sub](https://github.com/plussub/plussub), [ASS.js](https://github.com/weizhenye/ASS) và [AxTongue](https://chromewebstore.google.com/detail/axtongue/ilbfbiamkpljhkhnhjiikeikefogpffh).
