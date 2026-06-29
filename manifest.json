@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "ASS-CEE 25jun26",
+  "name": "ASS-CEE 28jun26",
   "author": "PhongChillFansub",
-  "version": "0.0.0.4",
+  "version": "0.0.0.5",
   "description": "Hiển thị phụ đề Aegisub trên YouTube",
   "permissions": ["storage", "activeTab", "scripting", "unlimitedStorage"],
   "optional_host_permissions": [

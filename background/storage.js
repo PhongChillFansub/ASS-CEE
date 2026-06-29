@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.0.4 25jun26
+// v0.0.0.5 28jun26
 // storage.js
 // Chức năng: chuyên xử lí lưu trữ trên chrome.storage.local.
 // 7 hàm export là:

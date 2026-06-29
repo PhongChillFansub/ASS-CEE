@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.0.4 26jun26
+// v0.0.0.5 28jun26
 import { fetchSubtitleText, fetchSubtitleFile } from './fetcher.js';
 // 2 hàm fetchSubtitleText, fetchSubtitleFile
 import { addSource, getSourceList, removeSource, addSubData, getSubDataList, useSubData, removeSubData } from './storage.js';
@@ -7,191 +7,125 @@ import { addSource, getSourceList, removeSource, addSubData, getSubDataList, use
 import parser from './parser.js';
 // 1 hàm parser
 /**
- * Hàm gửi data cho render
+ * (6.1.)1. Hàm gửi dữ liệu cho renderer chạy (msg: {type: "RENDER", payload: subObj})
  * @param {*} subObj subObj (xem mục 2.4.3.1 pipeline)
  */
 async function renderSendData(subObj) {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true }); 
+  // Lấy array các tab (thực ra có mỗi 1 cái, vì vừa active vừa là currentWindow)
   if (!tab?.url || tab.url.startsWith("chrome://") || tab.url.startsWith("coccoc://") || tab.url.startsWith("edge://")) {
-    console.log("[ASS-CEE] background: Không render trên tab này.","warn");
+    console.warn("[ASS-CEE] background: Không render trên tab này.");
     return;
-  }
+  } // Check url, nếu là tab nội bộ trình duyệt thì né.
   try {
     await chrome.tabs.sendMessage(tab.id, { type: 'RENDER', payload: subObj });
     console.log("[ASS-CEE] background: Gửi tín hiệu render thành công.");
   } catch (error) {
-    console.log("[ASS-CEE] background: Gửi tín hiệu render thất bại.", error.message);
-  }
+    console.error("[ASS-CEE] background: Gửi tín hiệu render thất bại.", error.message);
+  } // Check cả chương trình chạy của renderer (có lẽ thế, vì tín hiệu này là chạy luôn hàm render() trong renderer.)
   return;
 }
-/**
- * Hàm phụ trợ để gửi tin nhắn đến tất cả các frames trong một Tab (thử nghiệm)
- * @param {*} tabId 
- * @param {*} message 
+(/**
+ * 2. Hàm lập trình xử lí của background khi nhấn vào icon extension (chạy luôn)
  */
-async function sendMessageToAllFrames(tabId, message) {
-  try {
-    const frames = await chrome.webNavigation.getAllFrames({ tabId });
-    let atLeastOneSuccess = false;
-    const sendPromises = frames.map(async (frame) => {
-      try {
-        // Thiết lập cuộc đua: Giới hạn thời gian gửi tin nhắn tối đa 150ms
-        const sendMessagePromise = chrome.tabs.sendMessage(tabId, message, { frameId: frame.frameId });
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error("Timeout")), 150)
-        );
-        // Nếu quá 150ms mà không có phản hồi, timeoutPromise sẽ thắng cuộc đua và ném lỗi ra catch
-        await Promise.race([sendMessagePromise, timeoutPromise]);
-        atLeastOneSuccess = true; // Ghi nhận gửi thành công nếu sendMessage hoàn thành trước
-      } catch (err) {
-        // Bỏ qua lỗi kết nối hoặc lỗi timeout của frame này để tiếp tục xử lý các frame khác
-        console.warn(`[ASS-CEE] background: Bỏ qua frame ${frame.frameId} do lỗi:`, err.message);
-      }
-    });
-    await Promise.all(sendPromises);
-    return atLeastOneSuccess;
-  } catch (e) {
-    console.error("[ASS-CEE] background: Lỗi khi lấy danh sách frames để gửi tin nhắn:", e);
-    return false;
-  }
-}
-/**
- * Hàm chờ (Copilot, vibe, quá phức tạp để check :sad)
- * @param {*} tabId 
- * @param {*} maxWaitMs 
- * @param {*} intervalMs 
- * @returns 
- */
-async function waitForPageScripts(tabId, maxWaitMs = 2000, intervalMs = 100) {
-  const startTime = Date.now();
-  while (Date.now() - startTime < maxWaitMs) {
-    const checkResult = await chrome.scripting.executeScript({
-      target: { tabId, allFrames: false },
-      func: () => ({
-        uiLoaded: window.isAssCeeUiLoaded === true,
-        rendererLoaded: window.isAssCeeRendererLoaded === true
-      })
-    });
-    const { uiLoaded, rendererLoaded } = checkResult?.[0]?.result || {};
-    if (uiLoaded && rendererLoaded) {
-      return { uiLoaded, rendererLoaded };
+function onClickedListener() {
+  chrome.action.onClicked.addListener(async (tab) => {
+    if (!tab?.url || tab.url.startsWith("chrome://") || tab.url.startsWith("coccoc://") || tab.url.startsWith("edge://")) {
+      console.warn("[ASS-CEE] background: Không thể nạp ui.js/renderer.js trên trang này do hạn chế của trình duyệt.");
+      return;
     }
-    await new Promise(resolve => setTimeout(resolve, intervalMs));
-  }
-  const finalCheck = await chrome.scripting.executeScript({
-    target: { tabId, allFrames: false },
-    func: () => ({
-      uiLoaded: window.isAssCeeUiLoaded === true,
-      rendererLoaded: window.isAssCeeRendererLoaded === true
-    })
-  });
-  return finalCheck?.[0]?.result || { uiLoaded: false, rendererLoaded: false };
-}
-// Phần xử lí của background khi nhấn vào icon extension
-chrome.action.onClicked.addListener(async (tab) => {
-  if (!tab?.url || tab.url.startsWith("chrome://") || tab.url.startsWith("coccoc://") || tab.url.startsWith("edge://")) {
-    console.log("[ASS-CEE] background: Không thể nạp ui.js/renderer.js trên trang này do hạn chế của trình duyệt.","warn");
-    return;
-  }
-  const tabId = tab.id;
-  try {
-    // console.log("[ASS-CEE] background: Đang thử gửi tín hiệu Toggle...");
-    // 1. Gửi tin nhắn kiểm tra ban đầu
-    let isDelivered = await sendMessageToAllFrames(tabId, { action: "TOGGLE_OVERLAY_SIGNAL" });
-    // 2. Kiểm tra đồng thời cả UI và Renderer xem đã nạp chưa
-    let checkResult = await chrome.scripting.executeScript({
-      target: { tabId, allFrames: false },
-      func: () => ({
-        uiLoaded: window.isAssCeeUiLoaded === true,
-        rendererLoaded: window.isAssCeeRendererLoaded === true
-      })
-    });
-    let { uiLoaded, rendererLoaded } = checkResult?.[0]?.result || { uiLoaded: false, rendererLoaded: false };
-    // 3. Nếu chưa nạp đủ hoặc gửi tin nhắn thất bại, tiến hành nạp lại
-    if (!isDelivered || !uiLoaded || !rendererLoaded) {
-      console.log(`[ASS-CEE] background: Chưa sẵn sàng (Delivered: ${isDelivered}, UI: ${uiLoaded}, Renderer: ${rendererLoaded}). Tiến hành nạp lại file...`);
-      // Nạp CSS
-      await chrome.scripting.insertCSS({
-        target: { tabId, allFrames: true },
-        files: ["content/ui.css"]
-      });
-      // Nạp cả hai file JS
-      await chrome.scripting.executeScript({
-        target: { tabId, allFrames: true },
-        files: ["content/ui.js", "content/renderer.js"]
-      });
-      // Chờ tới khi UI và Renderer thực sự báo sẵn sàng, thay vì dùng sleep cố định
-      const loaded = await waitForPageScripts(tabId, 3000, 150);
-      uiLoaded = loaded.uiLoaded || false;
-      rendererLoaded = loaded.rendererLoaded || false;
-      // Gửi lại tin nhắn lần 2 sau khi xác định script đã đăng ký listener
-      isDelivered = await sendMessageToAllFrames(tabId, { action: "TOGGLE_OVERLAY_SIGNAL" });
-      // Kiểm tra lại trạng thái sau khi nạp
-      const finalCheck = await chrome.scripting.executeScript({
+    const tabId = tab.id;
+    // Kiểm tra 2 cái window.isAssCeeUILoaded và window.isAssCeeRendererLoaded trước (đã nạp từ trước thì thôi)
+    try { // iframe để beta lo.
+      const checkResult = await chrome.scripting.executeScript({
         target: { tabId, allFrames: false },
-        func: () => ({
-          uiLoaded: window.isAssCeeUiLoaded === true,
-          rendererLoaded: window.isAssCeeRendererLoaded === true
-        })
+        func: () => window.isAssCeeUILoaded === true
       });
-      const result = finalCheck?.[0]?.result || {};
-      uiLoaded = result.uiLoaded || false;
-      rendererLoaded = result.rendererLoaded || false;
+      const isLoaded = checkResult?.[0]?.result || false;
+      if (!isLoaded) {
+        await chrome.scripting.insertCSS({
+          target: { tabId, allFrames: false },
+          files: ["content/ui.css"]
+        });
+        await chrome.scripting.executeScript({
+          target: { tabId, allFrames: false },
+          files: ["content/ui.js"]
+        });
+        // Trì hoãn nhẹ 50ms để chắc chắn listener đăng ký xong ở lần đầu tiên nạp
+        await new Promise(resolve => setTimeout(resolve, 200));
+        console.log("[ASS-CEE] background: Tải UI lần đầu.");
+      } else {
+        console.log("[ASS-CEE] background: Tải UI có sẵn (Toggle).");
+      }
+      await chrome.tabs.sendMessage(tabId, { action: "TOGGLE_OVERLAY_SIGNAL" });
+      console.log("[ASS-CEE] background: Tải UI xong.");
+    } catch (err) {
+      console.error("[ASS-CEE] background: Tải UI bị lỗi:", err.message);
     }
-    // 4. Kết luận
-    if (isDelivered && uiLoaded && rendererLoaded) {
-      console.log(`[ASS-CEE] background: Kích hoạt thành công. (UI: ${uiLoaded}, Renderer: ${rendererLoaded})`);
+    try { // iframe để beta lo.
+      const checkResult = await chrome.scripting.executeScript({
+        target: { tabId, allFrames: false },
+        func: () => window.isAssCeeRendererLoaded === true
+      });
+      const isLoaded = checkResult?.[0]?.result || false;
+      if (!isLoaded) {
+        await chrome.scripting.executeScript({
+          target: { tabId, allFrames: false },
+          files: ["content/renderer.js"]
+        });
+        // Trì hoãn nhẹ 50ms để chắc chắn listener đăng ký xong ở lần đầu tiên nạp
+        await new Promise(resolve => setTimeout(resolve, 200));
+        console.log("[ASS-CEE] background: Tải renderer lần đầu.");
+      } else {
+        console.log("[ASS-CEE] background: Tải renderer có sẵn (Ko làm gì cả).");
+      }
+    } catch (err) {
+      console.error("[ASS-CEE] background: Tải renderer bị lỗi:", err.message);
+    }
+  });
+})();
+(/**
+ * 3. Hàm lập trình giao tiếp của background-side với content-side (chạy luôn)
+ */
+function onHandlersListener() {
+  chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    const handler = handlers[msg.type];
+    if (handler) {
+      Promise.resolve(handler(msg.payload, sender))
+        .then(result => sendResponse(result))
+        .catch(err => {
+          console.error(`[ASS-CEE] background: handlers có vấn đề ở ${msg.type}:`, err);
+          sendResponse({ type: 'ERROR', payload: err.message });
+        });
     } else {
-      console.error(`[ASS-CEE] background: Kết nối thất bại. (url: ${tab.url}, Delivered: ${isDelivered}, UI: ${uiLoaded}, Renderer: ${rendererLoaded})`);
+      console.error(`[ASS-CEE] background: msg ngoài chuẩn handler:`, msg);
+      sendResponse({ type: 'ERROR', payload: 'Unknown action' });
     }
-  } catch (err) {
-    console.error("[ASS-CEE] background: Lỗi nghiêm trọng trong quá trình xử lý kích hoạt:", err);
-  }
-});
-// Hàm giao tiếp với content.js và ui.js
+    return true; 
+  });
+})();
+// Phần định nghĩa giao thức (3.)
 let lastLogLocation = { tabId: "", url: "", tabTitle: "" };
-const lastTabTitles = new Map();
-chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  // Chỉ xử lí theo chuẩn đã định nghĩa trong handler
-  const handler = handlers[msg.type];
-  if (handler) {
-    Promise.resolve(handler(msg.payload, sender))
-      .then(result => sendResponse(result))
-      .catch(err => {
-        console.error(`[ASS-CEE] background: handlers có vấn đề ở ${msg.type}:`, err);
-        sendResponse({ type: 'ERROR', payload: err.message });
-      });
-  } else {
-    console.error(`[ASS-CEE] background: msg ngoài chuẩn handler:`, msg);
-    sendResponse({ type: 'ERROR', payload: 'Unknown action' });
-  }
-  return true; // Kích hoạt cơ chế giữ kênh kết nối mở phục vụ cho các tiến trình xử lý bất đồng bộ
-});
 const handlers = {
   // Mặc định cấu trúc chuẩn là msg = { type, payload }. Ở đây lấy msg.type làm key của obj.
   'LOG': async (payload, sender) => { // Log
     const { type, text, url, timestamp, extra } = payload;
     const dateObj = timestamp ? new Date(timestamp) : new Date();
     const tabId = sender.tab?.id;
-    let tabTitle = sender.tab?.title || '(No Title)';
-    let isSameLocation = false;
+    let tabTitle = sender.tab?.title || '(Title Not Found)';
+    let isSameLocation = true;
     let isTabTitleConfusing = false;
-    if (url) { // CHỈ XỬ LÝ LOGIC ĐỔI URL KHI LOG CÓ URL THỰC SỰ
+    if (url) {
       isSameLocation = (tabId === lastLogLocation.tabId && url === lastLogLocation.url && tabTitle === lastLogLocation.tabTitle);
       isTabTitleConfusing = ((tabId !== lastLogLocation.tabId || url !== lastLogLocation.url) && tabTitle === lastLogLocation.tabTitle);
-      // Chỉ cập nhật log vị trí khi dòng log này có URL
       lastLogLocation = { tabId, url, tabTitle };
-    } else {
-      // Nếu dòng log không có URL, mặc định nó là viết tiếp của vị trí trước đó
-      isSameLocation = true;
     }
-    const tabInfo = (tabId ? `${tabId}: ${tabTitle}` : 'Unknown Tab')+(isTabTitleConfusing ? ' (*có thể tên tab bị lệch)' : "");
+    const tabInfo = (tabId ? `${tabId}: ${tabTitle}` : 'Unknown Tab');
     const logPrefix = isSameLocation 
       ? `[${dateObj.toLocaleTimeString()}]\n`
-      : `[${dateObj.toLocaleTimeString()} (${dateObj.toISOString()})][${tabInfo}]\n[${url}]\n`;
+      : `[${dateObj.toLocaleTimeString()} (${dateObj.toISOString()})][${tabInfo}]${isTabTitleConfusing ? '(*có thể tên tab bị lệch)' : ""}\n[${url}]\n`;
     const consoleMethod = type || "log";
     const formattedText = type !== 'table' ? `${logPrefix}[ASS-CEE] ${text}` : text;
-    // Nếu có dữ liệu extra, truyền nó làm tham số thứ hai để console hiển thị chi tiết (interactive object)
     if (extra !== undefined) {
       console[consoleMethod](formattedText, extra);
     } else {
@@ -265,7 +199,7 @@ const handlers = {
     try {
       const subObj = await useSubData(payload.videoId);
       return { type: 'SUB.READY', payload: subObj };
-    } catch (error) {
+    } catch (err) {
       return { type: 'ERROR', payload: err.message };
     }
   },
@@ -292,17 +226,17 @@ const handlers = {
   },
 }
 /**
- * Hàm xử lý và điều phối tìm kiếm phụ đề dựa trên videoId (ko tìm cache)
- * @param {*} videoId Id của video cần tìm kiếm phụ đề
+ * 4. Hàm xử lý và điều phối tìm kiếm phụ đề dựa trên videoId (ko tìm cache)
+ * @param {*} videoId Id của video cần tìm kiếm phụ đề (trống nếu tìm kiếm toàn bộ sub trong folder, hoặc refetch folder)
  * @param {*} folderMode Nếu true thì sẽ tìm tất cả file sub có trong các nguồn (dùng khi refetch), nếu false thì sẽ tìm file sub tương ứng với videoId (dùng khi tìm kiếm bình thường)
- * @returns .EMPTY: trống, .WAIT: có ít nhất 1 file tương ứng, cần content-side xử lí
+ * @returns SOURCE.LIST, SUB.LIST tùy theo folderMode. Hoặc ERROR do lỗi.
  */
 async function resolveSubtitles(videoId, folderMode) {
   // Đầu ra luôn là dạng { type: "", payload: "" }
   const sources = await getSourceList();
   if (sources.length === 0) {
     console.log(`[ASS-CEE] background: Không có thư mục nào để quét.`);
-    return { type: 'SUB.EMPTY', payload: [] };
+    return { type: 'SOURCE.LIST', payload: [] };
   }
   const candidates = await fetchSubtitleFile(sources, videoId, folderMode); // Quét danh sách nguồn
   // Nếu videoId === "" và folderMode === true thì tức là đang refetch. Trả về cấu trúc tương tự 'SOURCE.GET_ALL', 'SOURCE.REMOVE'
@@ -332,27 +266,16 @@ async function resolveSubtitles(videoId, folderMode) {
     }
   }
   // Nếu videoId === "" và folderMode === false thì tức là đang tìm tất cả file sub có trong các nguồn
-  // Kiểm tra kết quả quét
-  if (candidates.length === 0) { // Trường hợp 1: Ko có file tương ứng
-    console.log(`[ASS-CEE] background: Ko có file cho vid ${videoId}.`);
-    return { type: 'SUB.EMPTY', payload: [] };
-  } // Ở sau là trường hợp 2: Có ít nhất 1 file tương ứng. Đưa cho content-side xử lí
-    console.log(`[ASS-CEE] background: Có ${candidates.length} file cho vid ${videoId}. Gửi thông tin cho content-side.`)
-    return { type: 'SUB.WAIT', payload: candidates }; // candidates (xem mục 2.3.2 pipeline)
+  console.log(`[ASS-CEE] background: Có ${candidates.length} file cho vid "${videoId}". Gửi thông tin cho content-side.`)
+  return { type: 'SUB.LIST', payload: candidates }; // candidates (xem mục 2.3.2 pipeline)
 }
 /**
- * Hàm xử lý bóc tách định dạng dữ liệu dựa trên parseMode và lưu Cache
- * @param {*} videoId 
- * @param {*} candidate {
-    id,
-    fileName,
-    fetchUrl,
-    viewUrl,
-    sourceType: 'gdrive' hoặc 'github',
-    groupName
-  } 
+ * 5. Hàm xử lý và lưu cache.
+ * @param {*} videoId videoId hiện tại của tab (để lưu cache)
+ * @param {*} candidate xem mục 2.3.2.
  * @param {*} rawText 
- * @returns subObj quy định ở hàm này. Xem pipeline.txt
+ * @returns {object} gửi dữ liệu cho cả renderer ("RENDER") và phản hồi lại cho UI ("SUB.READY" hoặc "ERROR").
+ * @returns subObj sẽ được hoàn thiện ở hàm này. Xem mục 2.4.3.1.
  */
 async function processSubtitles(videoId, candidate, rawText) {
   const subObj = { videoId, fileObj: candidate };

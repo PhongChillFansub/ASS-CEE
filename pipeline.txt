@@ -98,8 +98,7 @@ Các hướng tính năng mới cho UI
             payload = { videoId, folderMode }
           sendResponse (tổng): resolveSubtitles(videoId, folderMode)
             nếu folderMode falsy:
-              { type: 'SUB.EMPTY', payload: [] }
-              { type: 'SUB.WAIT', payload: candidates }
+              { type: 'SUB.LIST', payload: candidates }
             nếu folderMode truthy:
               { type: 'SOURCE.LIST', payload: await getSourceList() }
 
@@ -166,7 +165,7 @@ Các hướng tính năng mới cho UI
 
   6.2. ui.js
     1. Các hàm bổ trợ cơ bản
-      1.1. sendLogToBackground(): gửi log từ ui.js về background.js (content-side sang background-side)
+      1.1. sendLogToBackground(): gửi log về background.js (content-side về background-side)
       1.2. toggleOverlay(): hàm điều khiển ẩn/hiện UI
       1.3. getRelativeTimeString(): tính thời gian (N (đơn vị) trước) và tuyệt đối (HH:MM:SS DD/MM/YYYY)
       1.4. updateVideoIdInUI(): Hàm cập nhật video ID vào UI (hiện tại chỉ hỗ trợ YT.)
@@ -181,95 +180,96 @@ Các hướng tính năng mới cho UI
         2.3.3. barTitleOnClickHold(): xử lí hành động giữ nhấn + di chuyển chuột
         2.3.4. barTitleOnTouchHold(): xử lí nhấn giữ + di chuyển chạm
         2.3.5. barTitleOnRelease(): xử lí thả chuột/chạm
-      2.4.
-
-6. Cấu trúc ui.js
-
-
-  6.2. Các hàm phục vụ tính năng (build* và các hàm con chạy trong hàm build*)
-    
-      
-
-    
-    6.2.3. Hạng mục 1.3. Tính năng trong tab 1: Quản lí nguồn
-      6.2.3.1. renderLinkList(): render danh sách nguồn
-      6.2.3.2. initSourceList(): hàm thực hiện tải danh sách nguồn từ background.js và chạy render.
-      6.2.3.3. buildSourceManagerTab(): Hàm chạy mục 1.3
-
-    6.2.4. Hạng mục 1.4. Tính năng trong tab 2: Quản lý phụ đề
-    (đang viết đoạn này)
-      6.2.4.1. renderSubFileArray(): render danh sách tệp phụ đề
-      6.2.4.2. initSubFileArray(): hàm thực hiện tải danh sách tệp phụ đề từ background.js và chạy render.
+      2.4. buildSourceManagerTab(): Hạng mục 4. Tính năng trong tab 1: Quản lí nguồn.
+        2.4.1. renderLinkList(): render danh sách nguồn
+        2.4.2. initSourceList(): hàm thực hiện tải danh sách nguồn từ background.js và chạy render danh sách nguồn.
+      2.5. buildSubtitleManagerTab(): Hạng mục 5. Tính năng trong tab 2: Quản lý phụ đề.
+        2.5.1. renderSubFileArray(): render danh sách tệp phụ đề
+        2.5.2. initSubFileArray(): hàm thực hiện tải danh sách tệp phụ đề từ background.js và chạy render danh sách tệp phụ đề.
         - Cụ thể: nhận searchId (đoạn Id mà người dùng nhập), targetId (Id trên tab đang hiển thị), cacheSearchMode chế độ quét cache/online (true = cache, false = online)
           + targetId sẽ truyền trực tiếp cho renderSubFileArray()
           + Xử lí searchId và cacheSearchMode: Nếu searchId trống thì tìm toàn bộ. Nếu searchId ko trống thì tìm theo Id (trùng)
             - nếu tìm toàn bộ trong cache: thì SUB.GET_ALL với {videoId: searchId} 
             - nếu tìm toàn bộ trong các nguồn online: thì SUB.SEARCH với {videoId: searchId, folderMode = false}
-      6.2.4.3. buildSubtitleManagerTab(): Hàm chạy mục 1.4
-
-7. Cấu trúc renderer.js
-  7.0. Cấu trúc đầy đủ của renderData.subObj (tức là subObj hoặc useSubData(), xem mục 2.4.3.1.)
-  renderData.subObj = {
-    videoId,
-    fileObj: {
-        id,
-        fileName,
-        fetchUrl,
-        viewUrl,
-        sourceType,
-        groupName
-    },
-    parsedData: {
-      info: {
-         Title,                      
-            // Tiêu đề (tùy chọn)
-			ScriptType,                 
-            // Phiên bản script (nên là v4.00+)
-			WrapStyle: 0,                  
-            // Cách xuống dòng tự động (0 (mặc định): tự động, dòng trên dài hơn; 1: tự động, chỉ xuống khi chạm rìa (\N); 2: thủ công (\N, \n); 3: tự động, dòng dưới rộng hơn)
-			PlayResX,                   
-            // Độ phân giải video, X (px)
-			PlayResY,                   
-            // Độ phân giải video, Y (px)
-			ScaledBorderAndShadow: true       
-            // Có scale border và shadow theo PlayRes? (0: không, 1: có (mặc định)) (ảnh hưởng đến cách tính kích thước outline/shadow)
-        },
-        styles: array các style có cấu trúc như FALLBACK_DEFAULT_STYLE,
-        events: [{
-            Layer, 
-            Start, 
-            End, 
-            Style, 
-            Name, 
-            // Actor
-            MarginL, 
-            // theo style chứ ko theo line
-            MarginR, 
-            // theo style chứ ko theo line
-            MarginV, 
-            // theo style chứ ko theo line
-            Effect, 
-            // có quan trọng ko?
-            Text
-        }]
-    },
-    cachedAt
-  }
-  7.1. Các hàm tính năng cơ bản
-    7.1.1. (6.1.1.) sendLogToBackground(): gửi log từ ui.js về background.js (content-side sang background-side)
-    7.1.2. (6.1.4. sửa đổi) updateVideoIdInRenderer(): Hàm cập nhật video ID vào UI (hỗ trợ yt, local)
-  7.2. Các hàm chạy tính năng bám bắt video
-    7.2.1. computeAspectFitBounds(): Hàm tính toán khung phụ đề (dựa trên tỉ lệ khung hình cố định của video)
-    7.2.2. applyOverlayBounds(): Hàm áp dụng tọa độ-kích thước mới tính toán vào khung phụ đề hiện có
-    7.2.3. observeParentLayout(): Hàm thiết lập trình bám bắt video
-      7.2.3.1. Hàm refresh() (trong hàm 7.2.3.): Quy định những việc phải làm của Observer
-  7.3. Các hàm chạy tính năng render
-  7.4. Các hàm chạy chính
-    7.4.1.
-
-
-
+    - Phần chạy chính (chạy các hàm Hạng mục và kiểm tra): 
+      2.1 > 2.2 > 2.3 > 2.4 > 2.5.
   
+  6.3. renderer.js
+    1. Các hàm bổ trợ cơ bản
+      1.1. sendLogToBackground(): gửi log về background.js (content-side về background-side)
+      1.2. updateVideoIdInRenderer(): Hàm cập nhật video ID vào UI (hiện tại chỉ hỗ trợ YT.)
+      1.3. selectVideo(): Hàm chạy tự động tìm, chọn video, và tạo lập khung phụ đề ban đầu.
+      1.4. renderDataValidate(): Hàm kiểm tra và hợp lệ hóa dữ liệu (chỉ chạy 1 lần khi chạy hàm chính render())
+      - Phần khai báo dữ liệu chung.
+    2. Các hàm tính năng bám bắt video (hàm chính: 2.3)
+      2.1. computeAspectFitBounds(): Hàm tính toán khung phụ đề (dựa trên tỉ lệ khung hình cố định của video và của sub)
+      2.2. applyOverlayBounds(): Hàm áp dụng tọa độ-kích thước mới tính toán vào khung phụ đề hiện có
+      2.3. observeParentLayout(): Hàm thiết lập trình bám bắt video
+    3. Các hàm tính năng render
+      3.1. styleObjToCss(): Hàm chuyển đổi style từ object sang bộ CSS tĩnh (cấu trúc 2 lớp vỏ-ruột)
+      3.2. scaler(): Hàm thực thi chuyển đổi style theo thay đổi kích thước khung hình (từ khung PlayResX-Y sang khung width-height của phụ đề)
+      3.3. pendingStylesCalculate(): Hàm tính toán và áp dụng style mới vào hàng chờ
+      3.4. applyPendingStyles(): Hàm áp dụng style đang chờ vào trước khi frame loop render tiếp.
+      3.5. renderSubtitleFrame(): Hàm xử lí dữ liệu render theo từng frame
+      3.6. emitRenderControl(): Hàm phát tín hiệu điều khiển vòng lặp render cho renderer.
+      3.7. stopRenderLoop(): Hàm dừng vòng lặp render theo frame.
+      3.8. pauseRenderLoop(): Hàm tạm dừng vòng lặp render theo frame.
+      3.9. resumeRenderLoop(): Hàm tiếp tục vòng lặp render sau khi tạm dừng.
+      3.10. startRenderLoop(): Hàm chạy vòng lặp render theo frame.
+      3.11. render(): Hàm chạy render chính
+    - Phần trình xử lí phản hồi, tự động lấy cache và render
+
+
+
+
+
+7.0. Cấu trúc đầy đủ của renderData.subObj (tức là subObj hoặc useSubData(), xem mục 2.4.3.1.)
+renderData.subObj = {
+  videoId,
+  fileObj: {
+      id,
+      fileName,
+      fetchUrl,
+      viewUrl,
+      sourceType,
+      groupName
+  },
+  parsedData: {
+    info: {
+        Title,                      
+          // Tiêu đề (tùy chọn)
+    ScriptType,                 
+          // Phiên bản script (nên là v4.00+)
+    WrapStyle: 0,                  
+          // Cách xuống dòng tự động (0 (mặc định): tự động, dòng trên dài hơn; 1: tự động, chỉ xuống khi chạm rìa (\N); 2: thủ công (\N, \n); 3: tự động, dòng dưới rộng hơn)
+    PlayResX,                   
+          // Độ phân giải video, X (px)
+    PlayResY,                   
+          // Độ phân giải video, Y (px)
+    ScaledBorderAndShadow: true       
+          // Có scale border và shadow theo PlayRes? (0: không, 1: có (mặc định)) (ảnh hưởng đến cách tính kích thước outline/shadow)
+      },
+      styles: array các style có cấu trúc như FALLBACK_DEFAULT_STYLE,
+      events: [{
+          Layer, 
+          Start, 
+          End, 
+          Style, 
+          Name, 
+          // Actor
+          MarginL, 
+          // theo style chứ ko theo line
+          MarginR, 
+          // theo style chứ ko theo line
+          MarginV, 
+          // theo style chứ ko theo line
+          Effect, 
+          // có quan trọng ko?
+          Text
+      }]
+  },
+  cachedAt
+}
 
 Bản cũ (vibe coding) ở dưới.
 

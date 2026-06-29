@@ -199,7 +199,7 @@ const handlers = {
     try {
       const subObj = await useSubData(payload.videoId);
       return { type: 'SUB.READY', payload: subObj };
-    } catch (error) {
+    } catch (err) {
       return { type: 'ERROR', payload: err.message };
     }
   },
@@ -236,7 +236,7 @@ async function resolveSubtitles(videoId, folderMode) {
   const sources = await getSourceList();
   if (sources.length === 0) {
     console.log(`[ASS-CEE] background: Không có thư mục nào để quét.`);
-    return { type: 'SUB.LIST', payload: [] };
+    return { type: 'SOURCE.LIST', payload: [] };
   }
   const candidates = await fetchSubtitleFile(sources, videoId, folderMode); // Quét danh sách nguồn
   // Nếu videoId === "" và folderMode === true thì tức là đang refetch. Trả về cấu trúc tương tự 'SOURCE.GET_ALL', 'SOURCE.REMOVE'
@@ -266,13 +266,8 @@ async function resolveSubtitles(videoId, folderMode) {
     }
   }
   // Nếu videoId === "" và folderMode === false thì tức là đang tìm tất cả file sub có trong các nguồn
-  // Kiểm tra kết quả quét
-  if (candidates.length === 0) { // Trường hợp 1: Ko có file tương ứng
-    console.log(`[ASS-CEE] background: Ko có file cho vid ${videoId}.`);
-    return { type: 'SUB.LIST', payload: [] };
-  } // Ở sau là trường hợp 2: Có ít nhất 1 file tương ứng. Đưa cho content-side xử lí
-    console.log(`[ASS-CEE] background: Có ${candidates.length} file cho vid ${videoId}. Gửi thông tin cho content-side.`)
-    return { type: 'SUB.LIST', payload: candidates }; // candidates (xem mục 2.3.2 pipeline)
+  console.log(`[ASS-CEE] background: Có ${candidates.length} file cho vid "${videoId}". Gửi thông tin cho content-side.`)
+  return { type: 'SUB.LIST', payload: candidates }; // candidates (xem mục 2.3.2 pipeline)
 }
 /**
  * 5. Hàm xử lý và lưu cache.
