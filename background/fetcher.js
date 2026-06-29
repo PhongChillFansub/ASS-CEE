@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.0.5 28jun26
+// v0.0.0.5 29jun26 (25jun26)
 const FETCH_TIMEOUT = 60000; // Tối đa 60 giây kết nối và nhận dữ liệu. Dùng cho hàm fetchWithTimeout().
 const VALID_FILE_SIGNATURE = ["[Script Info]", "[V4+ Styles]", "[Events]"];
 // Danh sách các nội dung mà parser dùng để đánh dấu. Dùng cho hàm validateSubtitleContent().

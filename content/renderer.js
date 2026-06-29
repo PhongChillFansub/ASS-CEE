@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.0.5 28jun26
+// v0.0.0.5 29jun26
 /**
  * (6.3.)1.1. (6.2.1.1. sửa đổi) Hàm gửi log về background.js
  * @param {string} message nội dung
@@ -699,7 +699,7 @@ function enableRenderLoop() {
     currentFrameId = initialFrameId; 
 }
 /**
- * 3.8. Hàm hủy chạy vòng lặp render theo frame (Gemini vibe, chưa review)
+ * 3.8. Hàm hủy chạy vòng lặp render theo frame (Gemini vibe, đã review)
  */
 function disableRenderLoop() {
     clearSubtitleFrame();

@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.0.5 28jun26
+// v0.0.0.5 29jun26 (28jun26)
 import { fetchSubtitleText, fetchSubtitleFile } from './fetcher.js';
 // 2 hàm fetchSubtitleText, fetchSubtitleFile
 import { addSource, getSourceList, removeSource, addSubData, getSubDataList, useSubData, removeSubData } from './storage.js';
