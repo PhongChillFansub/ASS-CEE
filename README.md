@@ -19,10 +19,10 @@
     thêm blacklist, whitelist cho các tab có URL mà background được phép chạy UI, renderer.
   </details>
 - Sửa lỗi UI không hiển thị videoId cho người dùng khi cập nhật.
-<details>
-  <summary><b>Cụ thể:</b></summary>
-  phần xử lí currentId bị đặt sai chỗ.
-</details>
+  <details>
+    <summary><b>Cụ thể:</b></summary>
+    phần xử lí currentId bị đặt sai chỗ.
+  </details>
 
 ---
 
