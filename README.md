@@ -5,6 +5,27 @@
 
 ---
 
+# Thông báo: cập nhật bản v0.0.6-alpha 01juy06
+
+- Thay đổi cách gọi tên từ v0.0 beta 0 alpha 6 (v0.0.0.6) sang v0.0 build 6 (v0.0.6)
+- Sửa lỗi không thể thêm thư mục Google Drive vào danh sách nguồn
+  <details>
+    <summary><b>Cụ thể:</b></summary>
+    do đặt sai permission trong manifest.
+  </details>
+- Thêm cài đặt các tab mà tiện ích được phép kích hoạt (hiện tại chỉ cho kích hoạt trên các trang của YouTube)
+  <details>
+    <summary><b>Cụ thể:</b></summary>
+    thêm blacklist, whitelist cho các tab có URL mà background được phép chạy UI, renderer.
+  </details>
+- Sửa lỗi UI không hiển thị videoId cho người dùng khi cập nhật.
+<details>
+  <summary><b>Cụ thể:</b></summary>
+  phần xử lí currentId bị đặt sai chỗ.
+</details>
+
+---
+
 Tiện ích này được truyền cảm hứng từ 4 repo/extension khác là [Kull-Vietsub](https://github.com/zingky/Kull-Vietsub), [+Sub](https://github.com/plussub/plussub), [ASS.js](https://github.com/weizhenye/ASS) và [AxTongue](https://chromewebstore.google.com/detail/axtongue/ilbfbiamkpljhkhnhjiikeikefogpffh).
 
 Trong đó, tiện ích này chịu ảnh hưởng trực tiếp và có thể sử dụng kho phụ đề từ [Kull-Vietsub](https://github.com/zingky/Kull-Vietsub).
