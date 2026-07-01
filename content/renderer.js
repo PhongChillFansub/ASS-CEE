@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.6 01juy26 (30jun26)
+// v0.0.6 01juy26
 /**
  * (6.3.)1.1. (6.2.1.1. sửa đổi) Hàm gửi log về background.js
  * @param {string} message nội dung
@@ -769,6 +769,7 @@ function disableRenderLoop(reason) {
     state.frameId = null;
     sendLogToBackground(`renderer: (3.8) Đã hủy render. Lí do: ${reason}.`);
     renderData = {... startingData}; // reset renderData
+    window.isAssCeeRendererLoaded = false;
 }
 /**
  * 3.9. Hàm chạy render chính
@@ -837,7 +838,6 @@ function autoRenderOnCache() {
             sendLogToBackground(`renderer: Tự động nhận tín hiệu (${renderData.currentId}) thành công:`,"log", response.payload || '(cache trống)');
             window.isAssCeeRendererLoaded = true; // Đánh dấu renderer đã khởi tạo thành công khi script đã được khởi động
             render();
-            window.isAssCeeRendererLoaded = false;
         } else {
             sendLogToBackground(`renderer: Tự động nhận tín hiệu (${renderData.currentId}) thất bại.`,"warn", response);
         }
@@ -871,7 +871,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => { // Nhận 
         sendLogToBackground(`renderer: Nhận tín hiệu thủ công thành công:`,"log",renderData.subObj);
         window.isAssCeeRendererLoaded = true; // Đánh dấu renderer đã khởi tạo thành công khi script đã được khởi động
         render();
-        window.isAssCeeRendererLoaded = false;
     } else if (msg?.action || (msg?.type === 'RENDER' && !msg.payload)) {
     } else {
         sendLogToBackground("renderer: Tín hiệu từ Background (gửi cho renderer) ko phải RENDER chuẩn?","warn", msg)
