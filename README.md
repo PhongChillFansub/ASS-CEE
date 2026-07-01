@@ -7,19 +7,25 @@
 
 ## Hướng dẫn sử dụng
 1. Cài đặt [xem tại đây](#hướng-dẫn-cài-đặt).
-2. Bấm vào icon để khởi động giao diện tương tác và trình render (để tự động render nếu bạn đang bật video và đã lưu dữ liệu phụ đề tương ứng)
+2. Bấm vào icon để khởi động giao diện tương tác và trình render (để tự động render nếu bạn đang bật video và đã lưu dữ liệu phụ đề tương ứng) (ảnh 1.1)
+   Có thể chuyển sang các trang khác bằng cách bấm vào hình "☰" ở bên trái tiêu đề, rồi chọn các trang cần chuyển. (ảnh 1.2)
+   Tiêu đề luôn hiển thị tên trang đang hiện trong ngoặc đơn (ảnh 1.1, ảnh 1.3)
 <p align="center">
-  <img width="25%" alt="image" src="https://github.com/user-attachments/assets/a2335ec0-2ec5-4231-b84b-056b150929c7" />
-  <img width="25%" alt="image" src="https://github.com/user-attachments/assets/91387ccf-f61d-4fdd-bd3e-e04313390949" />
-  <img width="25%" alt="image" src="https://github.com/user-attachments/assets/3ce806b4-9b3b-4307-9594-4ff9816d6541" />
-
+  <img width="30%" alt="image" src="https://github.com/user-attachments/assets/a2335ec0-2ec5-4231-b84b-056b150929c7" />
+  <img width="30%" alt="image" src="https://github.com/user-attachments/assets/91387ccf-f61d-4fdd-bd3e-e04313390949" />
+  <img width="30%" alt="image" src="https://github.com/user-attachments/assets/3ce806b4-9b3b-4307-9594-4ff9816d6541" />
   <br>
-  <em>Ảnh (từ trái sang): Giao diện ban đầu (mặc định ở trang Quản lí nguồn); Khi bấm nút Danh sách trang (tab list); Khi chuyển sang trang Quản lí dữ liệu (và ở trên 1 trang video YouTube cụ thể nào đó);
-</em>
+  <em>Ảnh (từ trái sang):<br> 1.1. Giao diện ban đầu (mặc định ở trang Quản lí nguồn);<br> 1.2. Khi bấm nút Danh sách trang (tab list);<br> 1.3. Khi chuyển sang trang Quản lí dữ liệu (và ở trên 1 trang video YouTube cụ thể nào đó).
+  </em>
+</p>
+3. Thêm nguồn bằng cách dán đường link của thư mục, sau đó bấm nút "+" (như ảnh 3.1). Nếu không dán đường link nào (mặc định), nút "+" sẽ chuyển thành nút "↺", dùng khi cần tiện ích tự động cập nhật lại các nguồn đã có trong danh sách nguồn. (xem ảnh 1.1, 1.2)
+<p align="center">
+  <img width="20%" alt="image" src="https://github.com/user-attachments/assets/12663f33-0877-4b73-ac2f-294689e4ac6e" />
+  <br>
+  <em>Ảnh (từ trái sang):<br> 3.1. Thao tác thêm nguồn
+  </em>
 </p>
 
-
-3. 
 
 ---
 
