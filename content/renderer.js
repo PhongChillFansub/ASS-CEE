@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.0.5 29jun26
+// v0.0.6 01juy26 (30jun26)
 /**
  * (6.3.)1.1. (6.2.1.1. sửa đổi) Hàm gửi log về background.js
  * @param {string} message nội dung
@@ -23,33 +23,33 @@ function sendLogToBackground(message, type = 'info', extra = undefined) {
  * 1.2. (6.2.1.4. sửa đổi) updateVideoIdInRenderer(): Hàm cập nhật video ID vào UI
  */
 function updateVideoIdInRenderer() {
-  const getYouTubeVideoId = () => new URLSearchParams(window.location.search).get('v');
-  // Định dạng lưu id YT: "<11 char base64>"
-  // const getBilibiliVideoId = () => `${window.location.pathname.match(/\/video\/(BV\w+)/)?.[1]}?${new URLSearchParams(window.location.search).get('p') || 1}`;
-  // Định dạng lưu id BiliBili: "BV<10 char base58>?<p>"
-  // const getLocalVideoId = (keepFileExtension) => decodeURIComponent(window.location.href).split('/').pop().replace(keepFileExtension ? /^/ : /\.[^/.]+$/, "");
-  // Định dạng lưu id local: "<tên file><đuôi file (có thể tùy chỉnh)>"
-  const url = window.location.href;
-  renderData.tabMode = "youtube"
-  renderData.currentId = (() => {
+    const getYouTubeVideoId = () => new URLSearchParams(window.location.search).get('v');
+    // Định dạng lưu id YT: "<11 char base64>"
+    // const getBilibiliVideoId = () => `${window.location.pathname.match(/\/video\/(BV\w+)/)?.[1]}?${new URLSearchParams(window.location.search).get('p') || 1}`;
+    // Định dạng lưu id BiliBili: "BV<10 char base58>?<p>"
+    // const getLocalVideoId = (keepFileExtension) => decodeURIComponent(window.location.href).split('/').pop().replace(keepFileExtension ? /^/ : /\.[^/.]+$/, "");
+    // Định dạng lưu id local: "<tên file><đuôi file (có thể tùy chỉnh)>"
+    const url = window.location.href;
+    renderData.tabMode = "youtube"
+    renderData.currentId = (() => {
     switch (true) {
-      case url.startsWith('https://www.youtube.com/watch?v='): // Tab YT
+        case url.startsWith('https://www.youtube.com/watch?v='): // Tab YT
         // renderData.tabMode = "youtube";
         return getYouTubeVideoId();
-      // case url.startsWith('https://www.bilibili.com/video/'): // Tab BiliBili
-      //   return getBilibiliVideoId();
-      // case url.startsWith('file:///'): // Tab local
-      //   return getLocalVideoId(false);
-      default:
+        // case url.startsWith('https://www.bilibili.com/video/'): // Tab BiliBili
+        //   return getBilibiliVideoId();
+        // case url.startsWith('file:///'): // Tab local
+        //   return getLocalVideoId(false);
+        default:
         sendLogToBackground(`renderer: (1.2) Ko thể tách ID từ url ${url}.`,"warn");
         return null; // Trả về giá trị mặc định nếu không khớp trang nào
     }
+    })();
     if (renderData?.currentId) {
         sendLogToBackground(`renderer: (1.2) Cập nhật ID video hiện tại: ${renderData.currentId}`);
     } else {
         sendLogToBackground(`renderer: (1.2) Ko thể tách ID từ url ${url}`,"warn");
     }
-  })();
 }
 /**
  * 1.3. Hàm chạy tự động tìm, chọn video, và tạo lập khung phụ đề ban đầu.
@@ -107,27 +107,6 @@ function selectVideo(renderData) {
     if (selectedVideo) {
         const videoRect = selectedVideo.getBoundingClientRect();
         sendLogToBackground(`renderer: (1.3) Video được chọn là [ID: ${selectedVideo.dataset.detectedId}] - Kích thước: ${Math.round(videoRect.width)}x${Math.round(videoRect.height)}`);
-        // if (renderData.isLocalVideo) { // Đoạn
-        //     // Dành cho local: video tag là frame, overlay phải nằm ngoài <video> vì <div> không phải con hợp lệ của <video>.
-        //     const originalParent = selectedVideo.parentNode || selectedVideo;
-        //     let localParent = originalParent;
-        //     if (originalParent === document.body || originalParent === document.documentElement) {
-        //         const wrapper = document.createElement('div');
-        //         wrapper.style.position = 'relative';
-        //         wrapper.style.display = 'inline-block';
-        //         wrapper.style.width = `${Math.round(videoRect.width)}px`;
-        //         wrapper.style.height = `${Math.round(videoRect.height)}px`;
-        //         originalParent.insertBefore(wrapper, selectedVideo);
-        //         wrapper.appendChild(selectedVideo);
-        //         localParent = wrapper;
-        //         sendLogToBackground(`renderer: (1.3) Local video wrapper created around <video> to avoid body/html positioning issues.`, "log");
-        //     }
-        //     renderData.containerParent = localParent;
-        //     renderData.video = selectedVideo; // Dùng video element để truy cập currentTime / playback timing.
-        //     renderData.videoSource = selectedVideo.querySelector('source') || null; // Dòng này chỉ để ghi log
-        //     sendLogToBackground(`renderer: (1.3) Local video detected. containerParent = ${renderData.containerParent.tagName}, videoSource = ${renderData.videoSource ? '<source>' : 'none'}`,"log");
-        // } else {
-        // }
         renderData.containerParent = selectedVideo.closest('#movie_player') || selectedVideo.parentNode;
         renderData.video = selectedVideo;
         // Đầu ra gián tiếp thứ hai: tham chiếu đến node cha của khung phụ đề
@@ -229,25 +208,52 @@ function renderDataValidate(renderData){
     return "";
 }
 // Phần khai báo dữ liệu chung
-var renderData = window.renderData || {}; // renderData chung (tương tự uiData)
-renderData.subObj = {}; // Reset subObj (dữ liệu phụ đề) mỗi lần chạy render.
-renderData.retryCount = 0; // Lưu số lần thử tìm video
-renderData.videoObserver = { // Lưu dữ liệu bám bắt video (mục 7.2. bám bắt video)
-    resize: null,
-    mutation: null,
-    trackedParent: null,
-    trackedAspectRatio: null,
-    lastBounds: null
-}; 
-renderData.renderState = { // Lưu dữ liệu render (mục 7.3. render)
-    currentStyles: null, // Có dùng
-    pendingStyles: null, // Có dùng
-    currentEvents: [], // Có dùng
-    currentEventsIndex: null, // Có dùng
-    activeElements: {}, // Có dùng
-    frameId: null, // Có dùng
-    doEnable: true, // Khi mới mở thì để state true để mở renderLoop
-};
+startingData = {
+    subObj: {}, // Reset subObj (dữ liệu phụ đề) mỗi lần chạy render.
+    retryCount: 0, // Lưu số lần thử tìm video
+    videoObserver: { // Lưu dữ liệu bám bắt video (mục 7.2. bám bắt video)
+        resize: null,
+        mutation: null,
+        trackedParent: null,
+        trackedAspectRatio: null,
+        lastBounds: null
+    },
+    renderState: { // Lưu dữ liệu render (mục 7.3. render)
+        currentStyles: null, // Có dùng
+        pendingStyles: null, // Có dùng
+        currentEvents: [], // Có dùng
+        currentEventsIndex: null, // Có dùng
+        activeElements: {}, // Có dùng
+        frameId: null, // Có dùng
+        doEnable: true, // Khi mới mở thì để state true để mở renderLoop
+    },
+    FALLBACK_DEFAULT_STYLE: {
+        name: "Default",                            // Tên style (style.name, line.styleref.name, syl.style.name)
+        fontName: "Arial",                          // Tên font (\fn)
+        fontSize: "20",                             // Font size (\fs, px, với PlayRes 640x480)
+        primaryColour: "rgba(255,255,255,1.0)",     // Màu 1, main (\1c)
+        secondaryColour: "rgba(255,0,0,1.0)",       // Màu 2, pre-kara (\2c)
+        outlineColour: "rgba(0,0,0,1.0)",           // Màu 3, outline (\3c)
+        backColour: "rgba(0,0,0,1.0)",              // Màu 4, shadow (\4c)
+        bold: false,                                // In đậm (\b, boolean)
+        italic: false,                              // In nghiêng (\i, boolean)
+        underline: false,                           // Gạch dưới (\u, boolean)
+        strikeOut: false,                           // Gạch ngang (\s, boolean)
+        scaleX: "100",                              // ScaleX (\fscx, %)
+        scaleY: "100",                              // ScaleY (\fscx, %)
+        spacing: "0",                               // (\fsp, px)
+        angle: "0",                                 // (\fr hoặc \frz, degree)
+        borderStyle: "1",                           // Kiểu border (1: viền thường, 3: box)
+        outline: "2",                               // (\bord, px. có \xbord và \ybord)
+        shadow: "2",                                // (\shad, px. có \xshad và \yshad)
+        alignment: "2",                             // (\an, 1-9 kiểu numpad)
+        marginL: "20",                              // (px, left)
+        marginR: "20",                              // (px, right)
+        marginV: "20",                              // (px, vertical)
+        encoding: "1"                               // (\fe, nên bị bỏ qua.)
+    },
+}; // renderData chung (tương tự uiData)
+var renderData = { ...startingData };
 /**
  * 2.1. Hàm tính toán khung phụ đề (dựa trên tỉ lệ khung hình cố định của video và của sub)
  * (Copilot vibe, đã review). Chú ý: khung parent PHẢI luôn chạm ít nhất 1 chiều (cùng 1 kích thước cao/rộng) với video.
@@ -313,6 +319,7 @@ function observeParentLayout(parent, container, aspectRatio) {
     //     sendLogToBackground(`renderer: lỗi đầu vào 7.2.3.: thiếu khung video yt (parent?:${!!parent}), khung phụ đề (container?:${!!container}), hoặc tỷ lệ khung hình (aspectRatio?:${!!aspectRatio}).`, "error");
     //     return; // Nếu ko đủ 3 đầu vào thì về
     // }
+    customStyleResize(); // Chạy hàm kiểm tra các style 1 lần (sửa lỗi 1 số font chữ bị lớn hơn, do khác biệt về cách tính giữa VSFilter và FreeType?)
     /**
      * 2.3.1. Hàm refresh (trong hàm 2.3. observeParentLayout()): Quy định những việc phải làm của Observer
      * @returns chạy hàm 2.1, check thay đổi tọa độ-kích thước, chạy hàm 2.2 và gửi log về nếu cần.
@@ -330,11 +337,11 @@ function observeParentLayout(parent, container, aspectRatio) {
         const posChangeLog = positionChange ? `(${Math.round(bounds.left)},${Math.round(bounds.top)})` : "";
         renderData.videoObserver.lastBounds = bounds;
         applyOverlayBounds(container, bounds); // Áp dụng khung phụ đề mới
-        sendLogToBackground(`renderer: 2.3. Parent đổi layout, cập nhật khung overlay: ${dimChangeLog}${(dimChangeLog && posChangeLog)?" ":""}${posChangeLog}.`, "log");
+        sendLogToBackground(`renderer: (2.3) Parent đổi layout, cập nhật khung overlay: ${dimChangeLog}${(dimChangeLog && posChangeLog)?" ":""}${posChangeLog}.`, "log");
         // Gửi log về background xem.
         pendingStylesCalculate(); // Cập nhật style mới tính toán xong cho render (ở đây là chạy khi có cập nhật khi có update dimension)
-        sendLogToBackground(`renderer: 2.3. (DEBUG) overlay trước khi update:\n  childElementCount=${container.childElementCount}, childNodes.length=${container.childNodes.length}`);
-        autoRenderOnCache();
+        sendLogToBackground(`renderer: (2.3) [DEBUG] overlay trước khi update:\n  childElementCount=${container.childElementCount}, childNodes.length=${container.childNodes.length}`);
+        checkVideoIdChange();
     };
     // Phần lập trình bám bắt video
     if (renderData.videoObserver.trackedParent !== parent || renderData.videoObserver.trackedAspectRatio !== aspectRatio) {
@@ -374,6 +381,35 @@ function observeParentLayout(parent, container, aspectRatio) {
     refresh(); // Refresh luôn
 }
 /**
+ * 2.4. (Thử nghiệm) Tính toán khung chữ thực tế của font hiển thị trên web.
+ */
+function customStyleResize() {
+    if (!renderData.subObj.parsedData.styles) {
+        sendLogToBackground('renderer: (2.4) Ko có parsedData.styles để thử nghiệm.',"warn");
+        return;
+    }
+    const result = []
+    const canvas = document.createElement('canvas');
+    renderData.subObj.parsedData.styles.forEach((style) => {
+        usedFontSize = 100 || style.fontSize;
+        const ctx = canvas.getContext('2d');
+        ctx.font = `${usedFontSize}px "${style.fontName}"`;
+        const metricsNoUTF = ctx.measureText("MHQg Test Width");
+        const metricsUTF = ctx.measureText("MHQỹỵg Test Width");
+        const webActualHeightNoUTF = metricsNoUTF.actualBoundingBoxAscent + metricsNoUTF.actualBoundingBoxDescent;
+        const webActualHeightUTF = metricsUTF.actualBoundingBoxAscent + metricsUTF.actualBoundingBoxDescent;
+        style.customResize = usedFontSize/webActualHeightUTF;
+        result.push({
+            fontFamily: style.fontName,
+            fontSizeSetting: usedFontSize,
+            webActualHeightNoUTF: webActualHeightNoUTF,
+            webActualHeightUTF: webActualHeightUTF,
+            customResize: style.customResize
+        });
+    });
+    sendLogToBackground('renderer: (2.4) Kết quả đo: ',"warn",result);
+}
+/**
  * 3.1. Hàm chuyển đổi style từ object sang bộ CSS tĩnh (cấu trúc 2 lớp vỏ-ruột) (Gemini vibe, đã review)
  * @param {object} styleObj styleObj đầu vào chuẩn (tương tự renderData.FALLBACK_DEFAULT_STYLE. Xem hàm 7.3.2)
  * @returns {object} Trả về bộ CSS bọc trong styleName
@@ -395,12 +431,12 @@ function styleObjToCss(styleObj) {
     const text = {
         // Font & Định dạng chữ
         'font-family': `"${styleObj.fontName}", sans-serif`, // to-do: cảnh báo người dùng nếu ko có font styleObj.fontName để hiển thị?
-        'font-size': `${(styleObj.fontSize/renderData.dpr).toFixed(4)}px`,
-        'letter-spacing': `${styleObj.spacing}px`,
+        'font-size': `${(styleObj.fontSize/renderData.dpr*(styleObj.customResize || 1)).toFixed(2)}px`,
+        'letter-spacing': `${styleObj.spacing.toFixed(2)}px`,
         'font-weight': styleObj.bold ? 'bold' : 'normal',
         'font-style': styleObj.italic ? 'italic' : 'normal',
         'text-decoration': (styleObj.underline && styleObj.strikeOut) ? 'underline line-through' : styleObj.underline ? 'underline' : styleObj.strikeOut ? 'line-through' : 'none',
-        // 'line-height': "normal"; // Giãn cách dòng, tạm thời bỏ qua. to-do: sẽ xem có vấn đề gì ở beta.
+        'line-height': "1",
         // Cấu hình hiển thị và chống tràn dòng. to-do: xem info.wrapStyle để cập nhật theo
         ... renderData.cssConfig
     };
@@ -446,24 +482,33 @@ function styleObjToCss(styleObj) {
         text['display'] = 'inline-block';
     }
     // --- XỬ LÝ BORDER & SHADOW ---
-    const outlinePx = Number(styleObj.outline);
-    const shadowPx = Number(styleObj.shadow);
-    if (styleObj.borderStyle === "3") {
+    const outlinePx = (Number(styleObj.outline)*renderData.dpr).toFixed(2);
+    const shadowPx = Number(styleObj.shadow).toFixed(2);
+    if (styleObj.borderStyle === "3") { // Kiểu Opaque Box (Khung nền)
         text['color'] = styleObj.primaryColour;
         text['background-color'] = styleObj.outlineColour;
         text['border'] = outlinePx > 0 ? `${outlinePx}px solid ${styleObj.outlineColour}` : 'none';
-        if (shadowPx > 0) text['box-shadow'] = `${shadowPx}px ${shadowPx}px 0px ${styleObj.backColour}`;
-    } else {
+        text['box-shadow'] = shadowPx > 0 ? `${shadowPx}px ${shadowPx}px 0px ${styleObj.backColour}` : 'none';
+        // Reset các thuộc tính của kiểu chữ viền (tránh lỗi cache style)
+        text['-webkit-text-stroke'] = '0px transparent';
+        text['text-shadow'] = 'none';
+        text['paint-order'] = 'normal';
+    } else { // Kiểu Outline/Shadow truyền thống (Mặc định)
         text['color'] = styleObj.primaryColour;
         text['background-color'] = 'transparent';
+        text['border'] = 'none';
+        text['box-shadow'] = 'none';
         if (outlinePx > 0) {
             text['paint-order'] = 'stroke fill';
-            text['-webkit-text-stroke'] = `${outlinePx}px ${styleObj.outlineColour}`;
+            text['-webkit-text-stroke'] = `${outlinePx * 2}px ${styleObj.outlineColour}`;
+        } else {
+            text['-webkit-text-stroke'] = '0px transparent';
+            text['paint-order'] = 'normal';
         }
-        if (shadowPx > 0) {
-            text['text-shadow'] = `${shadowPx + outlinePx}px ${shadowPx + outlinePx}px 0px ${styleObj.backColour}`;
-        }
+        // Giữ nguyên shadowPx (không cộng outlinePx) để bóng đổ chuẩn từ tâm chữ
+        text['text-shadow'] = shadowPx > 0 ? `${shadowPx}px ${shadowPx}px 0px ${styleObj.backColour}` : 'none';
     }
+    // sendLogToBackground(`renderer: (3.1) [test 2.4] ${styleObj.name}: ${styleObj.customResize}`,"warn");
     // Trả về cấu trúc lưu trữ tĩnh
     return { container, text };
 }
@@ -487,6 +532,7 @@ function scaler (oldStyle, newStyles, pushMode) {
     requiredKeys.forEach(key => {
         newStyle[key] = (typeof renderData.FALLBACK_DEFAULT_STYLE[key] === 'boolean') ? (oldStyle[key] === "1" || oldStyle[key] === true) : String(oldStyle[key]);
     });
+    newStyle.customResize = oldStyle.customResize;
     // 3. Xử lí ảnh hưởng khung video lên style
     // dòng Format có dạng:
     // Format: name, fontName, fontSize, primaryColour, secondaryColour, outlineColour, backColour, ...
@@ -499,6 +545,7 @@ function scaler (oldStyle, newStyles, pushMode) {
     keysToScale.forEach(key => {
         newStyle[key] = Number(oldStyle[key]) * renderData.scaleHeight;
     });
+    // sendLogToBackground(`renderer test`,"warn",newStyle);
     // 4. Tính toán snapshot (chuyển từ obj sang CSS)
     // Ở đây dùng luôn hàm với đầu vào newStyle
     // 5. Đẩy vào mảng tham chiếu bên ngoài
@@ -518,6 +565,12 @@ function pendingStylesCalculate() {
     // Áp dụng sửa đổi cho cả các styles trong renderData.subObj.parsedData.styles và renderData.FALLBACK_DEFAULT_STYLE
     // Nhiệm vụ check nội dung dữ liệu trước khi xử lí thì giao cho hàm 7.1.4.
     // Chú ý: chỉ chạy sau khi đã áp dụng kích thước mới cho renderData.container
+    const invalidateResult = renderDataValidate(renderData);
+    if (invalidateResult) {
+        sendLogToBackground(`renderer (3.3) có dữ liệu ko hợp lệ: ${invalidateResult}. Hủy render.`,"error");
+        disableRenderLoop("tính toán Styles (3.3) mà dữ liệu vẫn ko hợp lệ");
+        return; // Dữ liệu giờ vẫn ko hợp lệ thì về luôn.
+    }
     const info = renderData.subObj.parsedData.info;
     // info
     const orgStyles = renderData.subObj.parsedData.styles.filter(style => style && typeof style === 'object');
@@ -530,19 +583,16 @@ function pendingStylesCalculate() {
     const isRenderableSize = containerRect.width > 240 && containerRect.height > 240;
     if (!isRenderableSize) {
         if (containerRect.width === 0 || containerRect.height === 0) {
-            emitRenderControl('RENDER.STOP');
-            sendLogToBackground(`renderer: (3.3) Khung ko còn hợp lệ (không thể nhìn thấy), kết thúc render.`);
+            disableRenderLoop("container về 0x0");
+            sendLogToBackground(`renderer: (3.3) Khung ko còn hợp lệ (không thể nhìn thấy), hủy render.`);
             return;
         }
-        if (!renderData.renderState.paused) {
-            emitRenderControl('RENDER.PAUSE');
+        if (renderData.renderState.doEnable) {
+            renderData.renderState.doEnable = false;
         }
         const msg = `renderer: (3.3) Kích thước container quá nhỏ, dưới 240px (${Math.round(containerRect.width)}x${Math.round(containerRect.height)}px). Tạm ngừng render để tránh vỡ font.`
         sendLogToBackground(msg, "warn");
         return;
-    }
-    if (renderData.renderState.paused || renderData.renderState.stopRequested) {
-        emitRenderControl('RENDER.RESUME');
     }
     // Chạy cho FALLBACK để gán vào renderData.defaultStyle (truyền false)
     scaler(renderData.FALLBACK_DEFAULT_STYLE, null, false);
@@ -551,6 +601,7 @@ function pendingStylesCalculate() {
     orgStyles.forEach(style => {
         scaler(style, renderData.renderState.pendingStyles, true);
     });
+    sendLogToBackground(`renderer: (3.3) [DEBUG]: dpr=${renderData.dpr}, scale=${renderData.scaleWidth.toFixed(2)},${renderData.scaleHeight.toFixed(2)}`);
     sendLogToBackground(`renderer: (3.3) Đã áp dụng styles mới.`,"log",renderData.renderState.pendingStyles);
 }
 /**
@@ -582,6 +633,12 @@ function renderSubtitleFrame() {
     const video = renderData.video;
     const container = renderData.container;
     if (!video || !container) return;
+    const invalidateResult = renderDataValidate(renderData);
+    if (invalidateResult) {
+        sendLogToBackground(`renderer (3.3) có dữ liệu ko hợp lệ: ${invalidateResult}. Hủy render.`,"error");
+        disableRenderLoop("tính toán Styles (3.3) mà dữ liệu vẫn ko hợp lệ");
+        return; // Dữ liệu giờ vẫn ko hợp lệ thì về luôn.
+    }
     applyPendingStyles();
     const events = renderData.subObj.parsedData.events;
     const currentTime = Number.isFinite(video.currentTime) ? video.currentTime : 0;
@@ -674,7 +731,7 @@ function enableRenderLoop() {
             sendLogToBackground('renderer (3.7): state.frameId khác currentFrameId nên ko render?');
             return;
         case !renderData.container: // Ko có container để render
-            disableRenderLoop(); // Hủy render
+            disableRenderLoop("enableRenderLoop nhưng ko có container?"); // Hủy render
             sendLogToBackground('renderer (3.7): ko có container?');
             return;
         case (state.doEnable === false):
@@ -701,7 +758,7 @@ function enableRenderLoop() {
 /**
  * 3.8. Hàm hủy chạy vòng lặp render theo frame (Gemini vibe, đã review)
  */
-function disableRenderLoop() {
+function disableRenderLoop(reason) {
     clearSubtitleFrame();
     const state = renderData.renderState;
     state.state = false;
@@ -710,32 +767,9 @@ function disableRenderLoop() {
         sendLogToBackground(`Đã hủy frameId: ${state.frameId} từ bên ngoài.`);
     }
     state.frameId = null;
+    sendLogToBackground(`renderer: (3.8) Đã hủy render. Lí do: ${reason}.`);
+    renderData = {... startingData}; // reset renderData
 }
-renderData.FALLBACK_DEFAULT_STYLE = {
-    name: "Default",                            // Tên style (style.name, line.styleref.name, syl.style.name)
-    fontName: "Arial",                          // Tên font (\fn)
-    fontSize: "20",                             // Font size (\fs, px, với PlayRes 640x480)
-    primaryColour: "rgba(255,255,255,1.0)",     // Màu 1, main (\1c)
-    secondaryColour: "rgba(255,0,0,1.0)",       // Màu 2, pre-kara (\2c)
-    outlineColour: "rgba(0,0,0,1.0)",           // Màu 3, outline (\3c)
-    backColour: "rgba(0,0,0,1.0)",              // Màu 4, shadow (\4c)
-    bold: false,                                // In đậm (\b, boolean)
-    italic: false,                              // In nghiêng (\i, boolean)
-    underline: false,                           // Gạch dưới (\u, boolean)
-    strikeOut: false,                           // Gạch ngang (\s, boolean)
-    scaleX: "100",                              // ScaleX (\fscx, %)
-    scaleY: "100",                              // ScaleY (\fscx, %)
-    spacing: "0",                               // (\fsp, px)
-    angle: "0",                                 // (\fr hoặc \frz, degree)
-    borderStyle: "1",                           // Kiểu border (1: viền thường, 3: box)
-    outline: "2",                               // (\bord, px. có \xbord và \ybord)
-    shadow: "2",                                // (\shad, px. có \xshad và \yshad)
-    alignment: "2",                             // (\an, 1-9 kiểu numpad)
-    marginL: "20",                              // (px, left)
-    marginR: "20",                              // (px, right)
-    marginV: "20",                              // (px, vertical)
-    encoding: "1"                               // (\fe, nên bị bỏ qua.)
-};
 /**
  * 3.9. Hàm chạy render chính
  */
@@ -761,7 +795,7 @@ function render(){ // Hàm chạy chính của renderer
     // Hết vòng lặp tìm video. Tiến hành kiểm tra dữ liệu hợp lệ trước rồi mới render.
     const invalidateResult = renderDataValidate(renderData);
     if (invalidateResult) {
-        sendLogToBackground(`renderer: có dữ liệu ko hợp lệ: ${invalidateResult}. Hủy render.`,"error");
+        sendLogToBackground(`renderer: có dữ liệu ko hợp lệ: ${invalidateResult}. Hủy render.`,"warn");
         return; // Dữ liệu giờ vẫn ko hợp lệ thì về luôn.
     }
     // Sau đoạn này đã đảm bảo được FALLBACK, info(.WrapStyle, .PlayResX, .PlayResY), cssConfig, .videoAR (đã xử lí) từ *Validate()
@@ -774,20 +808,25 @@ function render(){ // Hàm chạy chính của renderer
     // }
     // renderData.renderState.stopRequested = false;
     // renderData.renderState.paused = false;
-    sendLogToBackground(`renderer: Đã chuẩn bị xong. Tiến hành renderLoop.`);
+    sendLogToBackground(`renderer: Đã chuẩn bị xong. Tiến hành enableRenderLoop.`);
     enableRenderLoop(); // Chạy vòng lặp render theo frame
 }
 // Phần trình xử lí phản hồi, tự động lấy cache và render
 /**
  * Hàm lập trình tính năng tự động lấy cache và render
  */
-function autoRenderOnCache() {
+function checkVideoIdChange() {
     renderData.lastId = renderData.currentId;
     updateVideoIdInRenderer();
-    if (!renderData.currentId || renderData.currentId === renderData.lastId ) {
-        disableRenderLoop();
-        return;
+    if (!renderData.currentId) {
+        disableRenderLoop("Ko có videoId.");
+    } else if (renderData.currentId !== renderData.lastId && renderData.lastId) {
+        disableRenderLoop(`videoId thay đổi từ ${renderData.lastId} sang ${renderData.currentId}.`);
+        updateVideoIdInRenderer();
     }
+}
+function autoRenderOnCache() {
+    checkVideoIdChange();
     chrome.runtime.sendMessage({ // Tự động chạy (1 lần, khi chạy file này theo manifest)
         type: 'SUB.USE_CACHE',
         payload: { videoId: renderData.currentId }
@@ -804,6 +843,7 @@ function autoRenderOnCache() {
         }
     });
 }
+sendLogToBackground("renderer: [DEBUG] kiểm tra renderData","log",renderData);
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => { // Nhận thủ công (UI bắt background gửi)
     const state = renderData.renderState; 
     if (msg?.type === 'RENDER.PAUSE') {
@@ -817,7 +857,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => { // Nhận 
         return;
     }
     if (msg?.type === 'RENDER.STOP') {
-        disableRenderLoop();
+        disableRenderLoop("nhận lệnh RENDER.STOP từ background (người dùng yêu cầu từ UI chuyển tiếp sang)");
         sendResponse({ type: 'RENDER.CONTROL', action: 'STOPPED' });
         return;
     }
@@ -828,7 +868,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => { // Nhận 
             return;
         }
         renderData.subObj = { ...msg.payload }; // Nhận dữ liệu để render
-        sendLogToBackground("renderer: Nhận tín hiệu thủ công thành công:");
+        sendLogToBackground(`renderer: Nhận tín hiệu thủ công thành công:`,"log",renderData.subObj);
         window.isAssCeeRendererLoaded = true; // Đánh dấu renderer đã khởi tạo thành công khi script đã được khởi động
         render();
         window.isAssCeeRendererLoaded = false;

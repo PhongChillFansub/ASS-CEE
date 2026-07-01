@@ -1,6 +1,6 @@
 // Code bằng tay
-// v0.0.0.5 29jun26 (28jun26)
-var uiData = window.uiData || {}; // Obj lưu toàn bộ dữ liệu UI, có bảo tồn do chạy nhiều lần file ui.js này
+// v0.0.6 01juy26 (30jun26)
+var uiData = {}; // Obj lưu toàn bộ dữ liệu UI, có bảo tồn do chạy nhiều lần file ui.js này
 /**
  * (6.2.)1.1. Hàm gửi log về background.js
  * @param {string} message nội dung
@@ -21,6 +21,7 @@ function sendLogToBackground(message, type = 'info', extra = undefined) {
     console.warn("[ASS-CEE] ui: Không thể gửi log về background:", err);
   });
 }
+sendLogToBackground("ui: [DEBUG] kiểm tra uiData","log",uiData);
 /**
  * 1.2. Hàm điều khiển ẩn/hiện của UI
  * @param {string} containerId [outdated] Id để giao tiếp với content.js (bản cũ điều khiển ẩn/hiện ở content.js)
@@ -106,7 +107,8 @@ function updateVideoIdInUI() {
         sendLogToBackground(`ui: (1.4) Ko thể tách ID từ url ${url}.`,"warn");
         return null; // Trả về giá trị mặc định nếu không khớp trang nào
     }
-  if (uiData.currentId) {
+  })();
+  if (uiData?.currentId) {
     if (uiData.searchInput) {
       uiData.searchInput.value = uiData.currentId;
     } else {
@@ -114,7 +116,6 @@ function updateVideoIdInUI() {
     }
     sendLogToBackground(`ui: Cập nhật ID video hiện tại: ${uiData.currentId}`);
   }
-  })();
 }
 // Lắng nghe khi người dùng bấm xem video khác trên YouTube (không load lại trang)
 document.addEventListener("yt-navigate-finish", () => {
@@ -907,7 +908,6 @@ async function initSubFileArray(searchId = "", targetId = "", cacheSearchMode = 
     return;
   }
   if (document.getElementById(uiData.containerId)) return;
-  sendLogToBackground("ui: Đang khởi tạo giao diện nội bộ.");
   try { buildMainHTML() } catch (error) {
     sendLogToBackground(`ui: chạy lỗi mục 1. Khởi tạo khung UI và API của nó: ${error.message}`, "error");
     console.error("[ASS-CEE] ui: chạy lỗi mục 1. Khởi tạo khung UI và API của nó:", error);

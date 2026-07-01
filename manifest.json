@@ -1,19 +1,19 @@
 {
   "manifest_version": 3,
-  "name": "ASS-CEE, alpha 5, 29jun26",
+  "name": "ASS-CEE (Dự án 47) 01juy26",
   "author": "PhongChillFansub",
-  "version": "0.0.0.5",
+  "version": "0.0.6",
   "description": "Hiển thị phụ đề Aegisub trên YouTube",
   "permissions": ["storage", "activeTab", "scripting", "unlimitedStorage"],
+  "host_permissions": [
+    "https://drive.google.com/embeddedfolderview?id=*",
+    "https://docs.google.com/uc?export=download&id=*",
+    "https://drive.usercontent.google.com/download?id="
+  ],
   "optional_host_permissions": [
     "https://www.youtube.com/*",
     "https://www.bilibili.tv/*",
-    "https://www.bilibili.com/*",
-    "https://drive.google.com/*",
-    "https://docs.google.com/*",
-    "https://*.usercontent.google.com/*",
-    "https://www.googleapis.com/*",
-    "https://*.googleusercontent.com/*"
+    "https://www.bilibili.com/*"
   ],
   "minimum_chrome_version": "102",
   "content_security_policy": {
@@ -24,7 +24,7 @@
     "type": "module"
   },
   "action": { 
-    "default_title": "[PhongChillFansub] ASS-CEE. Click để kích hoạt phụ đề cho trang này"
+    "default_title": "[PhongChillFansub] ASS-CEE"
   },
   "content_scripts": [{
     "matches": ["https://www.youtube.com/watch?v=*"],

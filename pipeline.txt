@@ -1,4 +1,4 @@
-v0.0.0.5 29jun26
+v0.0.6 01juy26 (30jun26)
 Các hướng tính năng mới cho UI
 1. Sửa lỗi sai vị trí, kích cỡ của sub (style) so với trong Aegisub (renderer.js)
 2. Hỗ trợ xử lí tag Aegisub (renderer.js)
@@ -268,3 +268,28 @@ renderData.subObj = {
   },
   cachedAt
 }
+FALLBACK_DEFAULT_STYLE: {
+    name: "Default",                            // Tên style (style.name, line.styleref.name, syl.style.name)
+    fontName: "Arial",                          // Tên font (\fn)
+    fontSize: "20",                             // Font size (\fs, px, với PlayRes 640x480)
+    primaryColour: "rgba(255,255,255,1.0)",     // Màu 1, main (\1c)
+    secondaryColour: "rgba(255,0,0,1.0)",       // Màu 2, pre-kara (\2c)
+    outlineColour: "rgba(0,0,0,1.0)",           // Màu 3, outline (\3c)
+    backColour: "rgba(0,0,0,1.0)",              // Màu 4, shadow (\4c)
+    bold: false,                                // In đậm (\b, boolean)
+    italic: false,                              // In nghiêng (\i, boolean)
+    underline: false,                           // Gạch dưới (\u, boolean)
+    strikeOut: false,                           // Gạch ngang (\s, boolean)
+    scaleX: "100",                              // ScaleX (\fscx, %)
+    scaleY: "100",                              // ScaleY (\fscx, %)
+    spacing: "0",                               // (\fsp, px)
+    angle: "0",                                 // (\fr hoặc \frz, degree)
+    borderStyle: "1",                           // Kiểu border (1: viền thường, 3: box)
+    outline: "2",                               // (\bord, px. có \xbord và \ybord)
+    shadow: "2",                                // (\shad, px. có \xshad và \yshad)
+    alignment: "2",                             // (\an, 1-9 kiểu numpad)
+    marginL: "20",                              // (px, left)
+    marginR: "20",                              // (px, right)
+    marginV: "20",                              // (px, vertical)
+    encoding: "1"                               // (\fe, nên bị bỏ qua.)
+},

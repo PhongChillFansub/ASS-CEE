@@ -1,11 +1,31 @@
 // Code bằng tay
-// v0.0.0.5 29jun26 (28jun26)
+// v0.0.6 01juy26 (30jun26)
 import { fetchSubtitleText, fetchSubtitleFile } from './fetcher.js';
 // 2 hàm fetchSubtitleText, fetchSubtitleFile
 import { addSource, getSourceList, removeSource, addSubData, getSubDataList, useSubData, removeSubData } from './storage.js';
 // 3 hàm với link folder: addSource, getSourceList, removeSource; 4 hàm với file sub: addSubData, getSubDataList, useSubData, removeSubData
 import parser from './parser.js';
 // 1 hàm parser
+function checkValidateURL(url) {
+  const BlacklistUrlPrefixes = [
+    "chrome://",
+    "coccoc://",
+    "edge://",
+    "https://drive.google.com/"
+  ];
+  const WhitelistUrlPrefixes = [
+    "https://www.youtube.com*"
+  ]
+  if (!url || BlacklistUrlPrefixes.some(prefix => url.startsWith(prefix))) {
+      console.warn(`[ASS-CEE] background: (Blacklist) Không chạy content-side trên tab này:\n${url}`);
+      return true; // Check url, nếu là tab nội bộ trình duyệt, trống, GDrive thì né.
+  }
+  if (!WhitelistUrlPrefixes.some(prefix => url.startsWith(prefix))) {
+      console.warn(`[ASS-CEE] background: (Whitelist) Không chạy content-side trên tab này:\n${url}`);
+      return true; // Check url, nếu là tab nội bộ trình duyệt, trống, GDrive thì né.
+  }
+  return false; 
+}
 /**
  * (6.1.)1. Hàm gửi dữ liệu cho renderer chạy (msg: {type: "RENDER", payload: subObj})
  * @param {*} subObj subObj (xem mục 2.4.3.1 pipeline)
@@ -13,10 +33,7 @@ import parser from './parser.js';
 async function renderSendData(subObj) {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true }); 
   // Lấy array các tab (thực ra có mỗi 1 cái, vì vừa active vừa là currentWindow)
-  if (!tab?.url || tab.url.startsWith("chrome://") || tab.url.startsWith("coccoc://") || tab.url.startsWith("edge://")) {
-    console.warn("[ASS-CEE] background: Không render trên tab này.");
-    return;
-  } // Check url, nếu là tab nội bộ trình duyệt thì né.
+  if (checkValidateURL(tab?.url)) return; 
   try {
     await chrome.tabs.sendMessage(tab.id, { type: 'RENDER', payload: subObj });
     console.log("[ASS-CEE] background: Gửi tín hiệu render thành công.");
@@ -30,10 +47,7 @@ async function renderSendData(subObj) {
  */
 function onClickedListener() {
   chrome.action.onClicked.addListener(async (tab) => {
-    if (!tab?.url || tab.url.startsWith("chrome://") || tab.url.startsWith("coccoc://") || tab.url.startsWith("edge://")) {
-      console.warn("[ASS-CEE] background: Không thể nạp ui.js/renderer.js trên trang này do hạn chế của trình duyệt.");
-      return;
-    }
+  if (checkValidateURL(tab?.url)) return;
     const tabId = tab.id;
     // Kiểm tra 2 cái window.isAssCeeUILoaded và window.isAssCeeRendererLoaded trước (đã nạp từ trước thì thôi)
     try { // iframe để beta lo.
