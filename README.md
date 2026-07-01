@@ -5,7 +5,7 @@
 
 ---
 
-# Thông báo: cập nhật bản v0.0.6-alpha 01juy06
+## Thông báo: cập nhật bản v0.0.6-alpha 01juy06
 
 - Thay đổi cách gọi tên từ v0.0 beta 0 alpha 6 (v0.0.0.6) sang v0.0 build 6 (v0.0.6)
 - Sửa lỗi không thể thêm thư mục Google Drive vào danh sách nguồn
