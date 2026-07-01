@@ -46,6 +46,15 @@
   <em>Ảnh 3.1. Ví dụ kết quả tìm kiếm phụ đề trong các nguồn</em>
 </p>
 
+6. Sau khi thêm phụ đề vào bộ nhớ cache, kết quả sẽ hiển thị như hình 4.1.
+   Chú ý: nếu vẫn không thấy phụ đề xuất hiện, có thể tải lại trang.
+   
+<p align="center">
+  <img width="80%" alt="image" src="https://github.com/user-attachments/assets/a0caec30-4395-44b4-a241-371437cfa48e" />
+  <br>
+  <em>Ảnh 4.1. Ví dụ hiển thị phụ đề sau khi đã thêm vào bộ nhớ cache</em>
+</p>
+
 ---
 
 Tiện ích này được truyền cảm hứng từ 4 repo/extension khác là [Kull-Vietsub](https://github.com/zingky/Kull-Vietsub), [+Sub](https://github.com/plussub/plussub), [ASS.js](https://github.com/weizhenye/ASS) và [AxTongue](https://chromewebstore.google.com/detail/axtongue/ilbfbiamkpljhkhnhjiikeikefogpffh).
