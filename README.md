@@ -7,7 +7,19 @@
 
 ## Hướng dẫn sử dụng
 1. Cài đặt [xem tại đây](#hướng-dẫn-cài-đặt).
-2. Bấm vào icon để khởi động giao diện tương tác và trình render.
+2. Bấm vào icon để khởi động giao diện tương tác và trình render (để tự động render nếu bạn đang bật video và đã lưu dữ liệu phụ đề tương ứng)
+<p align="center">
+  <img width="25%" alt="image" src="https://github.com/user-attachments/assets/a2335ec0-2ec5-4231-b84b-056b150929c7" />
+  <img width="25%" alt="image" src="https://github.com/user-attachments/assets/91387ccf-f61d-4fdd-bd3e-e04313390949" />
+  <img width="25%" alt="image" src="https://github.com/user-attachments/assets/3ce806b4-9b3b-4307-9594-4ff9816d6541" />
+
+  <br>
+  <em>Ảnh (từ trái sang): Giao diện ban đầu (mặc định ở trang Quản lí nguồn); Khi bấm nút Danh sách trang (tab list); Khi chuyển sang trang Quản lí dữ liệu (và ở trên 1 trang video YouTube cụ thể nào đó);
+</em>
+</p>
+
+
+3. 
 
 ---
 
