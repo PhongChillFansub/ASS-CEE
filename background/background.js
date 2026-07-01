@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.6 01juy26 (30jun26)
+// v0.0.6 01juy26
 import { fetchSubtitleText, fetchSubtitleFile } from './fetcher.js';
 // 2 hàm fetchSubtitleText, fetchSubtitleFile
 import { addSource, getSourceList, removeSource, addSubData, getSubDataList, useSubData, removeSubData } from './storage.js';
@@ -11,10 +11,10 @@ function checkValidateURL(url) {
     "chrome://",
     "coccoc://",
     "edge://",
-    "https://drive.google.com/"
+    "https://drive.google.com"
   ];
   const WhitelistUrlPrefixes = [
-    "https://www.youtube.com*"
+    "https://www.youtube.com"
   ]
   if (!url || BlacklistUrlPrefixes.some(prefix => url.startsWith(prefix))) {
       console.warn(`[ASS-CEE] background: (Blacklist) Không chạy content-side trên tab này:\n${url}`);
