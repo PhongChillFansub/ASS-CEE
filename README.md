@@ -5,6 +5,12 @@
 
 ---
 
+## Hướng dẫn sử dụng
+1. Cài đặt [xem tại đây](#hướng-dẫn-cài-đặt).
+2. Bấm vào icon để khởi động giao diện tương tác và trình render.
+
+---
+
 ## Thông báo: cập nhật bản v0.0.6-alpha 01juy06
 
 - Thay đổi cách gọi tên từ v0.0 beta 0 alpha 6 (v0.0.0.6) sang v0.0 build 6 (v0.0.6)
