@@ -5,8 +5,9 @@
 
 ---
 
-## Hướng dẫn sử dụng
+## Hướng dẫn sử dụng (bản v0.0.6)
 1. Cài đặt [xem tại đây](#hướng-dẫn-cài-đặt).
+
 2. Bấm vào icon để khởi động giao diện tương tác và trình render (để tự động render nếu bạn đang bật video và đã lưu dữ liệu phụ đề tương ứng) (ảnh 1.1)
    Có thể chuyển sang các trang khác bằng cách bấm vào hình "☰" ở bên trái tiêu đề, rồi chọn các trang cần chuyển. (ảnh 1.2)
    Tiêu đề luôn hiển thị tên trang đang hiện trong ngoặc đơn (ảnh 1.1, ảnh 1.3)
@@ -18,35 +19,32 @@
   <em>Ảnh (từ trái sang):<br> 1.1. Giao diện ban đầu (mặc định ở trang Quản lí nguồn);<br> 1.2. Khi bấm nút Danh sách trang (tab list);<br> 1.3. Khi chuyển sang trang Quản lí dữ liệu (và ở trên 1 trang video YouTube cụ thể nào đó).
   </em>
 </p>
-3. Thêm nguồn bằng cách dán đường link của thư mục, sau đó bấm nút "+" (như ảnh 3.1). Nếu không dán đường link nào (mặc định), nút "+" sẽ chuyển thành nút "↺", dùng khi cần tiện ích tự động cập nhật lại các nguồn đã có trong danh sách nguồn. (xem ảnh 1.1, 1.2)
+
+3. Thêm nguồn bằng cách dán đường link của thư mục, sau đó bấm nút "+" (như ảnh 2.1). Nếu không dán đường link nào (mặc định), nút "+" sẽ chuyển thành nút "↺", dùng khi cần tiện ích tự động cập nhật lại các nguồn đã có trong danh sách nguồn. (xem ảnh 1.1, 1.2). Sau đó sẽ có kết quả thêm nguồn, bấm OK để đóng.
+   Khi thêm thành công, danh sách nguồn sẽ cập nhật lại, hiển thị nguồn đã được thêm như hình 2.3.
 <p align="center">
-  <img width="20%" alt="image" src="https://github.com/user-attachments/assets/12663f33-0877-4b73-ac2f-294689e4ac6e" />
+   <img width="30%" alt="image" src="https://github.com/user-attachments/assets/12663f33-0877-4b73-ac2f-294689e4ac6e" />
+   <img width="30%" alt="image" src="https://github.com/user-attachments/assets/d8407084-b06b-4a87-ab21-8d4bbcef4332" />
+   <img width="30%" alt="image" src="https://github.com/user-attachments/assets/d9e5e658-58ad-494f-9d2e-5ba933442c9e" />
   <br>
-  <em>Ảnh (từ trái sang):<br> 3.1. Thao tác thêm nguồn
+  <em>Ảnh (từ trái sang):<br> 2.1. Thao tác thêm nguồn; 2.2. Thông báo kết quả thêm nguồn; 2.3. Nguồn thư mục trong danh sách
   </em>
 </p>
 
+4. Lúc này, chuyển sang trang Quản lí dữ liệu (ảnh 1.3) khi đang bật một video YouTube cụ thể, tiện ích sẽ tự động cập nhật ID và hiển thị trên thanh tìm kiếm.
+   Ở bên phải, có 4 nút chức năng, lần lượt là: Lấy video ID từ tab YouTube hiện tại 🆔, tải phụ đề từ máy 📁, tìm kiếm trong cache 💾, và tìm kiếm trong các nguồn 🌐.
+   Bấm vào các nút trên để sử dụng tính năng tương ứng.
+   - Chú ý: nếu thanh tìm kiếm trống, việc tìm kiếm trong cache và trong các nguồn sẽ hiển thị toàn bộ kết quả (tất cả tệp phụ đề đã lưu, và tất cả tệp phụ đề có trong các nguồn)
 
----
+5. Sau khi chọn tìm kiếm trong các nguồn, kết quả sẽ hiển thị như ví dụ hình 4.1. Ở các ô tệp phụ đề đang hiển thị, chọn ✓ để áp dụng thủ công tệp đó với video hiện tại, chọn ✕ để xóa tệp đó khỏi bộ nhớ cache.
+   Ở chế độ tìm kiếm trong các nguồn, nút ✕ bị vô hiệu hóa, và các tệp không hiển thị thời gian thêm.
+   Ở chế độ tìm kiếm trong bộ nhớ (cache), nút ✓ bị vô hiệu hóa nếu tệp đó đang được sử dụng (cùng video ID với video YouTube đang mở), hoặc đang không bật video nào (không có video ID để áp dụng và lưu phụ đề).
 
-## Thông báo: cập nhật bản v0.0.6-alpha 01juy06
-
-- Thay đổi cách gọi tên từ v0.0 beta 0 alpha 6 (v0.0.0.6) sang v0.0 build 6 (v0.0.6)
-- Sửa lỗi không thể thêm thư mục Google Drive vào danh sách nguồn
-  <details>
-    <summary><b>Cụ thể:</b></summary>
-    do đặt sai permission trong manifest.
-  </details>
-- Thêm cài đặt các tab mà tiện ích được phép kích hoạt (hiện tại chỉ cho kích hoạt trên các trang của YouTube)
-  <details>
-    <summary><b>Cụ thể:</b></summary>
-    thêm blacklist, whitelist cho các tab có URL mà background được phép chạy UI, renderer.
-  </details>
-- Sửa lỗi UI không hiển thị videoId cho người dùng khi cập nhật.
-  <details>
-    <summary><b>Cụ thể:</b></summary>
-    phần xử lí currentId bị đặt sai chỗ.
-  </details>
+<p align="center">
+  <img width="80%" alt="image" src="https://github.com/user-attachments/assets/87397812-aea1-410f-a9e3-121479f91ac3" />
+  <br>
+  <em>Ảnh 3.1. Ví dụ kết quả tìm kiếm phụ đề trong các nguồn</em>
+</p>
 
 ---
 
