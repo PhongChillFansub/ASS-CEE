@@ -99,4 +99,4 @@ Trong đó, tiện ích này chịu ảnh hưởng trực tiếp và có thể s
 
 ## Credits
 - Tiện ích này có sử dụng AI (Gemini, Copilot) để hỗ trợ giải pháp, viết chương trình và sửa lỗi.
-- Tuy nhiên, người viết (Yukimuro - Phòng Chill Fansub) vẫn là người quản lí và định hình cấu trúc cho chương trình.
+- Tuy nhiên, người viết [Yukimuro - Phòng Chill Fansub](https://www.youtube.com/@PhongChillFansub) vẫn là người quản lí và định hình cấu trúc cho chương trình.
