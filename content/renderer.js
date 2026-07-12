@@ -931,23 +931,37 @@ function renderSubtitleFrameInLoop() {
             sendLogToBackground(`renderer: (4.3) style ${line.style} này ko có trong currentStyles?`, 'warn');
             styleCss = renderData.defaultStyle;
         }
+
+        
+
+
+
+
+        
         // *** Đoạn này liên quan xử lí dữ liệu inline tags.
-        const layoutContainer = document.createElement('div'); // Vỏ
+        const lineContainer = document.createElement('div'); // Vỏ
         // Danh sách các tag Aegisub ảnh hưởng đến toàn line (chỉ được tính tag đầu tiên/ tính 1 lần mỗi line)
         // \pos(x,y), \move(x0,y0,x1,y1[,t1,t2]), \an<x0>, \fad(t0,t1), \fade(a0,a1,a2,t0,t1,t2,t3)
-        processLayoutTags(currentTime, line, layoutContainer, textNode);
-        const textNode = document.createElement('span'); // Ruột
-        // Phần này sẽ đưa vào 5.2 processTextTags()
-        processTextTags(line, textNode, layoutContainer);
-        textNode.innerText = line.text
-            .replace(/\{[^}]*\}/g, '')                              // Xóa tag
-            .replace(/\\N/g, '\n')                                  // Đổi "\N" thành xuống dòng thật
-            .replace(/\\n/g, info.WrapStyle === 2 ? '\n' : ' ');    // Đổi "\n" thành xuống dòng thật (chỉ khi WrapStyle = 2). info?
-        Object.assign(layoutContainer.style, styleCss.container);
-        Object.assign(textNode.style, styleCss.text);
-        layoutContainer.appendChild(textNode);
-        
+        processGlobalInlineTags(currentTime, line, lineContainer, styleCss); // processLayoutTags
+        processLocalInlineTags(currentTime, line, lineContainer, styleCss);
+        // const textNode = document.createElement('span'); // Ruột
+        // // Phần này sẽ đưa vào 5.2 processTextTags()
+        // processTextTags(line, textNode, layoutContainer);
+        // textNode.innerText = line.text
+        //     .replace(/\{[^}]*\}/g, '')                              // Xóa tag
+        //     .replace(/\\N/g, '\n')                                  // Đổi "\N" thành xuống dòng thật
+        //     .replace(/\\n/g, info.WrapStyle === 2 ? '\n' : ' ');    // Đổi "\n" thành xuống dòng thật (chỉ khi WrapStyle = 2). info?
+        // Object.assign(layoutContainer.style, styleCss.container);
+        // Object.assign(textNode.style, styleCss.text);
+        // layoutContainer.appendChild(textNode);
         // *** Hết đoạn liên quan xử lí dữ liệu inline tags
+
+
+
+
+
+
+
         layoutContainer.dataset.index = index;
         // Lưu lại ref của DOM element này vào object quản lý
         state.currentElements[index] = layoutContainer;
@@ -1048,19 +1062,26 @@ function render(){ // Hàm chạy render trung tâm
     if (observeParentLayout() === "return") return "return"; // Lập trình tính năng bám bắt video.
     enableRenderLoop(); // Chạy vòng lặp render theo frame
 }
+
+
+
+
+
+
+
 /**
  * 5.1. Hàm xử lí các tag layout trong văn bản. (Copilot vibe, đang review)
  * Chú ý: dữ liệu được chuẩn hóa theo chuẩn 4.3bc (renderDataCheck("bc"))
  * @param {number} currentTime renderData.video.currentTime (hàm 4.3 renderSubtitleFrameInLoop, parent? hàm này, đã chuẩn hóa)
  * @param {Object} line event[index], tức orgline/line trong Aegisub
  * @param {HTMLElement} layoutContainer node vỏ (div) chứa textNode. chi tiết xem hàm 3.4.3 styleObjToCss()
- * @param {HTMLElement} textNode node ruột (span) chứa text. chi tiết xem hàm 3.4.3 styleObjToCss()
+ * @param {HTMLElement} styleCss dữ liệu style với định dạng CSS, đầu ra hàm 3.4.3 styleObjToCss()
  * @param {Object} renderData.container.getBoundingClientRect ("b")
  * @param {number} renderData.scaleWidth ("c")
  * @param {number} renderData.scaleHeight ("c")
  * @returns Xử lí các tag áp dụng toàn bộ line: \pos(x,y), \move(x0,y0,x1,y1[,t1,t2]), \an<x0>, \fad(t0,t1), \fade(a0,a1,a2,t0,t1,t2,t3)
  */
-function processLayoutTags(currentTime, line, layoutContainer, textNode) {
+function processGlobalInlineTags(currentTime, line, lineContainer, styleCss) {
     // \pos(x,y)
     // \move(x0,y0,x1,y1[,t1,t2])
     // \an<x0>
@@ -1070,6 +1091,8 @@ function processLayoutTags(currentTime, line, layoutContainer, textNode) {
     const scaleX = renderData.scaleWidth;
     const scaleY = renderData.scaleHeight;
     
+
+
     /**
      * 5.1.1. Hàm ghi đè vị trí (x, y, \pos) vào layoutContainer.style
      * @param {number} x tọa độ x
@@ -1167,8 +1190,6 @@ function processTextTags(line, textNode) {
 function processCollisions(layoutContainer) {
     // Xử lí chồng lấn giữa các dòng phụ đề
 }
-
-
 
 
 
