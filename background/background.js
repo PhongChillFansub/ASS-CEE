@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.6 01juy26
+// v0.0.7 08juy26
 import { fetchSubtitleText, fetchSubtitleFile } from './fetcher.js';
 // 2 hàm fetchSubtitleText, fetchSubtitleFile
 import { addSource, getSourceList, removeSource, addSubData, getSubDataList, useSubData, removeSubData } from './storage.js';
@@ -11,7 +11,8 @@ function checkValidateURL(url) {
     "chrome://",
     "coccoc://",
     "edge://",
-    "https://drive.google.com"
+    "https://drive.google.com",
+    "about:"
   ];
   const WhitelistUrlPrefixes = [
     "https://www.youtube.com"
@@ -66,7 +67,7 @@ function onClickedListener() {
           files: ["content/ui.js"]
         });
         // Trì hoãn nhẹ 50ms để chắc chắn listener đăng ký xong ở lần đầu tiên nạp
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise(resolve => setTimeout(resolve, 10000));
         console.log("[ASS-CEE] background: Tải UI lần đầu.");
       } else {
         console.log("[ASS-CEE] background: Tải UI có sẵn (Toggle).");
@@ -74,7 +75,7 @@ function onClickedListener() {
       await chrome.tabs.sendMessage(tabId, { action: "TOGGLE_OVERLAY_SIGNAL" });
       console.log("[ASS-CEE] background: Tải UI xong.");
     } catch (err) {
-      console.error("[ASS-CEE] background: Tải UI bị lỗi:", err.message);
+      console.warn("[ASS-CEE] background: Tải UI bị lỗi:", err.message);
     }
     try { // iframe để beta lo.
       const checkResult = await chrome.scripting.executeScript({
@@ -88,13 +89,13 @@ function onClickedListener() {
           files: ["content/renderer.js"]
         });
         // Trì hoãn nhẹ 50ms để chắc chắn listener đăng ký xong ở lần đầu tiên nạp
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise(resolve => setTimeout(resolve, 10000));
         console.log("[ASS-CEE] background: Tải renderer lần đầu.");
       } else {
         console.log("[ASS-CEE] background: Tải renderer có sẵn (Ko làm gì cả).");
       }
     } catch (err) {
-      console.error("[ASS-CEE] background: Tải renderer bị lỗi:", err.message);
+      console.warn("[ASS-CEE] background: Tải renderer bị lỗi:", err.message);
     }
   });
 })();

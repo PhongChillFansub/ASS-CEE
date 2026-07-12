@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.6 01juy26 (30jun26)
+// v0.0.7 10juy26
 var uiData = {}; // Obj lưu toàn bộ dữ liệu UI, có bảo tồn do chạy nhiều lần file ui.js này
 /**
  * (6.2.)1.1. Hàm gửi log về background.js
@@ -110,7 +110,7 @@ function updateVideoIdInUI() {
   })();
   if (uiData?.currentId) {
     if (uiData.searchInput) {
-      uiData.searchInput.value = uiData.currentId;
+      uiData.searchInput.value = `#${uiData.currentId}`;
     } else {
       sendLogToBackground(`ui: (1.4) searchInput trống? (chưa chạy mục Quản lí dữ liệu?)`,"warn");
     }
@@ -484,7 +484,7 @@ function renderLinkList(linksArray) {
     return;
   }
   const fragment = document.createDocumentFragment();
-  if (!linksArray || linksArray.length === 0) {
+  if (!Array.isArray(linksArray) || linksArray.length === 0) {
     const emptyLi = document.createElement("li");
     emptyLi.className = "asscee_Text";
     emptyLi.textContent = "Chưa có nguồn nào được thêm.";
@@ -888,11 +888,14 @@ async function initSubFileArray(searchId = "", targetId = "", cacheSearchMode = 
         resolve();
         return;
       }
-      if (response) {
-        const candidates = response.payload || [];
+      if (response && response.payload && Array.isArray(response.payload)) {
+        const candidates = response.payload;
         renderSubFileArray(candidates, searchId, targetId, cacheSearchMode);
       } else {
-        sendLogToBackground("ui: Không nhận được phản hồi hợp lệ khi tải danh sách phụ đề.", "warn");
+        sendLogToBackground("ui: Không nhận được phản hồi hợp lệ khi tải danh sách phụ đề.", "warn",response.payload);
+        if (response && response.type === "ERROR") {
+          alert("Lỗi từ backend khi tải danh sách phụ đề: " + response.payload);
+        }
       }
       resolve(); // Giải phóng Promise
     });
@@ -903,33 +906,29 @@ async function initSubFileArray(searchId = "", targetId = "", cacheSearchMode = 
   'use strict';
   uiData.containerId = 'asscee_overlayRoot';
   const currentUrl = window.location.href;
-  if (currentUrl.startsWith('about:')) {
-    sendLogToBackground("[ASS-CEE] ui: Bỏ qua trang about: vì UI không chạy ở đây. " + currentUrl, "warn");
-    return;
-  }
   if (document.getElementById(uiData.containerId)) return;
   try { buildMainHTML() } catch (error) {
     sendLogToBackground(`ui: chạy lỗi mục 1. Khởi tạo khung UI và API của nó: ${error.message}`, "error");
-    console.error("[ASS-CEE] ui: chạy lỗi mục 1. Khởi tạo khung UI và API của nó:", error);
+    // console.error("[ASS-CEE] ui: chạy lỗi mục 1. Khởi tạo khung UI và API của nó:", error);
     return;
   } finally {
     toggleOverlay(uiData.containerId, false);
   }
   try { buildTabListLogic() } catch (error) {
     sendLogToBackground(`ui: chạy lỗi mục 2. Khởi tạo logic trên danh sách trang hiển thị: ${error.message}`, "error");
-    console.error("[ASS-CEE] ui: chạy lỗi mục 2. Khởi tạo logic trên danh sách trang hiển thị:", error);
+    // console.error("[ASS-CEE] ui: chạy lỗi mục 2. Khởi tạo logic trên danh sách trang hiển thị:", error);
   }
   try { buildDragFeature() } catch (error) {
     sendLogToBackground(`ui: chạy lỗi mục 3. Tính năng di chuyển giao diện: ${error.message}`, "error");
-    console.error("[ASS-CEE] ui: chạy lỗi mục 3. Tính năng di chuyển giao diện:", error);
+    //  console.error("[ASS-CEE] ui: chạy lỗi mục 3. Tính năng di chuyển giao diện:", error);
   }
   try { await buildSourceManagerTab() } catch (error) {
     sendLogToBackground(`ui: chạy lỗi mục 1.3. Tính năng trong tab 1: Quản lí nguồn: ${error.message}`, "error");
-    console.error("[ASS-CEE] ui: chạy lỗi mục 1.3. Tính năng trong tab 1: Quản lí nguồn:", error);
+    // console.error("[ASS-CEE] ui: chạy lỗi mục 1.3. Tính năng trong tab 1: Quản lí nguồn:", error);
   }
   try { buildSubtitleManagerTab() } catch (error) {
     sendLogToBackground(`ui: chạy lỗi mục 1.4. Tính năng trong tab 2: Quản lý phụ đề: ${error.message}`, "error");
-    console.error("[ASS-CEE] ui: chạy lỗi mục 1.4. Tính năng trong tab 2: Quản lý phụ đề:", error);
+    // console.error("[ASS-CEE] ui: chạy lỗi mục 1.4. Tính năng trong tab 2: Quản lý phụ đề:", error);
   }
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.action === "TOGGLE_OVERLAY_SIGNAL") {

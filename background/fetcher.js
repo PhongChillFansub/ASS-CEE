@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.6 01juy26 (25jun26)
+// v0.0.7 10juy26
 const FETCH_TIMEOUT = 60000; // Tối đa 60 giây kết nối và nhận dữ liệu. Dùng cho hàm fetchWithTimeout().
 const VALID_FILE_SIGNATURE = ["[Script Info]", "[V4+ Styles]", "[Events]"];
 // Danh sách các nội dung mà parser dùng để đánh dấu. Dùng cho hàm validateSubtitleContent().
@@ -131,7 +131,7 @@ export async function fetchSubtitleFile(sources, videoId, folderMode) {
         console.log("[ASS-CEE] fetcher: Coi như link folder chạy lần đầu (đã nạp xong folderName và folderId)\n", sources);
         return []; 
     } else {
-        console.log("[ASS-CEE] fetcher: Đang ở chế độ quét toàn bộ file sub trong các folder");
+        // console.log("[ASS-CEE] fetcher: Đang ở chế độ quét toàn bộ file sub trong các folder");
     }
     // Gom và làm phẳng danh sách file sub tìm được
     const candidates = results.filter(r => r.status === 'fulfilled').flatMap(r => r.value);
@@ -206,7 +206,7 @@ async function scanGitHub(source, videoId, folderGet, folderMode) {
     } catch (e) {
         console.error("[ASS-CEE] fetcher: Lỗi quét GitHub:", e);
     }
-    console.log(`[ASS-CEE] fetcher: Đã quét xong folder ${folderGet.groupName}(${folderGet.id})`);
+    console.log(`[ASS-CEE] fetcher: Đã quét xong folder ${folderGet.groupName} (${folderGet.id}). Trả về ${results.length} kết quả phù hợp.`);
     return results;
     // phụ thuộc các hàm ngoài là fetchWithTimeout() và isMatchingSubtitle()
 }
@@ -331,7 +331,7 @@ async function scanGDrive(source, videoId, folderName = { groupName: '',id: '' }
     } catch (e) {
         console.error("[ASS-CEE] fetcher: Lỗi quét Google Drive:", e);
     }
-    console.log(`[ASS-CEE] fetcher: Đã quét xong folder ${folderName.groupName}(${folderName.id}). Trả về ${results.length} kết quả phù hợp.`);
+    console.log(`[ASS-CEE] fetcher: Đã quét xong folder ${folderName.groupName} (${folderName.id}). Trả về ${results.length} kết quả phù hợp.`);
     return results;
 	// Như vậy cấu trúc của results là array với các phần tử là obj gồm {id, fileName, fetchUrl, viewUrl, sourceType, groupName}
 	// phụ thuộc các hàm ngoài là fetchWithTimeout() và isMatchingSubtitle()
@@ -348,7 +348,9 @@ function isMatchingSubtitle(fileName, videoId) {
     // Phòng trường hợp tên file bị rỗng hoặc không phải chuỗi
     if (!fileName) return false;
     // Kiểm tra xem tên file có chứa videoId hay không (phân biệt chữ hoa - chữ thường theo quy tắc ID của YouTube)
-    return fileName.includes(videoId);
+    // Nếu tìm theo tag (string videoId có kí tự đầu là #) thì bật phân biệt chữ hoa - chữ thường. Nếu ko thì tắt.
+    if (videoId.startsWith('#')) return fileName.includes(videoId);
+    return fileName.toLowerCase().includes(videoId.toLowerCase());
 }
 /**
  * Hàm kết nối mạng có timeout (Gemini). Yêu cầu biến FETCH_TIMEOUT. (Gemini)

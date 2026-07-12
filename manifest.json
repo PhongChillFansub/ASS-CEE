@@ -1,14 +1,14 @@
 {
   "manifest_version": 3,
-  "name": "ASS-CEE (Dự án 47) 01juy26",
+  "name": "ASS-CEE (Dự án 47) 09juy26",
   "author": "PhongChillFansub",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Hiển thị phụ đề Aegisub trên YouTube",
   "permissions": ["storage", "activeTab", "scripting", "unlimitedStorage"],
   "host_permissions": [
     "https://drive.google.com/embeddedfolderview?id=*",
     "https://docs.google.com/uc?export=download&id=*",
-    "https://drive.usercontent.google.com/download?id="
+    "https://drive.usercontent.google.com/download?id=*"
   ],
   "optional_host_permissions": [
     "https://www.youtube.com/*",
@@ -26,16 +26,18 @@
   "action": { 
     "default_title": "[PhongChillFansub] ASS-CEE"
   },
-  "content_scripts": [{
-    "matches": ["https://www.youtube.com/watch?v=*"],
-    "js": [
-      "content/ui.js",
-      "content/renderer.js"
-    ],
-    "css": [
-      "content/ui.css"
-    ],
-    "all_frames": true,
-    "run_at": "document_idle"
-  }]
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/watch?v=*"],
+      "js": [
+        "content/ui.js",
+        "content/renderer.js"
+      ],
+      "css": [
+        "content/ui.css"
+      ],
+      "all_frames": false,
+      "run_at": "document_idle"
+    }
+  ]
 }

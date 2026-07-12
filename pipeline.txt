@@ -1,8 +1,7 @@
-v0.0.6 01juy26 (30jun26)
+v0.0.7 12juy26
 Các hướng tính năng mới cho UI
-1. Sửa lỗi sai vị trí, kích cỡ của sub (style) so với trong Aegisub (renderer.js)
-2. Hỗ trợ xử lí tag Aegisub (renderer.js)
-3. Chạy trên iframe (background.js) => Hỗ trợ trên BiliBili, VK Video bên cạnh YouTube?
+1. Hỗ trợ xử lí tag Aegisub (renderer.js)
+2. Chạy trên iframe (background.js) => Hỗ trợ trên BiliBili, VK Video bên cạnh YouTube?
 
 1. Cấu trúc extension:
   - manifest.JSON
@@ -134,7 +133,7 @@ Các hướng tính năng mới cho UI
     4.1. action === "TOGGLE_OVERLAY_SIGNAL"
           (gửi lệnh toggleOverlay cho UI, do nút icon extension là background quản lí)
 
-5. Cấu trúc khung HTML của UI: (.innerHTML trong file ui.js và ui_work.html)
+5. (cũ) Cấu trúc khung HTML của UI: (.innerHTML trong file ui.js và ui_work.html)
     (để tiện chỉnh sửa, sử dụng file ui_bea… à nhầm ui_work.html)
   - class="asscee_ui": khung giao diện
     - class="asscee_barTitle": thanh tiêu đề: hiển thị tên, nút chọn tab, nút ẩn/đóng UI
@@ -160,7 +159,7 @@ Các hướng tính năng mới cho UI
     3. onHandlersListener(): Hàm lập trình giao tiếp của background-side với content-side (chạy luôn)
     - Phần định nghĩa giao thức (cho onHandlersListener() ở trên)
     4. resolveSubtitles(): Hàm xử lý và điều phối tìm kiếm phụ đề dựa trên videoId 
-      (ko tìm bố... à nhầm, cache, vì đã có hàm của storage tìm hộ)
+      (ko tìm bố… à nhầm, cache, vì đã có hàm của storage tìm hộ)
     5. processSubtitles(): Hàm xử lý và lưu cache.
 
   6.2. ui.js
@@ -195,28 +194,71 @@ Các hướng tính năng mới cho UI
       2.1 > 2.2 > 2.3 > 2.4 > 2.5.
   
   6.3. renderer.js
+    - Phần khai báo dữ liệu chung ở đầu tệp.
+
     1. Các hàm bổ trợ cơ bản
       1.1. sendLogToBackground(): gửi log về background.js (content-side về background-side)
       1.2. updateVideoIdInRenderer(): Hàm cập nhật video ID vào UI (hiện tại chỉ hỗ trợ YT.)
-      1.3. selectVideo(): Hàm chạy tự động tìm, chọn video, và tạo lập khung phụ đề ban đầu.
-      1.4. renderDataValidate(): Hàm kiểm tra và hợp lệ hóa dữ liệu (chỉ chạy 1 lần khi chạy hàm chính render())
-      - Phần khai báo dữ liệu chung.
-    2. Các hàm tính năng bám bắt video (hàm chính: 2.3)
-      2.1. computeAspectFitBounds(): Hàm tính toán khung phụ đề (dựa trên tỉ lệ khung hình cố định của video và của sub)
-      2.2. applyOverlayBounds(): Hàm áp dụng tọa độ-kích thước mới tính toán vào khung phụ đề hiện có
-      2.3. observeParentLayout(): Hàm thiết lập trình bám bắt video
-    3. Các hàm tính năng render
-      3.1. styleObjToCss(): Hàm chuyển đổi style từ object sang bộ CSS tĩnh (cấu trúc 2 lớp vỏ-ruột)
-      3.2. scaler(): Hàm thực thi chuyển đổi style theo thay đổi kích thước khung hình (từ khung PlayResX-Y sang khung width-height của phụ đề)
-      3.3. pendingStylesCalculate(): Hàm tính toán và áp dụng style mới vào hàng chờ
-      3.4. applyPendingStyles(): Hàm áp dụng style đang chờ vào trước khi frame loop render tiếp.
-      3.5. renderSubtitleFrame(): Hàm xử lí dữ liệu render theo từng frame
-      3.6. clearSubtitleFrame(): Hàm xóa dữ liệu render trong frame
-      3.7. enableRenderLoop(): Hàm mở chạy vòng lặp render theo frame
-      3.8. disableRenderLoop(): Hàm hủy chạy vòng lặp render theo frame
-      3.9. render(): Hàm chạy render chính
-    - Phần trình xử lí phản hồi, tự động lấy cache và render
+      1.3. renderDataCheck(): Hàm kiểm tra và hợp lệ hóa dữ liệu (chỉ chạy 1 lần khi chạy hàm chính render())
+      1.4. checkDoLog(): Hàm kiểm tra điều kiện gửi log.
+      1.5. disableRenderLoop(): Hàm hủy chạy vòng lặp render theo frame
+      1.6. disconnectVideoObserver(): Hàm dừng observer (đóng trình bám bắt video), và reset dữ liệu observer
 
+    2. Các trình giao thức nhận dữ liệu
+      2.1. Hàm lập trình tính năng tự động lấy cache và render
+      2.2. Hàm lập trình nghe dữ liệu từ background (render thủ công)
+
+    3. Các hàm xử lí phân đoạn tìm chọn video và chuyển đổi ban đầu
+      3.1. selectVideo(): Hàm chạy tự động tìm, chọn video, và tạo lập khung phụ đề ban đầu.
+      3.2. preProcessSubData(): Hàm tiền xử lí dữ liệu: Chuẩn hóa và xử lí dữ liệu chung, chuẩn hóa tỉ lệ khung hình
+      3.3. observeParentLayout(): Hàm thiết lập trình bám bắt video
+        3.3.1. preProcessStylesData(): Tính toán khung chữ thực tế của font hiển thị trên web.
+        3.3.2. refresh(): Quy định những việc phải làm của Observer
+          3.3.2.1. computeAspectFitBounds(): Hàm tính toán khung phụ đề (dựa trên tỉ lệ khung hình cố định của video và của sub)
+          3.3.2.2. applyOverlayBounds(): Hàm áp dụng tọa độ-kích thước mới tính toán vào khung phụ đề hiện có
+      3.4. Các hàm xử lí style
+        3.4.1. processStylesPending(): Hàm tính toán và áp dụng style mới vào hàng chờ
+        3.4.2. scaler(): Hàm thực thi chuyển đổi style theo thay đổi kích thước khung hình (từ khung PlayResX-Y sang khung width-height của phụ đề)
+        3.4.3. styleObjToCss(): Hàm chuyển đổi style từ object sang bộ CSS tĩnh (cấu trúc 2 lớp vỏ-ruột)
+
+    4. Các hàm tính năng render
+      4.1. clearSubtitleFrame(): Hàm xóa dữ liệu render trong frame
+      4.2. applyPendingStyles(): Hàm áp dụng style đang chờ vào trước khi frame loop render tiếp.
+      4.3. renderSubtitleFrameInLoop(): Hàm xử lí dữ liệu render theo từng frame
+      4.4. enableRenderLoop(): Hàm mở chạy vòng lặp render theo frame
+        4.4.1. tick(): Hàm đệ quy cho requestAnimationFrame
+      4.5. render(): Hàm chạy render chính
+
+    5. Các hàm tính năng xử lí nâng cao (to-do)
+      5.1. Xử lí tag \an, \pos, \move
+      5.2. Xử lí chồng lấn
+
+    - Chu trình hoạt động renderer:
+      > Chạy 2.1 để tự động nhận dữ liệu.
+      > Chạy 2.2 để nhận dữ liệu thủ công (người dùng gửi qua background)
+      Đều tập trung tại điểm chạy hàm 4.5 render()
+      > 4.5. render()
+        > chạy 4.5.1: lặp lại 3.1 để tìm video (tối đa 6 lần trong 5s)
+          > 3.1. selectVideo()
+        > 1.3a. renderDataCheck("a") để chuẩn bị cho hàm sau
+        > 3.2. preProcessSubData()
+        > 3.3. observeParentLayout()
+          > 3.3.1. preProcessStylesData()
+          > 3.3.2. refresh()
+            > 1.3b. renderDataCheck("b") để chuẩn bị cho các hàm trong 3.3.2.
+            > 3.3.2.1. computeAspectFitBounds()
+            > 3.3.2.2. applyOverlayBounds()
+            > 3.4.1. processStylesPending()
+              > 3.4.2. scaler() cho mỗi style trong hàm trên
+                > 3.4.3. styleObjToCss()
+            > 1.2. updateVideoIdInRenderer()
+        > 4.4. enableRenderLoop()
+          > 4.4.1. tick() đệ quy cho renderAnimationFrame()
+            > 4.3. renderSubtitleFrameInLoop()
+              > 1.3c. renderDataCheck("c") để chuẩn bị cho các hàm trong 4.3.
+              > 4.2. applyPendingStyles()
+                > 4.1. clearSubtitleFrame()
+                > 5.x. (to-do)
 
 
 
@@ -268,28 +310,3 @@ renderData.subObj = {
   },
   cachedAt
 }
-FALLBACK_DEFAULT_STYLE: {
-    name: "Default",                            // Tên style (style.name, line.styleref.name, syl.style.name)
-    fontName: "Arial",                          // Tên font (\fn)
-    fontSize: "20",                             // Font size (\fs, px, với PlayRes 640x480)
-    primaryColour: "rgba(255,255,255,1.0)",     // Màu 1, main (\1c)
-    secondaryColour: "rgba(255,0,0,1.0)",       // Màu 2, pre-kara (\2c)
-    outlineColour: "rgba(0,0,0,1.0)",           // Màu 3, outline (\3c)
-    backColour: "rgba(0,0,0,1.0)",              // Màu 4, shadow (\4c)
-    bold: false,                                // In đậm (\b, boolean)
-    italic: false,                              // In nghiêng (\i, boolean)
-    underline: false,                           // Gạch dưới (\u, boolean)
-    strikeOut: false,                           // Gạch ngang (\s, boolean)
-    scaleX: "100",                              // ScaleX (\fscx, %)
-    scaleY: "100",                              // ScaleY (\fscx, %)
-    spacing: "0",                               // (\fsp, px)
-    angle: "0",                                 // (\fr hoặc \frz, degree)
-    borderStyle: "1",                           // Kiểu border (1: viền thường, 3: box)
-    outline: "2",                               // (\bord, px. có \xbord và \ybord)
-    shadow: "2",                                // (\shad, px. có \xshad và \yshad)
-    alignment: "2",                             // (\an, 1-9 kiểu numpad)
-    marginL: "20",                              // (px, left)
-    marginR: "20",                              // (px, right)
-    marginV: "20",                              // (px, vertical)
-    encoding: "1"                               // (\fe, nên bị bỏ qua.)
-},
