@@ -15,11 +15,11 @@ Trong đó, tiện ích này chịu ảnh hưởng trực tiếp và có thể s
 
 ## Tính năng chính
 
-- Hoạt động trên trình duyệt Chromium phiên bản 102 trở lên. (người viết chỉ mới thử nghiệm trên Cốc Cốc trên Windows)
+- Hoạt động trên trình duyệt Chromium phiên bản 117 trở lên. (người viết chỉ mới thử nghiệm trên Cốc Cốc trên Windows)
 - Hiển thị phụ đề trên trang xem video YouTube hiện tại của người dùng
 - Cho phép lưu nguồn, quản lí, tìm kiếm phụ đề từ nguồn thư mục trên GitHub, Google Drive (đường dẫn thư mục do người dùng nhập).
 - Chỉ hỗ trợ định dạng Advanced SubStationAlpha đuôi .ass, tệp phụ đề tạo bằng phần mềm Aegisub.
-- Cho phép tìm kiếm phụ đề theo bất kì chuỗi kí tự trùng khớp trong tên tệp, hỗ trợ tìm kiếm bằng ID của video, sử dụng thuật toán fileName.include().
+- Cho phép tìm kiếm phụ đề theo bất kì chuỗi kí tự trùng khớp trong tên tệp, hỗ trợ tìm kiếm bằng ID của video.
 - Cho phép người dùng lựa chọn video thủ công mà không cần tên tệp có ID video trùng khớp với video đang mở của tab.
 - Cho phép lưu và xóa phụ đề trong bộ nhớ trình duyệt (chrome.storage.local) theo ID video, tự động sử dụng khi người dùng bật video có ID trùng khớp.
 
