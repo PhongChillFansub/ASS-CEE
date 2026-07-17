@@ -1,4 +1,4 @@
-v0.0.7 12juy26
+v0.0.7 15juy26
 Các hướng tính năng mới cho UI
 1. Hỗ trợ xử lí tag Aegisub (renderer.js)
 2. Chạy trên iframe (background.js) => Hỗ trợ trên BiliBili, VK Video bên cạnh YouTube?
@@ -211,11 +211,11 @@ Các hướng tính năng mới cho UI
     3. Các hàm xử lí phân đoạn tìm chọn video và chuyển đổi ban đầu
       3.1. selectVideo(): Hàm chạy tự động tìm, chọn video, và tạo lập khung phụ đề ban đầu.
       3.2. preProcessSubData(): Hàm tiền xử lí dữ liệu: Chuẩn hóa và xử lí dữ liệu chung, chuẩn hóa tỉ lệ khung hình
+        3.2.1. ConvertStylesFontSizeFromVSFToCSS(): Tính toán khung chữ thực tế của font hiển thị trên web.
       3.3. observeParentLayout(): Hàm thiết lập trình bám bắt video
-        3.3.1. preProcessStylesData(): Tính toán khung chữ thực tế của font hiển thị trên web.
-        3.3.2. refresh(): Quy định những việc phải làm của Observer
-          3.3.2.1. computeAspectFitBounds(): Hàm tính toán khung phụ đề (dựa trên tỉ lệ khung hình cố định của video và của sub)
-          3.3.2.2. applyOverlayBounds(): Hàm áp dụng tọa độ-kích thước mới tính toán vào khung phụ đề hiện có
+        3.3.1. refresh(): Quy định những việc phải làm của Observer
+          3.3.2. computeAspectFitBounds(): Hàm tính toán khung phụ đề (dựa trên tỉ lệ khung hình cố định của video và của sub)
+          3.3.3. applyOverlayBounds(): Hàm áp dụng tọa độ-kích thước mới tính toán vào khung phụ đề hiện có
       3.4. Các hàm xử lí style
         3.4.1. processStylesPending(): Hàm tính toán và áp dụng style mới vào hàng chờ
         3.4.2. scaler(): Hàm thực thi chuyển đổi style theo thay đổi kích thước khung hình (từ khung PlayResX-Y sang khung width-height của phụ đề)
@@ -243,7 +243,7 @@ Các hướng tính năng mới cho UI
         > 1.3a. renderDataCheck("a") để chuẩn bị cho hàm sau
         > 3.2. preProcessSubData()
         > 3.3. observeParentLayout()
-          > 3.3.1. preProcessStylesData()
+          > 3.3.1. ConvertStylesFontSizeFromVSFToCSS()
           > 3.3.2. refresh()
             > 1.3b. renderDataCheck("b") để chuẩn bị cho các hàm trong 3.3.2.
             > 3.3.2.1. computeAspectFitBounds()
@@ -276,37 +276,65 @@ renderData.subObj = {
   },
   parsedData: {
     info: {
-        Title,                      
-          // Tiêu đề (tùy chọn)
-    ScriptType,                 
-          // Phiên bản script (nên là v4.00+)
-    WrapStyle: 0,                  
-          // Cách xuống dòng tự động (0 (mặc định): tự động, dòng trên dài hơn; 1: tự động, chỉ xuống khi chạm rìa (\N); 2: thủ công (\N, \n); 3: tự động, dòng dưới rộng hơn)
-    PlayResX,                   
-          // Độ phân giải video, X (px)
-    PlayResY,                   
-          // Độ phân giải video, Y (px)
-    ScaledBorderAndShadow: true       
-          // Có scale border và shadow theo PlayRes? (0: không, 1: có (mặc định)) (ảnh hưởng đến cách tính kích thước outline/shadow)
-      },
-      styles: array các style có cấu trúc như FALLBACK_DEFAULT_STYLE,
-      events: [{
-          Layer, 
-          Start, 
-          End, 
-          Style, 
-          Name, 
-          // Actor
-          MarginL, 
-          // theo style chứ ko theo line
-          MarginR, 
-          // theo style chứ ko theo line
-          MarginV, 
-          // theo style chứ ko theo line
-          Effect, 
-          // có quan trọng ko?
-          Text
-      }]
+      Title,                      
+        // Tiêu đề (tùy chọn)
+      ScriptType,                 
+        // Phiên bản script (nên là v4.00+)
+      WrapStyle: 0,                  
+        // Cách xuống dòng tự động (0 (mặc định): tự động, dòng trên dài hơn; 1: tự động, chỉ xuống khi chạm rìa (\N); 2: thủ công (\N, \n); 3: tự động, dòng dưới rộng hơn)
+      PlayResX,                   
+        // Độ phân giải video, X (px)
+      PlayResY,                   
+        // Độ phân giải video, Y (px)
+      ScaledBorderAndShadow: true       
+        // Có scale border và shadow theo PlayRes? (0: không, 1: có (mặc định)) (ảnh hưởng đến cách tính kích thước outline/shadow)
+    },
+    styles: array các style có cấu trúc như FALLBACK_DEFAULT_STYLE,
+    events: [{
+        Layer, 
+        Start, 
+        End, 
+        Style, 
+        Name, 
+        // Actor
+        MarginL, 
+        // theo style chứ ko theo line
+        MarginR, 
+        // theo style chứ ko theo line
+        MarginV, 
+        // theo style chứ ko theo line
+        Effect, 
+        // có quan trọng ko?
+        Text
+    }]
   },
   cachedAt
 }
+
+
+
+Cơ chế các tag trong Aegisub
+1.  Định nghĩa khung chữ: khung hình chữ nhật cùng phương, chiều với chữ (ở góc xoay 0 độ), 
+    bao hàm toàn bộ chữ trong nội dung của dòng (line.text).
+    - Kích thước-tọa độ khung chữ không phụ thuộc màu sắc, thuộc tính của viền và bóng của chữ
+
+2.  Phân loại thuộc tính (tag) của chữ
+  2.1.  (Clip) Thuộc tính toàn cục, độc lập: áp dụng 1 lần mỗi dòng, không thay đổi kích thước khung chữ
+    \clip hoặc \iclip (cái cuối cùng có hiệu lực)
+      * Chú ý: nếu có nhiều \clip lẫn \iclip (trong \t), thì \?clip cuối cùng quyết định loại clip (\clip hoặc \iclip) cho toàn bộ các tag \?clip trước đó.
+
+  2.2.  (Collision) Thuộc tính toàn cục, can thiệp: áp dụng 1 lần mỗi dòng, có thay đổi dữ liệu khung chữ
+    * \an: thay đổi tọa độ khung chữ (cái đầu tiên có hiệu lực)
+    \org: vô hiệu hóa collision (cái đầu tiên có hiệu lực)
+    \pos hoặc \move: vừa thay đổi tọa độ khung vừa vô hiệu collision (cái đầu tiên có hiệu lực)
+    \t: vô hiệu hóa collision
+
+  2.3.  (Decoration Local Tags) Thuộc tính cục bộ, độc lập: áp dụng mỗi cụm từ (chia cụm từ thành các phần riêng biệt), không thay đổi kích thước khung chữ
+    Các tag liên quan đến màu sắc, viền, bóng của chữ, \fa<x-y>,
+    * \fr<x-y-z>, 
+
+  2.4.  (Layout Local Tags) Thuộc tính cục bộ, can thiệp: áp dụng mỗi cụm từ, có thay đổi kích thước khung chữ
+    Các tag liên quan đến kích cỡ chữ (\fs, \fsc), dấu cách và xuống dòng (breaks như \h, \N, \n),
+    các tag thay đổi font (\b, \i, \fn, \r),
+    * \fsp
+

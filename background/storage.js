@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.6 09juy26 (25jun26)
+// v0.0.7 18juy26
 // storage.js
 // Chức năng: chuyên xử lí lưu trữ trên chrome.storage.local.
 // 7 hàm export là:
@@ -99,7 +99,7 @@ export async function getSubDataList(searchId = "") {
   }
   // Nếu searchId được cung cấp, chỉ trả về các mục phù hợp
   if (searchId) {
-    return cacheList.filter(item => item.videoId === searchId);
+    return cacheList.filter(item => item.videoId === (searchId.startsWith('#') ? searchId.slice(1) : searchId));
   }
   return cacheList; // Trả về mảng dạng: [ { videoId, cachedId, cachedAt, ...candidate }, ... ]
 }

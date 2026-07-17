@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.7 10juy26
+// v0.0.7 18juy26 (10juy26)
 var uiData = {}; // Obj lưu toàn bộ dữ liệu UI, có bảo tồn do chạy nhiều lần file ui.js này
 /**
  * (6.2.)1.1. Hàm gửi log về background.js

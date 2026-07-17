@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "ASS-CEE (Dự án 47) 09juy26",
+  "name": "ASS-CEE (Dự án 47) 18juy26",
   "author": "PhongChillFansub",
   "version": "0.0.7",
   "description": "Hiển thị phụ đề Aegisub trên YouTube",
@@ -15,7 +15,7 @@
     "https://www.bilibili.tv/*",
     "https://www.bilibili.com/*"
   ],
-  "minimum_chrome_version": "102",
+  "minimum_chrome_version": "117",
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
   },
@@ -25,19 +25,5 @@
   },
   "action": { 
     "default_title": "[PhongChillFansub] ASS-CEE"
-  },
-  "content_scripts": [
-    {
-      "matches": ["https://www.youtube.com/watch?v=*"],
-      "js": [
-        "content/ui.js",
-        "content/renderer.js"
-      ],
-      "css": [
-        "content/ui.css"
-      ],
-      "all_frames": false,
-      "run_at": "document_idle"
-    }
-  ]
+  }
 }

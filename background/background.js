@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.7 08juy26
+// v0.0.7 18juy26
 import { fetchSubtitleText, fetchSubtitleFile } from './fetcher.js';
 // 2 hàm fetchSubtitleText, fetchSubtitleFile
 import { addSource, getSourceList, removeSource, addSubData, getSubDataList, useSubData, removeSubData } from './storage.js';
@@ -48,16 +48,15 @@ async function renderSendData(subObj) {
  */
 function onClickedListener() {
   chrome.action.onClicked.addListener(async (tab) => {
-  if (checkValidateURL(tab?.url)) return;
+    if (checkValidateURL(tab?.url)) return;
     const tabId = tab.id;
-    // Kiểm tra 2 cái window.isAssCeeUILoaded và window.isAssCeeRendererLoaded trước (đã nạp từ trước thì thôi)
     try { // iframe để beta lo.
-      const checkResult = await chrome.scripting.executeScript({
+      const checkUI = await chrome.scripting.executeScript({
         target: { tabId, allFrames: false },
         func: () => window.isAssCeeUILoaded === true
       });
-      const isLoaded = checkResult?.[0]?.result || false;
-      if (!isLoaded) {
+      const isUILoaded = checkUI?.[0]?.result || false;
+      if (!isUILoaded) {
         await chrome.scripting.insertCSS({
           target: { tabId, allFrames: false },
           files: ["content/ui.css"]
@@ -66,36 +65,56 @@ function onClickedListener() {
           target: { tabId, allFrames: false },
           files: ["content/ui.js"]
         });
-        // Trì hoãn nhẹ 50ms để chắc chắn listener đăng ký xong ở lần đầu tiên nạp
-        await new Promise(resolve => setTimeout(resolve, 10000));
-        console.log("[ASS-CEE] background: Tải UI lần đầu.");
+        // Giữ chân luồng UI đúng 1 giây để đảm bảo khởi tạo xong
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        console.log("[ASS-CEE] background: Tải UI lần đầu. (đợi 1s)");
       } else {
-        console.log("[ASS-CEE] background: Tải UI có sẵn (Toggle).");
+        console.log("[ASS-CEE] background: Tải UI có sẵn. (Toggle)");
       }
       await chrome.tabs.sendMessage(tabId, { action: "TOGGLE_OVERLAY_SIGNAL" });
-      console.log("[ASS-CEE] background: Tải UI xong.");
     } catch (err) {
-      console.warn("[ASS-CEE] background: Tải UI bị lỗi:", err.message);
+      console.error("[ASS-CEE] background: Lỗi tải UI:", err.message);
     }
-    try { // iframe để beta lo.
-      const checkResult = await chrome.scripting.executeScript({
+    try {
+      // 1. Kiểm tra trạng thái hiện tại
+      let checkRenderer = await chrome.scripting.executeScript({
         target: { tabId, allFrames: false },
-        func: () => window.isAssCeeRendererLoaded === true
+        func: () => window.isAssCeeRendererLoaded
       });
-      const isLoaded = checkResult?.[0]?.result || false;
-      if (!isLoaded) {
+      let status = checkRenderer?.[0]?.result; // Có thể là undefined, "", "video", hoặc "render"
+      // 2. Nếu chưa nạp file (undefined hoặc "")
+      if (!status) {
         await chrome.scripting.executeScript({
           target: { tabId, allFrames: false },
           files: ["content/renderer.js"]
         });
-        // Trì hoãn nhẹ 50ms để chắc chắn listener đăng ký xong ở lần đầu tiên nạp
-        await new Promise(resolve => setTimeout(resolve, 10000));
-        console.log("[ASS-CEE] background: Tải renderer lần đầu.");
+        console.log("[ASS-CEE] background: Tải renderer lần đầu. đợi 1s...");
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Đợi 1s để file khởi chạy
+        // Đọc lại trạng thái mới sau khi nạp file
+        checkRenderer = await chrome.scripting.executeScript({
+          target: { tabId, allFrames: false },
+          func: () => window.isAssCeeRendererLoaded
+        });
+        status = checkRenderer?.[0]?.result;
+      }
+      // 3. Nếu đang ở trạng thái tìm video ("video")
+      if (status === "video") {
+        console.log("[ASS-CEE] background: Renderer ở render > retrySelectVideo. đợi 6s...");
+        await new Promise(resolve => setTimeout(resolve, 6000)); // Đợi nốt 6s còn lại của tiến trình retry
+        checkRenderer = await chrome.scripting.executeScript({ // Cập nhật lại kết quả
+          target: { tabId, allFrames: false },
+          func: () => window.isAssCeeRendererLoaded
+        });
+        status = checkRenderer?.[0]?.result;
+      }
+      // 4. Nếu đã ở trạng thái "render"
+      if (status === "render") {
+        console.log("[ASS-CEE] background: Renderer đã chạy.");
       } else {
-        console.log("[ASS-CEE] background: Tải renderer có sẵn (Ko làm gì cả).");
+        console.log(`[ASS-CEE] background: Renderer ko chạy (${status}).`);
       }
     } catch (err) {
-      console.warn("[ASS-CEE] background: Tải renderer bị lỗi:", err.message);
+      console.error("[ASS-CEE] background: Lỗi tải Renderer:", err.message);
     }
   });
 })();

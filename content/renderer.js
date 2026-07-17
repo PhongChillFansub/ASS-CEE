@@ -1,7 +1,8 @@
 // Code bằng tay
-// v0.0.7 12juy26
+// v0.0.7 18juy26
 // Phần khai báo dữ liệu chung
 var startingData = startingData ?? {
+    testMode: false, // Chế độ thử nghiệm
     debugLogSetting: ["new"], // Chế độ debug
     subObj: {}, // Reset subObj (dữ liệu phụ đề) mỗi lần chạy render.
     retryCount: 0, // Lưu số lần thử tìm video
@@ -36,6 +37,13 @@ var startingData = startingData ?? {
         doEnable: true,
         lastActiveIndices: null,
     },
+    cssResizeData: {}, // Dùng cho các style để chuyển đổi font size (hàm ConvertStylesFontSizeFromVSFToCSS)
+    originAndAlignMap: { // Dùng cho xử lí tag (3.4.3.x)
+        "7": [0, 0],     "8": [50, 0],    "9": [100, 0],
+        "4": [0, 50],    "5": [50, 50],   "6": [100, 50],
+        "1": [0, 100],   "2": [50, 100],  "3": [100, 100],
+    }, // origin (\org) thì áp (+), \pos thì áp (-)
+    canvasForCalculation: document.createElement('canvas'),
     FALLBACK_DEFAULT_STYLE: {
         name: "Default",                            // Tên style (style.name, line.styleref.name, syl.style.name)
         fontName: "Arial",                          // Tên font (\fn)
@@ -60,6 +68,7 @@ var startingData = startingData ?? {
         marginR: "20",                              // (px, right)
         marginV: "20",                              // (px, vertical)
         encoding: "1",                              // (\fe, nên bị bỏ qua.)
+        CSSResize: 0,                               // Dữ liệu thêm. (ConvertStyleFontSizeFromVSFToCSS)
     },
     // currentId, lastId (1.2: updateVideoIdInRenderer())
     // container, containerId, containerParent, video, videoAR (2.1. selectVideo())
@@ -68,7 +77,7 @@ var renderData = { ...startingData }; // Dữ liệu chung (tương tự uiData)
 /**
  * (6.3.)1.1. (6.2.1.1. sửa đổi) Hàm gửi log về background.js
  * @param {string} message nội dung
- * @param {string} type loại nội dung (default: "info" -> log, "warn" -> warn, "error" -> error)
+ * @param {string} type loại nội dung (default: "info" -> log, "warn" -> warn, "error" -> error, "table" -> table)
  */
 function sendLogToBackground(message, type = 'info', extra = undefined) {
   chrome.runtime.sendMessage({
@@ -86,10 +95,8 @@ function sendLogToBackground(message, type = 'info', extra = undefined) {
 }
 /**
  * 1.2. (6.2.1.4. sửa đổi) updateVideoIdInRenderer(): Hàm cập nhật video ID vào UI
- * @param renderData Yêu cầu có sẵn renderData
- * @returns Tạo mới, cập nhật trong renderData: 
- * @returns .currentId 
- * @returns .lastId
+ * @param renderData Yêu cầu có sẵn obj renderData để ghi dữ liệu chung
+ * @returns Tạo mới, cập nhật trong renderData: .currentId, .lastId
  */
 function updateVideoIdInRenderer() {
     var doLog = checkDoLog(['updateVideoIdInRenderer','1.2','all']);
@@ -131,8 +138,8 @@ function updateVideoIdInRenderer() {
 }
 /**
  * 1.3. Hàm kiểm tra và chuẩn hóa dữ liệu.
- * @param {obj} renderData Tham chiếu obj ghi dữ liệu chung. luôn có vì đã rào trước ở đầu hàm render()
- * @param {string} [checkMode="a"] sử dụng để lựa chọn chế độ và các dữ liệu được kiểm tra, chuẩn hóa
+ * @param {obj} renderData Tham chiếu obj ghi dữ liệu chung. luôn có.
+ * @param {string} [checkMode="z"] sử dụng để lựa chọn chế độ và các dữ liệu được kiểm tra, chuẩn hóa
  * @returns {string} string tên của dữ liệu ko tồn tại. Chú ý: đầu ra chỉ là text chỉ báo lỗi, phải có xử lí bọc vào
  */
 function renderDataCheck(renderData,checkMode = "z"){
@@ -206,13 +213,14 @@ function renderDataCheck(renderData,checkMode = "z"){
 }
 /**
  * 1.4. Hàm kiểm tra có log với các tag của hàm hay ko
+ * @param renderData.debugLogSetting luôn có
  */
 function checkDoLog (tag) {
     return tag.some(item => renderData.debugLogSetting.includes(item));
 }
 /**
  * 1.5. Hàm dừng renderer (hủy render loop, clear màn, reset renderData, xóa observer), và gửi log về background
- * @param {*} reason 
+ * @param {string} reason lí do
  */
 function disableRenderLoop(reason) {
     clearSubtitleFrame();
@@ -229,12 +237,12 @@ function disableRenderLoop(reason) {
     disconnectVideoObserver();
     renderData = {... startingData}; // reset renderData
     sendLogToBackground("renderer: [DEBUG] kiểm tra renderData sau hủy render","warn",renderData);
-    window.isAssCeeRendererLoaded = false;
+    window.isAssCeeRendererLoaded = "";
 }
 /**
  * 1.6. Hàm dừng observer (đóng trình bám bắt video), và reset dữ liệu observer
- * @param {*} newParent 
- * @param {*} newAspectRatio 
+ * @param {HTMLElement} newParent 
+ * @param {number} newAspectRatio 
  */
 function disconnectVideoObserver(newParent = null, newAspectRatio = null) {
     if (renderData.videoObserver.resize) {
@@ -250,7 +258,8 @@ function disconnectVideoObserver(newParent = null, newAspectRatio = null) {
     renderData.videoObserver.lastBounds = null;
 }
 /**
- * 2.1. Hàm lập trình nghe dữ liệu từ background (và tự động render) (cần sửa lại)
+ * 2.1. Hàm lập trình nghe dữ liệu từ background (và tự động render)
+ * (Gemini vibe, đã review, cần sửa lại khi viết tab mới UI)
  */
 function initRenderer() {
     chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => { // Nhận thủ công (UI bắt background gửi)
@@ -278,7 +287,6 @@ function initRenderer() {
             }
             renderData.subObj = { ...msg.payload }; // Nhận dữ liệu để render
             sendLogToBackground(`renderer: Nhận tín hiệu thủ công thành công:`,"log",renderData.subObj);
-            // window.isAssCeeRendererLoaded = true; // Đánh dấu renderer đã khởi tạo thành công khi script đã được khởi động
             render();
         } else if (msg?.action || (msg?.type === 'RENDER' && !msg.payload)) {
         } else {
@@ -288,7 +296,8 @@ function initRenderer() {
     });
 }
 /**
- * 2.2. Hàm lập trình tính năng tự động lấy cache và render (cần sửa lại)
+ * 2.2. Hàm lập trình tính năng tự động lấy cache và render
+ * (cần sửa lại khi viết tab mới UI)
  */
 function autoRenderOnCache() {
     updateVideoIdInRenderer();
@@ -300,7 +309,6 @@ function autoRenderOnCache() {
         if (response && response.type === 'SUB.READY') {
             renderData.subObj = { ...response.payload }; // Nhận dữ liệu để render
             sendLogToBackground(`renderer: Tự động nhận tín hiệu (${renderData.currentId}) thành công:`,"log", response.payload || '(cache trống)');
-            // window.isAssCeeRendererLoaded = true; // Đánh dấu renderer đã khởi tạo thành công khi script đã được khởi động
             render();
         } else {
             sendLogToBackground(`renderer: Tự động nhận tín hiệu (${renderData.currentId}) thất bại.`,"warn", response);
@@ -399,10 +407,12 @@ function selectVideo() {
 }
 /**
  * 3.2. Hàm tiền xử lí: Chuẩn hóa và xử lí dữ liệu chung, chuẩn hóa tỉ lệ khung hình
- * @param renderData.subObj.parsedData.info.PlayResX (cần check trước)
- * @param renderData.subObj.parsedData.info.PlayResY (cần check trước)
- * @param renderData.subObj.parsedData.info.WrapStyle (có thể fallback)
- * @param renderData.videoAR (selectVideo cấp?)
+ * @param {string} renderData.subObj.parsedData.info.PlayResX (cần check trước)
+ * @param {string} renderData.subObj.parsedData.info.PlayResY (cần check trước)
+ * @param {string} renderData.subObj.parsedData.info.WrapStyle (xử lí, fallback ở đây)
+ * @param {number} renderData.videoAR .videoAR (selectVideo cấp?)
+ * @param {Array} renderData.subObj.parsedData.styles tức .styles (cần check trước)
+ * @return chuẩn hóa .videoAR, tạo mới .cssConfig, thêm .CSSResize cho .styles
  */
 function preProcessSubData() {
     const info = renderData.subObj.parsedData.info;
@@ -420,33 +430,35 @@ function preProcessSubData() {
     const rawStyleWrap = Number.parseInt(info.WrapStyle, 10);
     info.WrapStyle = (rawStyleWrap >= 0 && rawStyleWrap <= 3) ? rawStyleWrap : 0;
     renderData.cssConfig = {
-        'white-space': 'pre-wrap',
+        'white-space': (info.WrapStyle === 2 ? 'pre' : 'pre-wrap'),
+        'word-break' : 'keep-all',
+        'overflow-wrap': 'break-word',
+        'text-wrap': (info.WrapStyle === 3 ? 'balance' : info.WrapStyle === 1 ? 'wrap' : 'pretty'),
         'max-width': '100%',
-        'word-break': 'break-word'
     };
-    // switch(info.WrapStyle) {
-    //     case 0:
-    //         renderData.cssConfig['text-wrap'] = 'pretty'; // Ko có thuật toán như Aegisub làm (Gemini bảo thế), to-do: check xem cái này có cần sửa gì ko (ở beta)
-    //         break;
-    //     case 1:
-    //         renderData.cssConfig['text-wrap'] = 'wrap'; 
-    //         break;
-    //     case 2:
-    //         renderData.cssConfig['white-space'] = 'pre'; // Thủ công, bỏ qua max-width tự động ngắt
-    //         renderData.cssConfig['word-break'] = 'normal';
-    //         break;
-    //     case 3:
-    //         renderData.cssConfig['text-wrap'] = 'balance'; // Dòng dưới rộng hơn/cân bằng
-    //         break;
-    // }
-    switch (info.WrapStyle) {
-        case 2:
-            renderData.cssConfig['white-space'] = 'pre';
-            break;
-        default: // 0,1,3
-            renderData.cssConfig['white-space'] = 'pre-wrap';
-            break;
-    }
+    renderData.subObj.parsedData.styles.forEach((style) => {
+        style.CSSResize = ConvertStyleFontSizeFromVSFToCSS(style.fontName);
+    }); // Yêu cầu có renderData.subObj.parsedData.styles
+}
+/**
+ * 3.2.1. Tính toán khung chữ thực tế của font hiển thị trên web.
+ * Học lỏm ass.js. Có memoization
+ * @param {string} fontName để ghi key
+ * @param {HTMLElement} renderData.canvasForCalculation luôn có
+ * @param {object} renderData.cssResizeData luôn có
+ */
+function ConvertStyleFontSizeFromVSFToCSS(fontName) {
+    const canvas = renderData.canvasForCalculation;
+    const cssResizeData = renderData.cssResizeData;
+    if (Object.hasOwn(cssResizeData, fontName)) {
+        return cssResizeData[fontName];
+    } // Đọc style đã ghi
+    const ctx = canvas.getContext('2d');
+    ctx.font = `2048px "${fontName}"`;
+    const metrics = ctx.measureText("");
+    const CSSResize = 2048 / (metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent);
+    cssResizeData[fontName] = CSSResize; // Ghi style đã tính
+    return CSSResize;
 }
 /**
  * 3.3. Hàm thiết lập trình bám bắt video
@@ -457,10 +469,9 @@ function preProcessSubData() {
  */
 function observeParentLayout() {
     var doLog = checkDoLog(['observeParentLayout','3.3','all']);
-    if (preProcessStylesData() === "return") return "return"; // Hiệu chỉnh style (do khác biệt về cách tính giữa VSFilter và FreeType?)
     /**
-     * 3.3.2. Hàm refresh (trong hàm 3.3. observeParentLayout()): Quy định những việc phải làm của Observer
-     * @returns chạy 3.3.2.1, check thay đổi tọa độ-kích thước, nếu cần thiết, chạy hàm 3.3.2.2, 3.4.1, 1.2.
+     * 3.3.1. Hàm refresh (trong hàm 3.3. observeParentLayout()): Quy định những việc phải làm của Observer
+     * @returns xem chu trình chạy ở pipeline
      */
     const refresh = () => {
         var invalidateResult = renderDataCheck(renderData,"ab");
@@ -480,8 +491,10 @@ function observeParentLayout() {
         if (doLog) sendLogToBackground(`renderer: (3.3) Parent đổi layout, cập nhật khung overlay: ${dimChangeLog}${(dimChangeLog && posChangeLog)?" ":""}${posChangeLog}.`);
         // Gửi log về background xem.
         if (processStylesPending() === "return") return "return"; // Cập nhật style mới tính toán xong cho render (ở đây là chạy khi có cập nhật khi có update dimension)
+        // clearSubtitleFrame();
         // sendLogToBackground(`renderer: (3.3) [DEBUG] overlay trước khi update:\n  childElementCount=${renderData.container.childElementCount}, childNodes.length=${renderData.container.childNodes.length}`);
         if (updateVideoIdInRenderer() === "return") return "return"; // Nếu ko update được videoId thì hủy render loop
+
     };
     // Phần lập trình bám bắt video
     if (renderData.videoObserver.trackedParent !== renderData.containerParent || renderData.videoObserver.trackedAspectRatio !== renderData.videoAR) {
@@ -511,36 +524,7 @@ function observeParentLayout() {
     if (refresh() === "return") return "return"; // Chạy refresh lần đầu tiên, nếu ko update được videoId thì hủy render loop
 }
 /**
- * 3.3.1. Tính toán khung chữ thực tế của font hiển thị trên web.
- * Học hỏi ass.js
- * @param renderData.subObj.parsedData.styles dùng .forEach((style) => {dùng style.fontSize, .fontName, ghi thêm style.customResize}) (cần check trước)
- */
-function preProcessStylesData() {
-    const result = []
-    const canvas = document.createElement('canvas');
-    renderData.subObj.parsedData.styles.forEach((style) => {
-        const usedFontSize = 2048;
-        const sample = "";
-        const ctx = canvas.getContext('2d');
-        ctx.font = `${usedFontSize}px "${style.fontName}"`;
-        const metrics = ctx.measureText(sample);
-        const ascentRaw = [metrics.fontBoundingBoxAscent, metrics.actualBoundingBoxAscent];
-        const descentRaw = [metrics.fontBoundingBoxDescent, metrics.actualBoundingBoxDescent];
-        const ascent = ascentRaw[0];
-        const descent = descentRaw[0];
-        style.customResize = usedFontSize / (ascent + descent);
-        const rawResize = [usedFontSize / (ascentRaw[0] + descentRaw[0]), usedFontSize / (ascentRaw[1] + descentRaw[1])];
-        result.push({
-            fontFamily: style.fontName,
-            fontSizeSetting: usedFontSize,
-            rawResize: rawResize.map(r => r.toFixed(6)),
-            customResize: style.customResize.toFixed(6)
-        });
-    });
-    // sendLogToBackground('renderer: (3.3.1) Kết quả đo: ',"warn",result);
-}
-/**
- * 3.3.2.1. Hàm tính toán khung phụ đề (dựa trên tỉ lệ khung hình cố định của video và của sub)
+ * 3.3.2. Hàm tính toán khung phụ đề (dựa trên tỉ lệ khung hình cố định của video và của sub)
  * (Copilot vibe, đã review). Chú ý: khung parent PHẢI luôn chạm ít nhất 1 chiều (cùng 1 kích thước cao/rộng) với video.
  * @param {*} parentRect kích thước của parent node (khung video yt)
  * @param {*} aspectRatio tỉ lệ khung hình cố định của node video
@@ -568,7 +552,7 @@ function computeAspectFitBounds(parentRect, aspectRatio) {
     };
 }
 /**
- * 3.3.2.2. Hàm áp dụng tọa độ-kích thước mới tính toán vào khung phụ đề hiện có
+ * 3.3.3. Hàm áp dụng tọa độ-kích thước mới tính toán vào khung phụ đề hiện có
  * (Copilot vibe, đã review)
  * @param {*} container khung phụ đề
  * @param {*} parent khung video yt (khác với video nhé)
@@ -597,7 +581,7 @@ function applyOverlayBounds(container, bounds) {
  * @param {*} renderData.subObj.parsedData.styles đã check từ renderDataCheck("a")
  * @param {*} renderData.FALLBACK_DEFAULT_STYLE đã check từ renderDataCheck("a")
  * @param {*} renderData.container.getBoundingClientRect() đã check từ renderDataCheck("b") và selectVideo()
- * @returns {*} renderData.dpr, renderData.scaleWidth, renderData.scaleHeight thêm mới hoặc cập nhật
+ * @returns {*} renderData.dpr (ẩn), renderData.scaleWidth, renderData.scaleHeight thêm mới hoặc cập nhật
  * @returns trả về gián tiếp renderData.renderState.pendingStyles đã tính toán
  * @returns "return" hoặc "" nếu hủy/tạm dừng render loop
  */
@@ -611,8 +595,8 @@ function processStylesPending() {
     // styles nguyên bản
     // Lọc bỏ các style (trong styles) ko phải object?
     const containerRect = renderData.container.getBoundingClientRect();
-    renderData.dpr = window.devicePixelRatio || 1;
-    renderData.scaleWidth = (containerRect.width)/info.PlayResX;
+    // renderData.dpr = window.devicePixelRatio || 1;
+    renderData.scaleWidth = containerRect.width/info.PlayResX;
     renderData.scaleHeight = containerRect.height/info.PlayResY;
     const isRenderableSize = containerRect.width > 240 && containerRect.height > 240;
     if (!isRenderableSize) {
@@ -652,7 +636,6 @@ function scaler (oldStyle, newStyles, pushMode) {
     requiredKeys.forEach(key => {
         newStyle[key] = (typeof renderData.FALLBACK_DEFAULT_STYLE[key] === 'boolean') ? (oldStyle[key] === "1" || oldStyle[key] === true) : String(oldStyle[key]);
     });
-    newStyle.customResize = oldStyle.customResize;
     // 3. Xử lí ảnh hưởng khung video lên style
     // dòng Format có dạng:
     // Format: name, fontName, fontSize, primaryColour, secondaryColour, outlineColour, backColour, ...
@@ -677,109 +660,119 @@ function scaler (oldStyle, newStyles, pushMode) {
     return;
 };
 /**
- * 3.4.3. Hàm chuyển đổi style từ object sang bộ CSS tĩnh (cấu trúc 2 lớp vỏ-ruột) (Gemini vibe, đã review)
- * @param {object} styleObj styleObj đầu vào chuẩn (tương tự renderData.FALLBACK_DEFAULT_STYLE. Xem processStylesPending().)
- * @returns {object} Trả về bộ CSS bọc trong styleName
+ * 3.4.3. Hàm chuyển đổi style từ object sang bộ CSS tĩnh (cấu trúc 2 lớp vỏ-ruột) (ChatGPT vibe, đã review)
+ * @param {object} styleObj styleObj đầu vào chuẩn, tương tự renderData.FALLBACK_DEFAULT_STYLE. Xem processStylesPending().
+ * @param {number} styleObj.CSSResize chuyển đổi font size giữa chuẩn của VSFilter và CSS. Xem ConvertStyleFontSizeFromVSFToCSS().
+ * @param {object} renderData.cssConfig đã xử lí trong preProcessSubData()
+ * @returns {object} Trả về dữ liệu xử lí ban đầu { container, text, overrideState }
  */
 function styleObjToCss(styleObj) {
-    const container = {
-        'position': 'absolute',
-        'display': 'flex',
-        'box-sizing': 'border-box',
-        'width': '100%',
-        'height': '100%',
-        'top': '0',
-        'left': '0',
-        'pointer-events': 'none',
-        // Áp dụng margin đã scale
+    const overrideState = { // Lưu dữ liệu để xử lí nâng cao (Do logic của CSS và VSF/libass khác nhau)
+        anchor: renderData.originAndAlignMap[/^[1-9]$/.test(styleObj.alignment) ? styleObj.alignment: "2"], // pct
+        origin: null, // Nếu ko có origin ghi đè thì theo anchor
+        position: null,      // \pos
+        move: null,          // \move
+        clip: null,
+        fade: null,
+        containerTransforms: [],
+        textTransforms: [],
+        testCSSResize: styleObj.CSSResize
+    };
+    const container = { // Những thuộc tính có thể chuyển ngay sang CSS (phải kebab-case)
+        'position': "absolute",
+        'left': "0",
+        'top': "0",
+        'width': "100%",
+        'height': "100%",
+        'overflow': "hidden",
+        'pointer-events': "none",
+        'box-sizing': "border-box",
+        'display': "flex",
         'padding-left': `${styleObj.marginL}px`,
-        'padding-right': `${styleObj.marginR}px`
+        'padding-right': `${styleObj.marginR}px`,
+        'padding-top': `${styleObj.marginV}px`,
+        'padding-bottom': `${styleObj.marginV}px`,
+        // 'align-items': `${(overrideState.anchor[1] === 0 ? 'flex-start': overrideState.anchor[1] === 50 ? 'center' : 'flex-end')}`,
     };
-    const text = {
-        // Font & Định dạng chữ
-        'font-family': `"${styleObj.fontName}", sans-serif`, // to-do: cảnh báo người dùng nếu ko có font styleObj.fontName để hiển thị?
-        'font-size': `${(styleObj.fontSize*(styleObj.customResize || 1)).toFixed(2)}px`,
+    const text = { // Những thuộc tính có thể chuyển ngay sang CSS (phải kebab-case)
+        'display': "inline-block",
+        'font-family': `"${styleObj.fontName}", sans-serif`,
+        'font-size': `${(Number(styleObj.fontSize) * (styleObj.CSSResize || 0)).toFixed(2)}px`,
         'line-height': `${styleObj.fontSize}px`,
-        'letter-spacing': `${styleObj.spacing.toFixed(2)}px`,
-        'font-weight': styleObj.bold ? 'bold' : 'normal',
-        'font-style': styleObj.italic ? 'italic' : 'normal',
-        'text-decoration': (styleObj.underline && styleObj.strikeOut) ? 'underline line-through' : styleObj.underline ? 'underline' : styleObj.strikeOut ? 'line-through' : 'none',
-        // Cấu hình hiển thị và chống tràn dòng. to-do: xem info.wrapStyle để cập nhật theo
-        ... renderData.cssConfig
+        'letter-spacing': `${Number(styleObj.spacing).toFixed(2)}px`,
+        'font-weight': styleObj.bold ? "bold" : "normal",
+        'font-style': styleObj.italic ? "italic" : "normal",
+        'text-decoration': styleObj.underline && styleObj.strikeOut ? "underline line-through" : styleObj.underline ? "underline" : styleObj.strikeOut ? "line-through" : "none",
+        'color': styleObj.primaryColour,
+        'transform-origin': `${overrideState.anchor[0]}% ${overrideState.anchor[1]}%`,
+        ...renderData.cssConfig
+    //     renderData.cssConfig = {
+    //     'white-space': (info.WrapStyle === 2 ? 'pre' : 'pre-wrap'),
+    //     'word-break' : 'keep-all',
+    //     'overflow-wrap': 'break-word',
+    //     'text-wrap': (info.WrapStyle === 3 ? 'balance' : info.WrapStyle === 1 ? 'wrap' : 'pretty'),
+    //     'max-width': '100%',
+    // };
     };
-    // --- XỬ LÝ LAYOUT (ALIGNMENT) ---
-    const align = styleObj.alignment;
-    // Căn lề dọc (align-items) + MarginV
-    if (align === "1" || align === "2" || align === "3") {
-        container['align-items'] = 'flex-end';
-        container['padding-bottom'] = `${styleObj.marginV}px`;
-    } else if (align === "7" || align === "8" || align === "9") {
-        container['align-items'] = 'flex-start';
-        container['padding-top'] = `${styleObj.marginV}px`;
-    } else { // 4, 5, 6 hoặc lỗi
-        container['align-items'] = 'center';
-    }
-    // Căn lề ngang (justify-content & text-align)
-    if (align === "1" || align === "4" || align === "7") {
-        container['justify-content'] = 'flex-start';
-        text['text-align'] = 'left';
-    } else if (align === "3" || align === "6" || align === "9") {
-        container['justify-content'] = 'flex-end';
-        text['text-align'] = 'right';
-    } else { // 2, 5, 8 hoặc lỗi
-        container['justify-content'] = 'center';
-        text['text-align'] = 'center';
-    }
-    // --- XỬ LÝ TRANSFORMS (SCALE & ROTATE) ---
-    const containerTransforms = [];
-    const textTransforms = [];
-    if (styleObj.scaleX !== "100" || styleObj.scaleY !== "100") {
-        textTransforms.push(`scale(${Number(styleObj.scaleX) / 100}, ${Number(styleObj.scaleY) / 100})`);
-    }
-    if (styleObj.angle !== "0") {
-        textTransforms.push(`rotate(${-Number(styleObj.angle)}deg)`);
-        const originMap = {
-            "1": "left bottom",   "2": "center bottom", "3": "right bottom",
-            "4": "left center",   "5": "center center", "6": "right center",
-            "7": "left top",      "8": "center top",    "9": "right top"
-        };
-        text['transform-origin'] = originMap[align] || "center center";
-    }
-    if (containerTransforms.length) {
-        container.transform = containerTransforms.join(' ');
-    }
-    if (textTransforms.length) {
-        text.transform = textTransforms.join(' ');
-        text.display = 'inline-block';
-    }
-    // --- XỬ LÝ BORDER & SHADOW ---
-    const outlinePx = Number(styleObj.outline).toFixed(2);
-    const shadowPx = Number(styleObj.shadow).toFixed(2);
-    if (styleObj.borderStyle === "3") { // Kiểu Opaque Box (Khung nền)
-        text['color'] = styleObj.primaryColour;
-        text['background-color'] = styleObj.outlineColour;
-        text['border'] = outlinePx > 0 ? `${outlinePx}px solid ${styleObj.outlineColour}` : 'none';
-        text['box-shadow'] = shadowPx > 0 ? `${shadowPx}px ${shadowPx}px 0px ${styleObj.backColour}` : 'none';
-        // Reset các thuộc tính của kiểu chữ viền (tránh lỗi cache style)
-        text['-webkit-text-stroke'] = '0px transparent';
-        text['text-shadow'] = 'none';
-        text['paint-order'] = 'normal';
-    } else { // Kiểu Outline/Shadow truyền thống (Mặc định)
-        text['color'] = styleObj.primaryColour;
-        text['background-color'] = 'transparent';
-        text['border'] = 'none';
-        text['box-shadow'] = 'none';
-        if (outlinePx > 0) {
-            text['paint-order'] = 'stroke fill';
-            text['-webkit-text-stroke'] = `${outlinePx * 2}px ${styleObj.outlineColour}`;
-        } else {
-            text['-webkit-text-stroke'] = '0px transparent';
-            text['paint-order'] = 'normal';
+    if (!renderData.testMode) { // fallback về hiển thị ko tag (kiểu như v0.0.6)
+        // --- XỬ LÝ LAYOUT (ALIGNMENT) ---
+        const align = styleObj.alignment;
+        // Căn lề dọc (align-items) + MarginV
+        if (align === "1" || align === "2" || align === "3") {
+            container['align-items'] = 'flex-end';
+            container['padding-bottom'] = `${styleObj.marginV}px`;
+        } else if (align === "7" || align === "8" || align === "9") {
+            container['align-items'] = 'flex-start';
+            container['padding-top'] = `${styleObj.marginV}px`;
+        } else { // 4, 5, 6 hoặc lỗi
+            container['align-items'] = 'center';
         }
-        // Giữ nguyên shadowPx (không cộng outlinePx) để bóng đổ chuẩn từ tâm chữ
-        text['text-shadow'] = shadowPx > 0 ? `${shadowPx}px ${shadowPx}px 0px ${styleObj.backColour}` : 'none';
+        // Căn lề ngang (justify-content & text-align)
+        if (align === "1" || align === "4" || align === "7") {
+            container['justify-content'] = 'flex-start';
+            text['text-align'] = 'left';
+        } else if (align === "3" || align === "6" || align === "9") {
+            container['justify-content'] = 'flex-end';
+            text['text-align'] = 'right';
+        } else { // 2, 5, 8 hoặc lỗi
+            container['justify-content'] = 'center';
+            text['text-align'] = 'center';
+        }
+        const outlinePx = Number(styleObj.outline).toFixed(2);
+        const shadowPx = Number(styleObj.shadow).toFixed(2);
+        if (styleObj.borderStyle === "3") { // Kiểu Opaque Box (Khung nền)
+            text['color'] = styleObj.primaryColour;
+            text['background-color'] = styleObj.outlineColour;
+            text['border'] = outlinePx > 0 ? `${outlinePx}px solid ${styleObj.outlineColour}` : 'none';
+            text['box-shadow'] = shadowPx > 0 ? `${shadowPx}px ${shadowPx}px 0px ${styleObj.backColour}` : 'none';
+            // Reset các thuộc tính của kiểu chữ viền (tránh lỗi cache style)
+            text['-webkit-text-stroke'] = '0px transparent';
+            text['text-shadow'] = 'none';
+            text['paint-order'] = 'normal';
+        } else { // Kiểu Outline/Shadow truyền thống (Mặc định)
+            text['color'] = styleObj.primaryColour;
+            text['background-color'] = 'transparent';
+            text['border'] = 'none';
+            text['box-shadow'] = 'none';
+            if (outlinePx > 0) {
+                text['paint-order'] = 'stroke fill';
+                text['-webkit-text-stroke'] = `${outlinePx * 2}px ${styleObj.outlineColour}`;
+            } else {
+                text['-webkit-text-stroke'] = '0px transparent';
+                text['paint-order'] = 'normal';
+            }
+            // Giữ nguyên shadowPx (không cộng outlinePx) để bóng đổ chuẩn từ tâm chữ
+            text['text-shadow'] = shadowPx > 0 ? `${shadowPx}px ${shadowPx}px 0px ${styleObj.backColour}` : 'none';
+        }
     }
-    return { container, text };
+    text.textAlign = overrideState.anchor[0] === 0 ? "left" : overrideState.anchor[0] === 100 ? "right" : "center"; // chỉ để xử lí khi line có nhiều dòng (vd: \n)
+    if (Number(styleObj.angle) !== 0) textTransforms.push(`rotate(-${angle}deg)`);
+    const fscx = Number(styleObj.scaleX);
+    const fscy = Number(styleObj.scaleY);
+    if (fscx !== 100 || fscy !== 100) overrideState.textTransforms.push(`scale(${fscx / 100},${fscy / 100})`);
+    if (overrideState.containerTransforms.length) container.transform = overrideState.containerTransforms.join(" ");
+    if (overrideState.textTransforms.length) text.transform = overrideState.textTransforms.join(" ");
+    return { container, text, overrideState };
 }
 /**
  * 4.1. Hàm xóa dữ liệu render trong frame hiện tại
@@ -833,7 +826,7 @@ function renderSubtitleFrameInLoop() {
     }
     applyPendingStyles(); // Yêu cầu có .container hợp lệ
     const events = renderData.subObj.parsedData.events; // Yêu cầu có .events hợp lệ
-    const state = renderData.renderState; // Yêu cầu có .renderState hợp lệ?
+    const state = renderData.renderState; // Yêu cầu có .renderState hợp lệ??? (đã quy định từ lúc có startingData)
     const container = renderData.container; // Yêu cầu có .container hợp lệ
     const currentTime = Number.isFinite(renderData.video.currentTime) ? renderData.video.currentTime : 0; // Yêu cầu có .video hợp lệ
     // Đoạn này Copilot vibe, đã review.
@@ -926,45 +919,25 @@ function renderSubtitleFrameInLoop() {
     [...addedActiveIndices].sort((a, b) => a - b).forEach(index => {
         const line = events[index];
         const styleName = line.style || 'Default';
-        let styleCss = renderData.renderState.currentStyles?.[styleName];
+        let styleCss = renderData.renderState.currentStyles[styleName];
         if (!styleCss) {
             sendLogToBackground(`renderer: (4.3) style ${line.style} này ko có trong currentStyles?`, 'warn');
             styleCss = renderData.defaultStyle;
         }
-
-        
-
-
-
-
-        
-        // *** Đoạn này liên quan xử lí dữ liệu inline tags.
-        const lineContainer = document.createElement('div'); // Vỏ
-        // Danh sách các tag Aegisub ảnh hưởng đến toàn line (chỉ được tính tag đầu tiên/ tính 1 lần mỗi line)
-        // \pos(x,y), \move(x0,y0,x1,y1[,t1,t2]), \an<x0>, \fad(t0,t1), \fade(a0,a1,a2,t0,t1,t2,t3)
-        processGlobalInlineTags(currentTime, line, lineContainer, styleCss); // processLayoutTags
-        processLocalInlineTags(currentTime, line, lineContainer, styleCss);
-        // const textNode = document.createElement('span'); // Ruột
-        // // Phần này sẽ đưa vào 5.2 processTextTags()
-        // processTextTags(line, textNode, layoutContainer);
-        // textNode.innerText = line.text
-        //     .replace(/\{[^}]*\}/g, '')                              // Xóa tag
-        //     .replace(/\\N/g, '\n')                                  // Đổi "\N" thành xuống dòng thật
-        //     .replace(/\\n/g, info.WrapStyle === 2 ? '\n' : ' ');    // Đổi "\n" thành xuống dòng thật (chỉ khi WrapStyle = 2). info?
-        // Object.assign(layoutContainer.style, styleCss.container);
-        // Object.assign(textNode.style, styleCss.text);
-        // layoutContainer.appendChild(textNode);
-        // *** Hết đoạn liên quan xử lí dữ liệu inline tags
-
-
-
-
-
-
-
-        layoutContainer.dataset.index = index;
+        const lineContainer = document.createElement('div'); // lineContainer
+        if (!renderData.testMode) { // fallback về hiển thị ko tag (kiểu như v0.0.6)
+            const textNode = document.createElement('span'); // Ruột
+            textNode.innerText = line.text.replace(/\{[^}]*\}/g, ''); // Text (tạm thời xóa hết tag trong text, sẽ xử lí sau)
+            Object.assign(lineContainer.style, styleCss.container);
+            Object.assign(textNode.style, styleCss.text);
+            lineContainer.appendChild(textNode);
+        } else { 
+            lineContainer.append(...processTextNodes(currentTime, line, styleCss)); // Các textNode bên trong lineContainer
+            processLineContainer(currentTime, line, lineContainer, styleCss);
+        }
+        lineContainer.dataset.index = index;
         // Lưu lại ref của DOM element này vào object quản lý
-        state.currentElements[index] = layoutContainer;
+        state.currentElements[index] = lineContainer;
         // Tìm node đang render có index lớn hơn để chèn trước nó, tránh vòng lặp tìm index trên toàn bộ active list.
         let insertBeforeNode = null;
         for (const child of container.children) { // Quét từ cái đầu tiên trong container.children, tìm cái có index lớn hơn để chèn trước nó
@@ -975,11 +948,11 @@ function renderSubtitleFrameInLoop() {
             }
         }
         if (insertBeforeNode) {
-            container.insertBefore(layoutContainer, insertBeforeNode);
+            container.insertBefore(lineContainer, insertBeforeNode);
         } else {
-            container.appendChild(layoutContainer);
+            container.appendChild(lineContainer);
         }
-        processCollisions(layoutContainer); // 6.x. Xử lí chồng lấn
+        processCollisions(lineContainer); // 6.x. Xử lí chồng lấn
     });
     // Cập nhật lại state để check nếu cần
     state.currentEvents = {};
@@ -1026,7 +999,7 @@ function enableRenderLoop() {
                 currentFrameId = state.frameId;
         }
     };
-    window.isAssCeeRendererLoaded = true;
+    window.isAssCeeRendererLoaded = "render";
     const initialFrameId = window.requestAnimationFrame(tick);
     state.frameId = initialFrameId;
     currentFrameId = initialFrameId; 
@@ -1037,6 +1010,7 @@ function enableRenderLoop() {
  */
 function render(){ // Hàm chạy render trung tâm
     'use strict';
+    window.isAssCeeRendererLoaded = "video";
     /**
      * 4.5.1. Hàm chạy đệ quy/lặp selectVideo()
      * @returns "return" nếu cần thoát hàm render()
@@ -1055,7 +1029,10 @@ function render(){ // Hàm chạy render trung tâm
         renderData.retryCount = 0;
     }
     // if (updateVideoIdInRenderer() === "return") return "return";
-    if (retrySelectVideo() === "return") return "return";
+    if (retrySelectVideo() === "return") {
+        window.isAssCeeRendererLoaded = "";
+        return "return";
+    }
     var invalidateResult = renderDataCheck(renderData,"a");
     if (invalidateResult) return disableRenderLoop(`renderer: (4.5a) có dữ liệu ko hợp lệ (a): ${invalidateResult}. Dừng chạy renderer.`);
     preProcessSubData(); // Chuẩn hóa, tính toán chung cho sub.
@@ -1069,17 +1046,294 @@ function render(){ // Hàm chạy render trung tâm
 
 
 
+
+
+
+
+
+
+
+
 /**
- * 5.1. Hàm xử lí các tag layout trong văn bản. (Copilot vibe, đang review)
+ * 5.1. Hàm xử lí các textNode (chạy trong renderSubtitleFrameInLoop)
+ * @param {*} currentTime 
+ * @param {*} line 
+ * @param {*} styleCss 
+ */
+function processTextNodes(currentTime, line, styleCss) {
+
+}
+/**
+ * 5.1.1. Hàm tokenize nội dung dòng (tiền xử lí)
+ * @param {*} text line.text
+ * @returns {Array} tokens chứa các string
+ */
+function tokenizeLineText(text) {
+    const tokens = []; // đầu ra chứa strings
+    const regex = /\\\{|\\\}|\{|\}/g; // regex ("\{", "\}", "{", hoặc "}")
+    let lastIndex = 0; // Con trỏ cho text thường.
+    let match; // Kết quả regex.exec(text), 
+    // ở đây quan tâm match[0] (kí tự khớp trong regex, "\{", "\}", "{", hoặc "}") 
+    // và match.index (vị trí của char đầu tiên match[0] trong text)
+    let depth = 0; // Cấp của dấu {}
+    let tagStartIndex = -1; //
+    while ((match = regex.exec(text)) !== null) { // tìm lần lượt trong text (nếu ko thấy gì khớp regex nữa thì sẽ về null)
+        const char = match[0]; // kí tự khớp regex
+        if (char === '\\{' || char === '\\}') continue; // Nếu là "\{", "\}" thì bỏ qua
+        if (char === '{') { // Nếu là dấu "{"
+            if (depth === 0) { // Là dấu "{" cấp 0
+                tagStartIndex = match.index; // Lưu index của tag
+                if (match.index > lastIndex) { // Phía trước
+                    tokens.push([
+                        TOKEN.TEXT,
+                        text.slice(textStart, match.index)
+                    ]);
+                }
+                
+            }
+        }
+    }
+
+
+    
+
+    
+}
+
+// Gemini
+
+function tokenize(text) {
+    const tokens = [];
+    const regex = /\\\{|\\\}|\{|\}/g;
+
+    let lastIndex = 0;
+    let match;
+    
+    let braceCount = 0;
+    let tagStart = -1;
+
+    while ((match = regex.exec(text)) !== null) {
+        const char = match[0];
+
+        // 1. Gặp \{ hoặc \} thì bỏ qua (nó tự động nằm trong vùng text hoặc tag tương ứng)
+        if (char === '\\{' || char === '\\}') {
+            continue;
+        }
+
+        // 2. Gặp dấu mở ngoặc {
+        if (char === '{') {
+            if (braceCount === 0) {
+                // Đây là dấu { ngoài cùng -> Lưu lại vị trí bắt đầu tag
+                tagStart = match.index;
+                // Cắt phần text thường phía trước (nếu có)
+                if (tagStart > lastIndex) {
+                    tokens.push([TOKEN.TEXT, text.slice(lastIndex, tagStart)]);
+                }
+            }
+            braceCount++; // Tăng cấp độ lồng ngoặc nhọn
+        } 
+        // 3. Gặp dấu đóng ngoặc }
+        else if (char === '}') {
+            if (braceCount > 0) {
+                braceCount--;
+                if (braceCount === 0) {
+                    // Đây là dấu } ngoài cùng -> Đóng tag thành công
+                    tokens.push([TOKEN.TAG, text.slice(tagStart, regex.lastIndex)]);
+                    lastIndex = regex.lastIndex; // Cập nhật con trỏ text thường
+                }
+            }
+        }
+    }
+
+    // Xử lý phần text còn lại cuối chuỗi (hoặc toàn bộ chuỗi từ tagStart nếu { không có } đóng)
+    const finalIndex = braceCount > 0 ? tagStart : lastIndex;
+    if (finalIndex < text.length) {
+        tokens.push([TOKEN.TEXT, text.slice(finalIndex)]);
+    }
+
+    return tokens;
+}
+
+// ChatGPT
+function tokenize(text) {
+    const tokens = [];
+    const regex = /\\\{|\\\}|\{|\}/g;
+
+    let textStart = 0;
+    let tagStart = -1;
+    let depth = 0;
+    let match;
+
+    while ((match = regex.exec(text)) !== null) {
+        const token = match[0];
+
+        // Bỏ qua \{ và \}
+        if (token === "\\{" || token === "\\}") {
+            continue;
+        }
+
+        if (token === "{") {
+            if (depth === 0) {
+                if (match.index > textStart) {
+                    tokens.push([
+                        TOKEN.TEXT,
+                        text.slice(textStart, match.index)
+                    ]);
+                }
+                tagStart = match.index;
+            }
+
+            depth++;
+            continue;
+        }
+
+        // token === "}"
+        if (depth > 0) {
+            depth--;
+
+            if (depth === 0) {
+                tokens.push([
+                    TOKEN.TAG,
+                    text.slice(tagStart, regex.lastIndex)
+                ]);
+
+                textStart = regex.lastIndex;
+            }
+        }
+    }
+
+    // Nếu còn tag chưa đóng thì coi từ tagStart trở đi là text
+    if (depth > 0) {
+        textStart = tagStart;
+    }
+
+    if (textStart < text.length) {
+        tokens.push([
+            TOKEN.TEXT,
+            text.slice(textStart)
+        ]);
+    }
+
+    return tokens;
+}
+
+
+
+
+
+
+
+
+
+/**
+ * 5.2. Hàm xử lí lineContainer (chạy trong renderSubtitleFrameInLoop)
+ * @param {*} currentTime 
+ * @param {*} line 
+ * @param {*} lineContainer 
+ * @param {*} styleCss 
+ */
+function processLineContainer(currentTime, line, lineContainer, styleCss) {
+
+}
+
+
+
+
+
+
+
+
+/**
+ * 5.1. Hàm đặt căn chỉnh chữ (\an).
+ * @param {object} node tham chiếu để ghi dữ liệu. chú ý, ở đây là container
+ * @param {Array} alignPct array dạng [x%, y%], trả từ renderData.originAndAlignMap[]
+ * @returns Dữ liệu thay đổi trong container.
+ */
+function setAlignmentCss(node, alignPct) {
+    const [x, y] = alignPct || [50, 100];
+    // 1. Căn dọc toàn bộ nhóm chữ trong container
+    if (y >= 100) {
+        node['align-items'] = 'flex-end';
+    } else if (y <= 0) {
+        node['align-items'] = 'flex-start';
+    } else {
+        node['align-items'] = 'center';
+    }
+    // 2. Căn ngang: điều hướng hướng xếp của các cụm từ con
+    if (x <= 0) {
+        node['justify-content'] = 'flex-start';
+        node['text-align'] = 'left'; // Ép tất cả phần tử con tuân thủ căn trái
+    } else if (x >= 100) {
+        node['justify-content'] = 'flex-end';
+        node['text-align'] = 'right'; // Ép tất cả phần tử con tuân thủ căn phải
+    } else {
+        node['justify-content'] = 'center';
+        node['text-align'] = 'center'; // Ép tất cả phần tử con tuân thủ căn giữa
+    }
+}
+/**
+ * 3.4.3.2. Hàm đặt tâm xoay chữ (\org). (Gemini vibe lần 2, đã review)
+ * @param {object} node tham chiếu để ghi dữ liệu. chú ý, ở đây là container 
+ * @param {Array} originPct array dạng [x%, y%]
+ */
+function setOriginCss(node, originPct, overrideMode = false) {
+    // 1. Kiểm tra quyền ghi đè (Viết ngắn gọn hơn)
+    if (!overrideMode && node['transform-origin']) return;
+    // 2. Phân rã mảng đầu vào kèm fallback mặc định
+    const [rawX, rawY] = Array.isArray(originPct) ? originPct.map(parseFloat) : [50, 100];
+    // 3. Ép kiểu số thực và tự động fallback nếu không hợp lệ (NaN/null/undefined)
+    const x = !isNaN(rawX) ? rawX : 50;
+    const y = !isNaN(rawY) ? rawY : 100;
+    // 4. Gán thuộc tính CSS
+    node['transform-origin'] = `${x}% ${y}%`;
+}
+function setOriginCss(node, origin, overrideMode = false) {
+    if (!overrideMode && node['transform-origin']) return;
+
+    if (!origin) return;
+
+    node['transform-origin'] =
+        `${origin.x.toFixed(2)}px ${origin.y.toFixed(2)}px`;
+}
+/**
+ * 3.4.3.3. Hàm đặt góc xoay chữ (\frz) (Gemini vibe, đã review)
+ * @param {Array} nodeTransforms mảng tham chiếu độc lập để lưu dữ liệu transform. chú ý, ở đây là textTransforms
+ * @param {object} node tham chiếu để ghi dữ liệu. chú ý, ở đây là text 
+ * @param {string} angle góc (string số)
+ * @param {Array} originPct array dạng [x%, y%]
+ */
+function setRotateCss(nodeTransforms, angle, node, originPct) {
+    const rawAngle = parseFloat(angle);
+    const rotateAngle = !isNaN(rawAngle) ? -rawAngle : 0; // Đảo hướng (do 2 hướng trong Aegisub và trong CSS khác nhau)
+    // 1. Tìm xem trong mảng đã có phần tử "rotate(...)" nào chưa
+    const rotateIndex = nodeTransforms.findIndex(t => t.startsWith('rotate('));
+    // 2. Nếu góc xoay bằng 0 (mặc định), ta không cần render để tránh nặng máy
+    if (rotateAngle === 0) {
+        if (rotateIndex !== -1) {
+            nodeTransforms.splice(rotateIndex, 1); // Xóa rotate cũ ra khỏi mảng
+        }
+    } else {
+        // 3. Nếu góc khác 0, tiến hành cập nhật hoặc thêm mới
+        const rotateStr = `rotate(${rotateAngle}deg)`;
+        if (rotateIndex !== -1) {
+            nodeTransforms[rotateIndex] = rotateStr; // Thay thế (Replace) giá trị cũ
+        } else {
+            nodeTransforms.push(rotateStr);          // Thêm mới nếu chưa có
+        }
+    }
+    setOriginCss(node, originPct, false); // xử lí tâm xoay nếu cần, \org
+}
+/**
+ * 5.1. Hàm xử lí các tag áp dụng lên toàn bộ line. (Copilot vibe, đã review)
  * Chú ý: dữ liệu được chuẩn hóa theo chuẩn 4.3bc (renderDataCheck("bc"))
  * @param {number} currentTime renderData.video.currentTime (hàm 4.3 renderSubtitleFrameInLoop, parent? hàm này, đã chuẩn hóa)
- * @param {Object} line event[index], tức orgline/line trong Aegisub
- * @param {HTMLElement} layoutContainer node vỏ (div) chứa textNode. chi tiết xem hàm 3.4.3 styleObjToCss()
+ * @param {Object} line event[index], tức orgline trong Aegisub
+ * @param {HTMLElement} lineContainer node vỏ (div) chứa textNode. chi tiết xem hàm 3.4.3 styleObjToCss()
  * @param {HTMLElement} styleCss dữ liệu style với định dạng CSS, đầu ra hàm 3.4.3 styleObjToCss()
  * @param {Object} renderData.container.getBoundingClientRect ("b")
  * @param {number} renderData.scaleWidth ("c")
  * @param {number} renderData.scaleHeight ("c")
- * @returns Xử lí các tag áp dụng toàn bộ line: \pos(x,y), \move(x0,y0,x1,y1[,t1,t2]), \an<x0>, \fad(t0,t1), \fade(a0,a1,a2,t0,t1,t2,t3)
+ * @returns Xử lí các tag: \pos(x,y), \move(x0,y0,x1,y1[,t1,t2]), \an<x0>, \fad(t0,t1), \fade(a0,a1,a2,t0,t1,t2,t3), \org(x,y)
  */
 function processGlobalInlineTags(currentTime, line, lineContainer, styleCss) {
     // \pos(x,y)
@@ -1087,6 +1341,8 @@ function processGlobalInlineTags(currentTime, line, lineContainer, styleCss) {
     // \an<x0>
     // \fad(t0,t1)
     // \fade(a0,a1,a2,t0,t1,t2,t3)
+    // \org(x,y)
+    Object.assign(lineContainer.style, styleCss.container); // 1. Lấy dữ liệu mặc định của style (styleCss.container) áp vào lineContainer mới
     const containerRect = renderData.container.getBoundingClientRect();
     const scaleX = renderData.scaleWidth;
     const scaleY = renderData.scaleHeight;
@@ -1094,48 +1350,42 @@ function processGlobalInlineTags(currentTime, line, lineContainer, styleCss) {
 
 
     /**
-     * 5.1.1. Hàm ghi đè vị trí (x, y, \pos) vào layoutContainer.style
+     * 5.1.1. Hàm ghi đè vị trí (x, y, \pos) vào lineContainer.style
      * @param {number} x tọa độ x
      * @param {number} y tọa độ y
      * @returns 
      */
-    const applyPosition = (x, y) => {
+    const applyPosition = (x, y, align = 2) => {
         if (!Number.isFinite(x) || !Number.isFinite(y)) return;
-        layoutContainer.style.position = 'absolute';
-        layoutContainer.style.left = `${Math.round(x * scaleX)}px`;
-        layoutContainer.style.top = `${Math.round(y * scaleY)}px`;
-        layoutContainer.style.width = 'auto';
-        layoutContainer.style.height = 'auto';
-        layoutContainer.style.maxWidth = '100%';
+        lineContainer.style.position = 'absolute';
+        // 1. Đặt điểm neo (Anchor Point) chuẩn theo tọa độ \pos
+        lineContainer.style.left = `${Math.round(x * scaleX)}px`;
+        lineContainer.style.top = `${Math.round(y * scaleY)}px`;
+        
+        lineContainer.style.width = 'auto';
+        lineContainer.style.height = 'auto';
+        lineContainer.style.maxWidth = '100%';
+
+        // 2. Mảng quy đổi alignment ASS sang % dịch chuyển CSS
+        // ASS alignment: [0,  an1,  an2,  an3,  an4,  an5,  an6,  an7,  an8,  an9]
+        const alignX =   [0,    0,  -50, -100,    0,  -50, -100,    0,  -50, -100];
+        const alignY =   [0, -100, -100, -100,  -50,  -50,  -50,    0,    0,    0];
+
+        const pctX = alignX[align] ?? -50; 
+        const pctY = alignY[align] ?? -100;
+
+        // CSS tự động tính rectWidth/rectHeight dựa trên % này
+        lineContainer.style.transform = `translate(${pctX}%, ${pctY}%)`;
+
         if (textNode) {
             textNode.style.display = 'inline-block';
             textNode.style.maxWidth = '100%';
+            
+            // Căn lề text nội bộ (rất quan trọng khi sub có nhiều dòng)
+            textNode.style.textAlign = pctX === 0 ? 'left' : pctX === -100 ? 'right' : 'center';
         }
     };
-    /**
-     * 
-     * @param {*} code 
-     */
-    const applyAlignment = (code) => {
-        const align = Number(code);
-        const alignMap = {
-            1: { justify: 'flex-start', align: 'flex-end', textAlign: 'left' },
-            2: { justify: 'center', align: 'flex-end', textAlign: 'center' },
-            3: { justify: 'flex-end', align: 'flex-end', textAlign: 'right' },
-            4: { justify: 'flex-start', align: 'center', textAlign: 'left' },
-            5: { justify: 'center', align: 'center', textAlign: 'center' },
-            6: { justify: 'flex-end', align: 'center', textAlign: 'right' },
-            7: { justify: 'flex-start', align: 'flex-start', textAlign: 'left' },
-            8: { justify: 'center', align: 'flex-start', textAlign: 'center' },
-            9: { justify: 'flex-end', align: 'flex-start', textAlign: 'right' }
-        };
-        const resolved = alignMap[align] || alignMap[2];
-        layoutContainer.style.justifyContent = resolved.justify;
-        layoutContainer.style.alignItems = resolved.align;
-        if (textNode) {
-            textNode.style.textAlign = resolved.textAlign;
-        }
-    };
+    
 
     const rawText = String(line?.text || '');
 
@@ -1174,6 +1424,11 @@ function processGlobalInlineTags(currentTime, line, lineContainer, styleCss) {
         applyPosition(x, y);
     }
 }
+function setPositionCss() {
+
+}
+
+
 /**
  * 5.2. Hàm xử lí các tag văn bản
  * @param {object} line 
@@ -1185,9 +1440,9 @@ function processTextTags(line, textNode) {
 
 /**
  * 6.1. Hàm xử lí chồng lấn giữa các dòng phụ đề
- * @param {HTMLElement} layoutContainer
+ * @param {HTMLElement} lineContainer
  */
-function processCollisions(layoutContainer) {
+function processCollisions(lineContainer) {
     // Xử lí chồng lấn giữa các dòng phụ đề
 }
 

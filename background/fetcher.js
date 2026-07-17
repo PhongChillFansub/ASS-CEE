@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.7 10juy26
+// v0.0.7 18juy26
 const FETCH_TIMEOUT = 60000; // Tối đa 60 giây kết nối và nhận dữ liệu. Dùng cho hàm fetchWithTimeout().
 const VALID_FILE_SIGNATURE = ["[Script Info]", "[V4+ Styles]", "[Events]"];
 // Danh sách các nội dung mà parser dùng để đánh dấu. Dùng cho hàm validateSubtitleContent().
@@ -7,11 +7,6 @@ const VALID_FILE_SIGNATURE = ["[Script Info]", "[V4+ Styles]", "[Events]"];
 // Chức năng: xử lí ban đầu, giai đoạn từ danh sách link thư mục nguồn đến giai đoạn có file sub thô (rawText)
 // 2 hàm export là fetchSubtitleText (từ link file sub tới rawText)
 // và fetchSubtitleFile (từ danh sách link thư mục nguồn đến danh sách link file sub)
-/**
- * Hàm decode HTML (phần decode để chống XSS.)
- * @param {*} text trước
- * @returns {*} text sau
- */
 /**
  * Hàm decode HTML (phần decode để chống XSS) hoạt động trong Service Worker
  * @param {string} text - Văn bản chứa thực thể HTML cần giải mã
@@ -339,18 +334,21 @@ async function scanGDrive(source, videoId, folderName = { groupName: '',id: '' }
 /**
  * Hàm kiểm tra file sub có tương ứng với ID cần tìm ko (tìm theo .include, cho phép người dùng tìm ko theo ID.)
  * @param {*} fileName tên file sub
- * @param {*} videoId ID video cần tìm
- * @returns boolean.
+ * @param {*} searchKey từ khóa tìm kiếm hoặc ID video cần tìm
+ * @returns {boolean} boolean trả kết quả khớp tìm kiếm
  */
-function isMatchingSubtitle(fileName, videoId) {
-    // Nếu không có videoId hoặc videoId trống, trả về true để cho phép tìm kiếm không theo ID (hiển thị tất cả)
-    if (!videoId) return true;
-    // Phòng trường hợp tên file bị rỗng hoặc không phải chuỗi
-    if (!fileName) return false;
-    // Kiểm tra xem tên file có chứa videoId hay không (phân biệt chữ hoa - chữ thường theo quy tắc ID của YouTube)
-    // Nếu tìm theo tag (string videoId có kí tự đầu là #) thì bật phân biệt chữ hoa - chữ thường. Nếu ko thì tắt.
-    if (videoId.startsWith('#')) return fileName.includes(videoId);
-    return fileName.toLowerCase().includes(videoId.toLowerCase());
+function isMatchingSubtitle(fileName, searchKey) {
+    if (!searchKey) return true; // Không có từ khóa -> hiển thị tất cả
+    if (!fileName) return false; // Tên file trống -> bỏ qua
+    // Tách nhiều từ khóa bằng |
+    const fileNameLower = fileName.toLowerCase();
+    const result = searchKey.split("|").map(k => k.trim()).filter(Boolean).some(key =>
+        key.startsWith("#")
+            ? fileName.includes(key.slice(1)) // Nếu key bắt đầu bằng # thì phân biệt hoa thường
+            : fileNameLower.includes(key.toLowerCase()) // Ngược lại thì không phân biệt hoa thường
+    );
+    // console.warn(`[ASS-CEE] fetcher: isMatchingSubtitle():\nfileName = "${fileName}",\nsearchKey = "${searchKey}",result = "${result}".`);
+    return result;
 }
 /**
  * Hàm kết nối mạng có timeout (Gemini). Yêu cầu biến FETCH_TIMEOUT. (Gemini)
