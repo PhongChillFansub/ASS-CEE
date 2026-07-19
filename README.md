@@ -9,7 +9,7 @@
 
 Tiện ích này được truyền cảm hứng từ 4 repo/extension khác là [Kull-YouTube Aegisub Loader](https://github.com/zingky/YouTube-Aegisub-Loader), [+Sub](https://github.com/plussub/plussub), [ASS.js](https://github.com/weizhenye/ASS) và [AxTongue](https://chromewebstore.google.com/detail/axtongue/ilbfbiamkpljhkhnhjiikeikefogpffh).
 
-Trong đó, tiện ích này chịu ảnh hưởng trực tiếp và có thể sử dụng kho phụ đề từ [Kull-Vietsub](https://github.com/zingky/Kull-Vietsub).
+Trong đó, tiện ích này chịu ảnh hưởng trực tiếp và có thể sử dụng kho phụ đề từ [Kull-YouTube Aegisub Loader](https://github.com/zingky/YouTube-Aegisub-Loader).
 
 ---
 
