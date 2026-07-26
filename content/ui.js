@@ -124,7 +124,7 @@ document.addEventListener("yt-navigate-finish", () => {
 /**
  * 2.1. Hàm chạy hạng mục 1. Khởi tạo khung UI và API của nó.
  */
-function buildMainHTML() {
+async function buildMainHTML() {
   uiData.extensionName = 'ASS-CEE';
   uiData.tabMap = {
     'tab1': 'Quản lý nguồn',

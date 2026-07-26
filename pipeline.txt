@@ -338,3 +338,7 @@ Cơ chế các tag trong Aegisub
     các tag thay đổi font (\b, \i, \fn, \r),
     * \fsp
 
+
+
+to-do: sửa cấu trúc (line 132 renderer)
+

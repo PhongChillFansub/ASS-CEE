@@ -1,8 +1,11 @@
 // Code bằng tay
-// v0.0.7 18juy26
+// v0.0.8 23juy26
 // storage.js
 // Chức năng: chuyên xử lí lưu trữ trên chrome.storage.local.
 // 7 hàm export là:
+
+import { cache } from "react";
+
 // 3 hàm với link folder: addSource, getSourceList, removeSource
 const SUBTITLE_SOURCES_KEY = "ASSCEE_sourceList"; // Lưu tất cả link folder trong 1 key.
 // 4 hàm với file sub: addSubData, getSubDataList, useSubData, removeSubData
@@ -101,6 +104,7 @@ export async function getSubDataList(searchId = "") {
   if (searchId) {
     return cacheList.filter(item => item.videoId === (searchId.startsWith('#') ? searchId.slice(1) : searchId));
   }
+  console.log(`[ASS-CEE] storage: Kết quả tìm kiếm cache cho ${searchId}:`, cacheList);
   return cacheList; // Trả về mảng dạng: [ { videoId, cachedId, cachedAt, ...candidate }, ... ]
 }
 /**

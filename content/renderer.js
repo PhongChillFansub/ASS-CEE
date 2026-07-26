@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.7 18juy26
+// v0.0.8 21juy26
 // Phần khai báo dữ liệu chung
 var startingData = startingData ?? {
     testMode: false, // Chế độ thử nghiệm
@@ -95,11 +95,11 @@ function sendLogToBackground(message, type = 'info', extra = undefined) {
 }
 /**
  * 1.2. (6.2.1.4. sửa đổi) updateVideoIdInRenderer(): Hàm cập nhật video ID vào UI
- * @param renderData Yêu cầu có sẵn obj renderData để ghi dữ liệu chung
+ * @param {boolean} inRenderLoop nếu trong loop thì ko tìm lại videoID.
+ * @param renderData (gián tiếp) Yêu cầu có sẵn obj renderData để ghi dữ liệu chung
  * @returns Tạo mới, cập nhật trong renderData: .currentId, .lastId
  */
-function updateVideoIdInRenderer() {
-    var doLog = checkDoLog(['updateVideoIdInRenderer','1.2','all']);
+function updateVideoIdInRenderer(inRenderLoop) {
     if (typeof renderData !== 'object' || renderData === null) {
         return disableRenderLoop('renderer: (1.2) ko có renderData để ghi dữ liệu?');
     }
@@ -125,11 +125,12 @@ function updateVideoIdInRenderer() {
     }
     })();
     if (renderData.currentId) {
-        if (doLog) sendLogToBackground(`renderer: (1.2) Cập nhật ID video hiện tại: ${renderData.currentId}`);
+        if (!inRenderLoop) sendLogToBackground(`renderer: Cập nhật ID video hiện tại: ${renderData.currentId}`);
         if (renderData.currentId !== renderData.lastId && renderData.lastId) {
             disableRenderLoop(`videoId thay đổi từ ${renderData.lastId} sang ${renderData.currentId}.`);
-            renderData.lastId = renderData.currentId;
-            return updateVideoIdInRenderer();
+            return "return";
+            // to-do: sửa đoạn này để xử lí, cho renderer tạm dừng render, ở trạng thái chờ? hủy? khi thay đổi videoID.
+            // getCache. Nếu ko có thì hủy render, nếu có thì tiếp tục render với data mới? xử lí lại data mới?
         }
     } else {
         return disableRenderLoop(`renderer: (1.2) Ko thể tách ID từ url ${url}`);
@@ -158,25 +159,16 @@ function renderDataCheck(renderData,checkMode = "z"){
             case isNotObject(renderData.FALLBACK_DEFAULT_STYLE):
                 return ".FALLBACK_DEFAULT_STYLE";
         }
-        const subData = renderData.subObj.parsedData;
-        const text = ".subObj.parsedData";
-        switch (true) {
-            case isNotObject(subData.info):
-                return `${text}.info`;
-            case isNotArray(subData.styles):
-                return `${text}.styles`;
-            case isNotArray(subData.events):
-                return `${text}.events`;
-        }
-        const checkPlayRes = (val) => {
-            const p = Number.parseInt(val, 10);
-            return p > 0 ? p : 0;
-        };
-        for (const key of ['PlayResX', 'PlayResY']) {
-            const val = checkPlayRes(subData.info[key]);
-            if (val <= 0) return `.subObj.parsedData.info.${key}`;
-            subData.info[key] = val;
-        }
+        // const subData = renderData.subObj.parsedData;
+        // const text = ".subObj.parsedData";
+        // switch (true) {
+        //     case isNotObject(subData.info):
+        //         return `${text}.info`;
+        //     case isNotArray(subData.styles):
+        //         return `${text}.styles`;
+        //     case isNotArray(subData.events):
+        //         return `${text}.events`;
+        // }
     }
     if (checkMode.includes("b")) { // Chế độ kiểm tra: đầu hàm refresh() 2.3.2 trong observeParentLayout()
         // Yêu cầu phải có .containerParent.getBoundingClientRect(), .container 
@@ -225,10 +217,12 @@ function checkDoLog (tag) {
 function disableRenderLoop(reason) {
     clearSubtitleFrame();
     const state = renderData.renderState;
+    const video = renderData.video;
     state.state = false;
     const WasRenderEnabled = state.frameId ?? null;
     if (state.frameId) {
-        window.cancelAnimationFrame(state.frameId); 
+        if (video) video.cancelVideoFrameCallback(state.frameId);
+        else sendLogToBackground(`renderer: (3.8) Ko có video để hủy render?`,"warn");
     }
     state.frameId = null;
     sendLogToBackground(`renderer: (3.8) Đã hủy render ${
@@ -259,6 +253,7 @@ function disconnectVideoObserver(newParent = null, newAspectRatio = null) {
 }
 /**
  * 2.1. Hàm lập trình nghe dữ liệu từ background (và tự động render)
+ * 
  * (Gemini vibe, đã review, cần sửa lại khi viết tab mới UI)
  */
 function initRenderer() {
@@ -296,12 +291,10 @@ function initRenderer() {
     });
 }
 /**
- * 2.2. Hàm lập trình tính năng tự động lấy cache và render
- * (cần sửa lại khi viết tab mới UI)
+ * 2.2. Hàm lập trình tính năng tự động lấy cache
  */
-function autoRenderOnCache() {
-    updateVideoIdInRenderer();
-    chrome.runtime.sendMessage({ // Tự động chạy (1 lần, khi chạy file này theo manifest)
+function getCache() {
+    chrome.runtime.sendMessage({ // Tự động chạy (1 lần, khi chạy file này)
         type: 'SUB.USE_CACHE',
         payload: { videoId: renderData.currentId }
     }, (response) => {
@@ -309,7 +302,6 @@ function autoRenderOnCache() {
         if (response && response.type === 'SUB.READY') {
             renderData.subObj = { ...response.payload }; // Nhận dữ liệu để render
             sendLogToBackground(`renderer: Tự động nhận tín hiệu (${renderData.currentId}) thành công:`,"log", response.payload || '(cache trống)');
-            render();
         } else {
             sendLogToBackground(`renderer: Tự động nhận tín hiệu (${renderData.currentId}) thất bại.`,"warn", response);
             console.warn(`renderer: Tự động nhận tín hiệu (${renderData.currentId}) thất bại.`,response);
@@ -427,15 +419,15 @@ function preProcessSubData() {
         sendLogToBackground(`renderer: (3.2) Lấy videoAR có vấn đề hoặc khác subAR (sai số tuyệt đối AR trên 0.04), lấy subAR thay thế: ${subAR.toFixed(4)}.`,"warn");
     }
     // Phần xử lí cho info.WrapStyle
-    const rawStyleWrap = Number.parseInt(info.WrapStyle, 10);
-    info.WrapStyle = (rawStyleWrap >= 0 && rawStyleWrap <= 3) ? rawStyleWrap : 0;
-    renderData.cssConfig = {
-        'white-space': (info.WrapStyle === 2 ? 'pre' : 'pre-wrap'),
-        'word-break' : 'keep-all',
-        'overflow-wrap': 'break-word',
-        'text-wrap': (info.WrapStyle === 3 ? 'balance' : info.WrapStyle === 1 ? 'wrap' : 'pretty'),
-        'max-width': '100%',
-    };
+    // const rawStyleWrap = Number.parseInt(info.WrapStyle, 10);
+    // info.WrapStyle = (rawStyleWrap >= 0 && rawStyleWrap <= 3) ? rawStyleWrap : 0;
+    // renderData.cssConfig = {
+    //     'white-space': (info.WrapStyle === 2 ? 'pre' : 'pre-wrap'),
+    //     'word-break' : 'keep-all',
+    //     'overflow-wrap': 'break-word',
+    //     'text-wrap': (info.WrapStyle === 3 ? 'balance' : info.WrapStyle === 1 ? 'wrap' : 'pretty'),
+    //     'max-width': '100%',
+    // };
     renderData.subObj.parsedData.styles.forEach((style) => {
         style.CSSResize = ConvertStyleFontSizeFromVSFToCSS(style.fontName);
     }); // Yêu cầu có renderData.subObj.parsedData.styles
@@ -620,7 +612,9 @@ function processStylesPending() {
  * 3.4.2. Hàm thực thi chuyển đổi style theo thay đổi kích thước khung hình (từ khung PlayResX-Y sang khung width-height của phụ đề)
  * @param {*} oldStyle 1 style cũ
  * @param {*} newStyles tham chiếu array style mới để push
- * @param {*} pushMode chế độ push (push vào array newStyles, cho các style khác) hoặc ghi đè vào renderData.defaultStyle (cho renderData.FALLBACK_DEFAULT_STYLE)
+ * @param {*} pushMode chế độ push (push vào array newStyles, cho các style khác) 
+ * 
+ * hoặc ghi đè vào renderData.defaultStyle (cho renderData.FALLBACK_DEFAULT_STYLE)
  * @returns ko trực tiếp trả về gì
  */
 function scaler (oldStyle, newStyles, pushMode) {
@@ -777,6 +771,7 @@ function styleObjToCss(styleObj) {
 /**
  * 4.1. Hàm xóa dữ liệu render trong frame hiện tại
  * @param {*} renderData.renderState (luôn có 6 thuộc tính: 
+ * 
  * currentStyles, pendingStyles, currentEvents, currentElements, frameId, doEnable)
  * @param {*} renderData.container Yêu cầu check trước
  */
@@ -817,12 +812,13 @@ function applyPendingStyles() {
  * 4.3. Hàm xử lí dữ liệu render theo từng frame (Gemini vibe, đã review)
  */
 function renderSubtitleFrameInLoop() {
-    // Chú ý: log debug trong hàm này nếu luôn chạy, sẽ chạy theo tần số quét màn. (rAF())
+    // Chú ý: log debug trong hàm này nếu luôn chạy, sẽ chạy theo rAFC().
+    if (updateVideoIdInRenderer(true) === "return") return "return"; // Nếu ko update được videoId thì hủy render loop
     var doLog = checkDoLog(['renderSubtitleFrameInLoop','4.3','all']);
     const invalidateResult = renderDataCheck('bc');
     if (invalidateResult) {
         disableRenderLoop(`renderer: (4.3bc) Dữ liệu ko hợp lệ: ${invalidateResult}. Hủy render.`);
-        return; // Dữ liệu giờ vẫn ko hợp lệ thì về luôn.
+        return "return"; // Dữ liệu giờ vẫn ko hợp lệ thì về luôn.
     }
     applyPendingStyles(); // Yêu cầu có .container hợp lệ
     const events = renderData.subObj.parsedData.events; // Yêu cầu có .events hợp lệ
@@ -962,47 +958,63 @@ function renderSubtitleFrameInLoop() {
     state.lastActiveIndices = currentActiveIndices;
 }
 /**
- * 4.4. Hàm mở chạy vòng lặp render theo frame (Gemini vibe, đã review)
+ * 4.4. Hàm mở chạy vòng lặp render theo frame của video (Gemini vibe, đã review)
+ * 
+ * Chuyển sang sử dụng rVFC để tự động dừng render khi dừng video, và tự động bám theo fps của video*
+ * 
+ * *Của trình phát video (YT vẫn có thể chạy trình phát 60fps trên video 30fps)
  */
 function enableRenderLoop() {
     const state = renderData.renderState;
+    const video = renderData.video;
     let currentFrameId = null;
-    let lastLogTime = -1;
+    let lastPauseLogTime = -1;
+    let lastTestLogTime = -1;
+    let frameCountForLog = 0;
     /**
-     * 4.4.1. Hàm đệ quy cho requestAnimationFrame
-     * @param {*} timestamp 
-     * @returns 
+     * 4.4.1. Hàm callback cho requestVideoFrameCallback
+     * @param {DOMHighResTimeStamp} now 
+     * @param {VideoFrameMetadata} metadata
      */
-    const tick = (timestamp) => {
+    const tick = (now, metadata) => {
         state.doEnable = state.doEnable ?? true;
         switch (true) {
-            case (state.frameId !== currentFrameId): // Gemini vibe, bảo là tránh Loop Duplication / Race Condition
-                sendLogToBackground('renderer (4.4): state.frameId khác currentFrameId nên ko render?',"warn");
-                if (lastLogTime >= 0) lastLogTime = -1; // Biến lastLogTime thành chỉ dẫn cho clearSubtitleFrame() chạy 1 lần duy nhất
+            case (state.frameId !== currentFrameId): // Tránh Loop Duplication / Race Condition
+                sendLogToBackground('renderer (4.4): state.frameId khác currentFrameId nên ko render.', "warn");
+                if (lastPauseLogTime >= 0) lastPauseLogTime = -1;
                 return;
             case (state.doEnable === false):
-                // Vẫn đăng ký khung hình tiếp theo để giữ vòng lặp sống, chờ observer kích hoạt lại
-                if (lastLogTime < 0) clearSubtitleFrame(); // Cho dữ liệu trống thay vì renderSubtitleFrame(), chỉ chạy lần đầu khi (lastLogTime < 0)
-                const idleFrameId = window.requestAnimationFrame(tick);
+                if (lastPauseLogTime < 0) clearSubtitleFrame();
+                // Đăng ký frame tiếp theo bằng rVFC trên video
+                const idleFrameId = video.requestVideoFrameCallback(tick);
                 state.frameId = idleFrameId;
                 currentFrameId = idleFrameId;
-                if (lastLogTime < 0) lastLogTime = timestamp; // Cập nhật lại mốc thời gian (lần đầu)
-                if (timestamp - lastLogTime >= 500) { 
-                    sendLogToBackground('renderer (4.4): doEnable đang tắt, clear frame',"warn");
-                    lastLogTime = timestamp; // Cập nhật lại mốc thời gian
+                if (lastPauseLogTime < 0) lastLogTime = now;
+                if (now - lastPauseLogTime >= 500) { 
+                    sendLogToBackground('renderer (4.4): doEnable đang tắt, clear frame', "warn");
+                    lastPauseLogTime = now;
                 }
                 return;
-            default: // Chỉ đăng ký frame tiếp theo nếu container vẫn tồn tại và loop chưa bị pause/stop
-                renderSubtitleFrameInLoop();
-                if (lastLogTime >= 0) lastLogTime = -1;
-                state.frameId = window.requestAnimationFrame(tick);
+            default:
+                frameCountForLog++;
+                if (now - lastTestLogTime >= 1000) {
+                    lastTestLogTime = now;
+                    sendLogToBackground(`Kiểm tra FPS khi render: ${frameCountForLog} FPS.`);
+                    frameCountForLog = 0;
+                }
+                if (renderSubtitleFrameInLoop(metadata) === "return") return "return"; 
+                // Có thể truyền metadata.mediaTime vào renderSubtitleFrameInLoop nếu muốn thời gian chuẩn xác tuyệt đối
+                if (lastPauseLogTime >= 0) lastPauseLogTime = -1;
+                // Đăng ký frame tiếp theo của video
+                state.frameId = video.requestVideoFrameCallback(tick);
                 currentFrameId = state.frameId;
         }
     };
     window.isAssCeeRendererLoaded = "render";
-    const initialFrameId = window.requestAnimationFrame(tick);
+    // Khởi tạo vòng lặp ban đầu từ videoElement
+    const initialFrameId = video.requestVideoFrameCallback(tick);
     state.frameId = initialFrameId;
-    currentFrameId = initialFrameId; 
+    currentFrameId = initialFrameId;
 }
 /**
  * 4.5. Hàm chạy render chính
@@ -1065,158 +1077,74 @@ function processTextNodes(currentTime, line, styleCss) {
 }
 /**
  * 5.1.1. Hàm tokenize nội dung dòng (tiền xử lí)
- * @param {*} text line.text
- * @returns {Array} tokens chứa các string
+ * @param {String.raw} text line.text ko qua stringify (Yêu cầu dọn sạch các phần {} ko có tác dụng, vd: {} trống, {} để comment mà ko có tag kèm dấu "\")
+ * @returns {Array} tokens chứa các string text (ko có bao ngoặc) và tag (có bao ngoặc {})
  */
 function tokenizeLineText(text) {
     const tokens = []; // đầu ra chứa strings
-    const regex = /\\\{|\\\}|\{|\}/g; // regex ("\{", "\}", "{", hoặc "}")
-    let lastIndex = 0; // Con trỏ cho text thường.
+    const regex = /\\\{|\\\}|\{|\}|\\n|\\N/g; // regex ("\{", "\}", "{", "}", hoặc "\N")
+    let endIndex = 0; // Con trỏ cho text thường.
     let match; // Kết quả regex.exec(text), 
     // ở đây quan tâm match[0] (kí tự khớp trong regex, "\{", "\}", "{", hoặc "}") 
     // và match.index (vị trí của char đầu tiên match[0] trong text)
-    let depth = 0; // Cấp của dấu {}
-    let tagStartIndex = -1; //
+    let tagStartIndex = -1; // Vị trí dấu "{" đầu tiên
     while ((match = regex.exec(text)) !== null) { // tìm lần lượt trong text (nếu ko thấy gì khớp regex nữa thì sẽ về null)
         const char = match[0]; // kí tự khớp regex
         if (char === '\\{' || char === '\\}') continue; // Nếu là "\{", "\}" thì bỏ qua
+        if (char === '\\N' && tagStartIndex === -1) { // Nếu là xuống dòng và ngoài tag
+            if (match.index > endIndex) tokens.push(text.slice(endIndex, match.index)); // push như dấu "{" cấp 1 và phía trước có text
+            tokens.push(`{${char}}`); // Push thành '{\N}' trong tokens
+            endIndex = regex.lastIndex; // Lưu endIndex như khi xử lí dấu "}" và sau push
+            continue;
+        }
         if (char === '{') { // Nếu là dấu "{"
-            if (depth === 0) { // Là dấu "{" cấp 0
-                tagStartIndex = match.index; // Lưu index của tag
-                if (match.index > lastIndex) { // Phía trước
-                    tokens.push([
-                        TOKEN.TEXT,
-                        text.slice(textStart, match.index)
-                    ]);
-                }
-                
-            }
-        }
-    }
-
-
-    
-
-    
-}
-
-// Gemini
-
-function tokenize(text) {
-    const tokens = [];
-    const regex = /\\\{|\\\}|\{|\}/g;
-
-    let lastIndex = 0;
-    let match;
-    
-    let braceCount = 0;
-    let tagStart = -1;
-
-    while ((match = regex.exec(text)) !== null) {
-        const char = match[0];
-
-        // 1. Gặp \{ hoặc \} thì bỏ qua (nó tự động nằm trong vùng text hoặc tag tương ứng)
-        if (char === '\\{' || char === '\\}') {
-            continue;
-        }
-
-        // 2. Gặp dấu mở ngoặc {
-        if (char === '{') {
-            if (braceCount === 0) {
-                // Đây là dấu { ngoài cùng -> Lưu lại vị trí bắt đầu tag
-                tagStart = match.index;
-                // Cắt phần text thường phía trước (nếu có)
-                if (tagStart > lastIndex) {
-                    tokens.push([TOKEN.TEXT, text.slice(lastIndex, tagStart)]);
-                }
-            }
-            braceCount++; // Tăng cấp độ lồng ngoặc nhọn
+            if (tagStartIndex === -1 && match.index > endIndex) {
+                tokens.push(text.slice(endIndex, match.index)); // Là dấu "{" đầu tiên và phía trước có text thì push text
+                tagStartIndex = match.index;
+            } 
+            continue; // Nếu ko phải dấu "{" đầu thì bỏ qua
         } 
-        // 3. Gặp dấu đóng ngoặc }
-        else if (char === '}') {
-            if (braceCount > 0) {
-                braceCount--;
-                if (braceCount === 0) {
-                    // Đây là dấu } ngoài cùng -> Đóng tag thành công
-                    tokens.push([TOKEN.TAG, text.slice(tagStart, regex.lastIndex)]);
-                    lastIndex = regex.lastIndex; // Cập nhật con trỏ text thường
-                }
+        if (char === '}') { // Nếu là dấu "}"
+            if (tagStartIndex > -1) { // Nếu có "{" trước đó
+                tokens.push(text.slice(tagStartIndex, regex.lastIndex)); // Lấy từ "{" đầu đến hết dấu "}" hiện tại
+                endIndex = regex.lastIndex; // index của char sau chuỗi khớp regex (ở đây là sau "}")
+                tagStartIndex = -1; // Reset biến này
+            } else { // Nếu nhiều dấu "}" hơn "{" (tagStartIndex.length-1 === 0 tức cấp 0)
+                continue; // Coi như 1 dấu "\}" (bỏ qua)
             }
         }
     }
-
-    // Xử lý phần text còn lại cuối chuỗi (hoặc toàn bộ chuỗi từ tagStart nếu { không có } đóng)
-    const finalIndex = braceCount > 0 ? tagStart : lastIndex;
-    if (finalIndex < text.length) {
-        tokens.push([TOKEN.TEXT, text.slice(finalIndex)]);
+    if (endIndex < text.length) { // Xử lí phần còn lại sau dấu đóng cuối.
+        const lastText = text.slice(endIndex);
+        if (tokens.at(-1)?.at(-1) !== '}') { // Nếu có sẵn token gần nhất, và nó ko phải tag (char cuối ko là "}")
+            tokens[tokens.length - 1] += lastText; // Hợp nhất token gần nhất đó (text) và phần còn lại sau nó
+            // Dùng tokens.at(-1) sẽ gặp lỗi "ReferenceError: Invalid left-hand side in assignment"
+        } else { // Nếu ko có sẵn (tokens = []) hoặc token gần nhất là tag (char cuối là "}")
+            tokens.push(lastText);
+        }
     }
-
     return tokens;
 }
-
-// ChatGPT
-function tokenize(text) {
-    const tokens = [];
-    const regex = /\\\{|\\\}|\{|\}/g;
-
-    let textStart = 0;
-    let tagStart = -1;
-    let depth = 0;
-    let match;
-
-    while ((match = regex.exec(text)) !== null) {
-        const token = match[0];
-
-        // Bỏ qua \{ và \}
-        if (token === "\\{" || token === "\\}") {
+/**
+ * 5.1.2. Hàm làm sạch token (sau khi tokenize)
+ * @param {Array} tokens thô sau khi tokenize
+ * @returns {Array} tokens sau khi làm sạch (loại bỏ các tag ko có giá trị, comment, hợp nhất 2 tag liền nhau, tức chứa "}{")
+ * Chú ý: đối với tag {*\k?*}{*\k?*} thì giữ nguyên vì đó là thủ thuật đổi màu sang màu 2.
+ */
+function cleanTokens(tokens) {
+    const result = [];
+    for (let token of tokens) {
+        // 1. Loại bỏ các tag ko có giá trị và comment
+        if (!(token.startsWith("{") && token.endsWith("}"))) { // 1.1. Không phải tag thì kệ
+            result.push(token); 
             continue;
         }
-
-        if (token === "{") {
-            if (depth === 0) {
-                if (match.index > textStart) {
-                    tokens.push([
-                        TOKEN.TEXT,
-                        text.slice(textStart, match.index)
-                    ]);
-                }
-                tagStart = match.index;
-            }
-
-            depth++;
-            continue;
-        }
-
-        // token === "}"
-        if (depth > 0) {
-            depth--;
-
-            if (depth === 0) {
-                tokens.push([
-                    TOKEN.TAG,
-                    text.slice(tagStart, regex.lastIndex)
-                ]);
-
-                textStart = regex.lastIndex;
-            }
-        }
+        const firstSlash = token.indexOf("\\", 1); // Tìm dấu '\' đầu tiên trong tag
+        if (firstSlash === -1) continue; // Không có '\' => comment, bỏ luôn
+        result.push("{" + token.slice(firstSlash)); // Xóa mọi thứ trước dấu '\' đầu tiên
     }
-
-    // Nếu còn tag chưa đóng thì coi từ tagStart trở đi là text
-    if (depth > 0) {
-        textStart = tagStart;
-    }
-
-    if (textStart < text.length) {
-        tokens.push([
-            TOKEN.TEXT,
-            text.slice(textStart)
-        ]);
-    }
-
-    return tokens;
+    return result;
 }
-
 
 
 

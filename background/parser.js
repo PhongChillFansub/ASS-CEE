@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.7 18juy26 (27jun26)
+// v0.0.8 24juy26
 // parser.js
 // Chức năng: xử lí kế tiếp, giai đoạn từ giai đoạn có file sub thô (rawText) đến cấu trúc file sub JS (line.raw)
 // hàm export là parseAegisubRaw (từ rawText đến cấu trúc JS)
@@ -13,27 +13,30 @@
 // đơn vị:      index,  h:mm:ss.cs, h:mm:ss.cs, string,   string, px,       px,       px,       string  string
 // !: Margin có thể là 0000 (undefined chuyển thành) hoặc 0 (defined). Xử lí cả 2 như giá trị 0
 // !: Name trong Aegisub chính là line.actor. Nếu trong line.actor có dấu "," thì sẽ bị lưu thành ";".
+/**
+ * Hàm chuyển string sang CamelCase (thực chất là tùy chỉnh đảo lower/upper)
+ * @param {string} str string
+ * @param {Array} indices vị trí đảo lower/upper case (mặc định: kí tự đầu).
+ * @returns string đã chuyển đổi
+ */
 const toCamelCase = (str, indices = [0]) => {
-	// Hàm chuyển string thành camelCase.
-	// str: string cần chuyển. indices: vị trí đảo lower/upper case (mặc định: kí tự đầu).
-    if (!str) return '';
-    // Vào trống thì ra trống.
-    return str.split('').map((char, index) => {
-        if (indices.includes(index)) {
-            return char === char.toUpperCase() ? char.toLowerCase() : char.toUpperCase();
-        }
-        return char;
-    }).join('');
+    if (!str) return ''; // Vào trống thì ra trống.
+    return Array.from(str, (char, index) => indices.includes(index) ? (char === char.toUpperCase() ? char.toLowerCase() : char.toUpperCase()) : char).join('');    
 };
+/**
+ * Hàm chuyển từ dạng hh:mm:cc.cs thành số (ms)
+ * @param {string} t 
+ * @returns (ms)
+ */
 const convertTimeStringToMs = t => {
-    try {
-        return t.split(':').reduce((acc, v) => acc * 60 + +v, 0) || 0;
-    } catch {
-        return 0;
-    }
+    try { return t.split(':').reduce((acc, v) => acc * 60 + +v, 0) || 0; } catch { return 0;}
 };
+/**
+ * Hàm chuyển đổi string màu trong Aegisub (&HAABBGGRR với style, &HBBGGRR& với inline) thành định dạng CSS (rgba())
+ * @param {*} ascStr 
+ * @returns string rgba cho CSS
+ */
 function convertAegisubColorToCss(ascStr) {
-  // Hàm chuyển đổi string màu trong Aegisub (&HAABBGGRR với style, &HBBGGRR& với inline) thành định dạng CSS (rgba())
   let hex = ascStr.replace(/&H|&/g, ''); // Loại bỏ ký tự định dạng &H và & của string màu (định dạng mới AABBGGRR/BBGGRR)
   if (!hex) return 'rgba(0,0,0,0)'; // Nếu string màu trống (&H&), coi như màu đen
   hex = hex.padStart(8, '0'); // Chuyển về chuẩn AABBGGRR
@@ -44,6 +47,17 @@ function convertAegisubColorToCss(ascStr) {
   const g = parseInt(hex.substring(4, 6), 16);
   const r = parseInt(hex.substring(6, 8), 16);
   return `rgba(${r}, ${g}, ${b}, ${a})`;
+}
+/**
+ * Hàm xử lí cho các giá trị số trong info
+ * @param {Number} v giá trị đầu vào
+ * @param {Number} def giá trị mặc định
+ * @param {Number} min giá trị tối thiểu
+ * @param {Number} max giá trị tối đa
+ */
+function parseClampedNum (v, def, min, max) {
+	const raw = Number.parseInt(v, 10);
+	return Number.isNaN(raw) ? def : Math.min(Math.max(raw, (min ?? -Infinity)), (max ?? Infinity));
 }
 export default function parser(rawText) {
 	// Hàm đọc text của file Aegisub.
@@ -60,7 +74,7 @@ export default function parser(rawText) {
 	// 3. ScaledBorderAndShadow (yes/no): Nếu bật, thì giá trị border/shadow gắn chặt với tỉ lệ video (PlayResX/Y)
 	//Nếu ko, thì giá trị border/shadow là giá trị tuyệt đối, ko phụ thuộc tỉ lệ video 
 	// 4. PlayResX và PlayResY (vì đây là kích thước video chuẩn mà sub dựa vào. Mọi thông số font, pos đều phụ thuộc vào nó)
-	const parsedData = { info: {}, styles: [], events: [] };
+	const parsedData = { info: {}, styles: [], events: [], globalCss: {}, styleCss: [], lineCss: [] };
 	// Info lưu dưới dạng obj do file sub có cấu trúc key: value
 	// Styles và Events lưu dưới dạng array do file sub có cấu trúc khác, và trong Lua Automation của Aegisub cũng xử lí tương tự.
 	if (!rawText) {
@@ -159,7 +173,7 @@ export default function parser(rawText) {
 				// Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 				// Chú ý: Name = Actor (trong giao diện Aegisub), Name đã đc Aegisub can thiệp, cấm dấu ","
 				// Tuy nhiên, Text sẽ có dấu "," tự do.
-      } else if (line.startsWith('Dialogue:')) { // Dòng Dialogue. (Sẽ không xét các dòng Comment)
+      		} else if (line.startsWith('Dialogue:')) { // Dòng Dialogue. (Sẽ không xét các dòng Comment)
 				const lineData = line.substring('Dialogue: '.length);
 				// Bỏ qua chỗ 'Dialogue: ' đầu line.
 				const eventValues = [];
@@ -194,18 +208,26 @@ export default function parser(rawText) {
 				orgline.raw = line; // Lưu lại chuỗi gốc đề phòng dòng tiếp theo bị ngắt
 				parsedData._lastRawDialogue = orgline; // Lưu tham chiếu dòng dialogue mới nhất
 				parsedData.events.push(orgline);
-      }
+    		}
 		}
 	}
-	// Phần sắp xếp (để thuận tiện cho renderer). Quy tắc: theo .startTime tăng dần, theo .endTime giảm dần
-	// if (parsedData.events && parsedData.events.length > 0) {
-	// 		parsedData.events.sort((lineA, lineB) => {
-	// 				// Tầng 1: So sánh Start Time tăng dần
-	// 				if (lineA.startTime !== lineB.startTime) return lineA.startTime - lineB.startTime;
-	// 				// Tầng 2: Nếu trùng Start Time -> So sánh End Time GIẢM DẦN
-	// 				return lineB.endTime - lineA.endTime;
-	// 		});
-	// }
-	console.log("[ASS-CEE] parser: Đã xử lí xong.", parsedData);
+	console.log("[ASS-CEE] parser: Đã xử lí thô.", parsedData);
+	// Phần xử lí chuyển đổi sang CSS. Sử dụng globalCss, styleCss và lineCss.
+	// Phần globalCss (các giá trị trong info)
+    parsedData.info.WrapStyle = parseClampedNum(parsedData.info.WrapStyle, 0, 0, 3); // Chuẩn hóa WrapStyle
+	parsedData.info.PlayResX = parseClampedNum(parsedData.info.PlayResX, 640, 640); // Chuẩn hóa PlayResX
+	parsedData.info.PlayResY = parseClampedNum(parsedData.info.PlayResY, 480, 480); // Chuẩn hóa PlayResY
+	parsedData.globalCss = {
+        'white-space': (parsedData.info.WrapStyle === 2 ? 'pre' : 'pre-wrap'),
+        'word-break' : 'keep-all',
+        'overflow-wrap': 'break-word',
+        'text-wrap': (parsedData.info.WrapStyle === 3 ? 'balance' : parsedData.info.WrapStyle === 1 ? 'wrap' : 'pretty'),
+        'max-width': '100%',
+    };
+	// Phần styleCss (các giá trị trong style)
+	// Dựa trên giả định khung video là PlayRes(X-Y).
+
+
+
 	return parsedData;
 }

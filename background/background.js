@@ -1,5 +1,5 @@
 // Code bằng tay
-// v0.0.7 18juy26
+// v0.0.8 26juy26
 import { fetchSubtitleText, fetchSubtitleFile } from './fetcher.js';
 // 2 hàm fetchSubtitleText, fetchSubtitleFile
 import { addSource, getSourceList, removeSource, addSubData, getSubDataList, useSubData, removeSubData } from './storage.js';
@@ -15,15 +15,16 @@ function checkValidateURL(url) {
     "about:"
   ];
   const WhitelistUrlPrefixes = [
-    "https://www.youtube.com"
+    "https://www.youtube.com",
+    "https://www.bilibili.com"
   ]
   if (!url || BlacklistUrlPrefixes.some(prefix => url.startsWith(prefix))) {
-      console.warn(`[ASS-CEE] background: (Blacklist) Không chạy content-side trên tab này:\n${url}`);
-      return true; // Check url, nếu là tab nội bộ trình duyệt, trống, GDrive thì né.
+      console.warn(`[ASS-CEE] background: (Blacklist-Prefix) Không chạy content-side trên tab này:\n${url}`);
+      return true;
   }
   if (!WhitelistUrlPrefixes.some(prefix => url.startsWith(prefix))) {
-      console.warn(`[ASS-CEE] background: (Whitelist) Không chạy content-side trên tab này:\n${url}`);
-      return true; // Check url, nếu là tab nội bộ trình duyệt, trống, GDrive thì né.
+      console.warn(`[ASS-CEE] background: (Whitelist-Prefix) Không chạy content-side trên tab này:\n${url}`);
+      return true;
   }
   return false; 
 }
@@ -47,74 +48,39 @@ async function renderSendData(subObj) {
  * 2. Hàm lập trình xử lí của background khi nhấn vào icon extension (chạy luôn)
  */
 function onClickedListener() {
+  let isProcessing = false; // Chú ý: background ngủ thì biến bị reset về false (nhưng cooldown để ngủ là 30s, vẫn cần fallback là check loaded.)
   chrome.action.onClicked.addListener(async (tab) => {
     if (checkValidateURL(tab?.url)) return;
+    if (isProcessing) {
+      console.warn(`[ASS-CEE] background: Tự động dừng xử lí onClick khi có luồng khác đang chạy (người dùng spam).`);
+      return;
+    } // Tránh người dùng click nhiều lần 1 lúc
+    isProcessing = true;
     const tabId = tab.id;
     try { // iframe để beta lo.
-      const checkUI = await chrome.scripting.executeScript({
-        target: { tabId, allFrames: false },
-        func: () => window.isAssCeeUILoaded === true
-      });
-      const isUILoaded = checkUI?.[0]?.result || false;
-      if (!isUILoaded) {
+      let loaded = false;
+      try {
+        loaded = await chrome.tabs.sendMessage(tabId, { action: "TOGGLE_OVERLAY_SIGNAL" });
+      } catch (err) {
+        console.warn("[ASS-CEE] background: Lỗi khi check content-side. Coi như chưa tải.", err.message);
+      }
+      if (!loaded) {
+        console.log(`[ASS-CEE] background: (${tab.id}) Tải content-side lần đầu.`);
         await chrome.scripting.insertCSS({
           target: { tabId, allFrames: false },
           files: ["content/ui.css"]
         });
         await chrome.scripting.executeScript({
           target: { tabId, allFrames: false },
-          files: ["content/ui.js"]
+          files: ["content/content.js"]
         });
-        // Giữ chân luồng UI đúng 1 giây để đảm bảo khởi tạo xong
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        console.log("[ASS-CEE] background: Tải UI lần đầu. (đợi 1s)");
       } else {
-        console.log("[ASS-CEE] background: Tải UI có sẵn. (Toggle)");
-      }
-      await chrome.tabs.sendMessage(tabId, { action: "TOGGLE_OVERLAY_SIGNAL" });
-    } catch (err) {
-      console.error("[ASS-CEE] background: Lỗi tải UI:", err.message);
-    }
-    try {
-      // 1. Kiểm tra trạng thái hiện tại
-      let checkRenderer = await chrome.scripting.executeScript({
-        target: { tabId, allFrames: false },
-        func: () => window.isAssCeeRendererLoaded
-      });
-      let status = checkRenderer?.[0]?.result; // Có thể là undefined, "", "video", hoặc "render"
-      // 2. Nếu chưa nạp file (undefined hoặc "")
-      if (!status) {
-        await chrome.scripting.executeScript({
-          target: { tabId, allFrames: false },
-          files: ["content/renderer.js"]
-        });
-        console.log("[ASS-CEE] background: Tải renderer lần đầu. đợi 1s...");
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Đợi 1s để file khởi chạy
-        // Đọc lại trạng thái mới sau khi nạp file
-        checkRenderer = await chrome.scripting.executeScript({
-          target: { tabId, allFrames: false },
-          func: () => window.isAssCeeRendererLoaded
-        });
-        status = checkRenderer?.[0]?.result;
-      }
-      // 3. Nếu đang ở trạng thái tìm video ("video")
-      if (status === "video") {
-        console.log("[ASS-CEE] background: Renderer ở render > retrySelectVideo. đợi 6s...");
-        await new Promise(resolve => setTimeout(resolve, 6000)); // Đợi nốt 6s còn lại của tiến trình retry
-        checkRenderer = await chrome.scripting.executeScript({ // Cập nhật lại kết quả
-          target: { tabId, allFrames: false },
-          func: () => window.isAssCeeRendererLoaded
-        });
-        status = checkRenderer?.[0]?.result;
-      }
-      // 4. Nếu đã ở trạng thái "render"
-      if (status === "render") {
-        console.log("[ASS-CEE] background: Renderer đã chạy.");
-      } else {
-        console.log(`[ASS-CEE] background: Renderer ko chạy (${status}).`);
+        console.log(`[ASS-CEE] background: (${tab.id}) Tải content-side có sẵn. (Toggle)`);
       }
     } catch (err) {
-      console.error("[ASS-CEE] background: Lỗi tải Renderer:", err.message);
+      console.error("[ASS-CEE] background: Lỗi tải content-side:", err.message);
+    } finally {
+      setTimeout(() => { isProcessing = false; }, 100); // Cooldown 100ms.
     }
   });
 })();
@@ -138,33 +104,29 @@ function onHandlersListener() {
     return true; 
   });
 })();
-// Phần định nghĩa giao thức (3.)
+// Phần định nghĩa giao thức (xem pipeline mục 3.)
 let lastLogLocation = { tabId: "", url: "", tabTitle: "" };
 const handlers = {
   // Mặc định cấu trúc chuẩn là msg = { type, payload }. Ở đây lấy msg.type làm key của obj.
   'LOG': async (payload, sender) => { // Log
-    const { type, text, url, timestamp, extra } = payload;
-    const dateObj = timestamp ? new Date(timestamp) : new Date();
-    const tabId = sender.tab?.id;
-    let tabTitle = sender.tab?.title || '(Title Not Found)';
-    let isSameLocation = true;
-    let isTabTitleConfusing = false;
-    if (url) {
-      isSameLocation = (tabId === lastLogLocation.tabId && url === lastLogLocation.url && tabTitle === lastLogLocation.tabTitle);
-      isTabTitleConfusing = ((tabId !== lastLogLocation.tabId || url !== lastLogLocation.url) && tabTitle === lastLogLocation.tabTitle);
-      lastLogLocation = { tabId, url, tabTitle };
-    }
-    const tabInfo = (tabId ? `${tabId}: ${tabTitle}` : 'Unknown Tab');
+    // to-do: đoạn này ko có comment chú thích?
+    const { type, text, url, title, timestamp, extra } = payload;
+    const tabId = sender.tab?.id; // tab.id (background lấy)
+    const tabTitle = sender.tab?.title || '<Ko thấy tiêu đề tab.>'; // tab.title (background lấy để kiểm tra với phía bên content)
+    const isSameLocation = (tabId === lastLogLocation.tabId && url === lastLogLocation.url && tabTitle === lastLogLocation.tabTitle);
+    // Kiểm tra tabId, url, tabTitle trùng khớp
+    const isTabTitleConfusing = ((tabId !== lastLogLocation.tabId || url !== lastLogLocation.url) && tabTitle === lastLogLocation.tabTitle);
+    // tabId hoặc url khác mà tabTitle ko đổi?
+    if (url) lastLogLocation = { tabId, url, tabTitle }; // Chỉ cập nhật lastLogLocation nếu có url
+    const tabInfo = (tabId ? `${tabId}: ${isTabTitleConfusing ? "<Tên tab bị lệch>" : tabTitle }` : 'Unknown Tab');
+    const orgTabInfo = isTabTitleConfusing ? {tabTitle} : "";
     const logPrefix = isSameLocation 
-      ? `[${dateObj.toLocaleTimeString()}]\n`
-      : `[${dateObj.toLocaleTimeString()} (${dateObj.toISOString()})][${tabInfo}]${isTabTitleConfusing ? '(*có thể tên tab bị lệch)' : ""}\n[${url}]\n`;
+      ? `[${timestamp.toLocaleTimeString()}]\n`
+      : `[${timestamp.toLocaleTimeString()} (${timestamp.toISOString()})][${tabInfo}]\n[${url}]\n`;
     const consoleMethod = type || "log";
-    const formattedText = type !== 'table' ? `${logPrefix}[ASS-CEE] ${text}` : text;
-    if (extra !== undefined) {
-      console[consoleMethod](formattedText, extra);
-    } else {
-      console[consoleMethod](formattedText);
-    }
+    const formattedText = type !== 'table' ? `${logPrefix}[ASS-CEE] content: ${text}` : text;
+    if (extra) console[consoleMethod](formattedText, orgTabInfo, extra);
+    else console[consoleMethod](formattedText);
     return { type: 'LOGGED' }; // Làm cảnh. Vì ở content-side ko đọc nội dung response khi gửi log.
   },
   'SOURCE.ADD': async (payload) => { // Yêu cầu thêm nguồn
@@ -172,10 +134,7 @@ const handlers = {
     if (!url) {
       return { type: 'SOURCE.NOT_ADDED', payload: "payload.url (SOURCE.ADD) trống (undefined)" };
     }
-    const urls = url
-      .split('\n')
-      .map(u => u.trim())
-      .filter(u => u !== "");
+    const urls = url.split('\n').map(u => u.trim()).filter(u => u !== "");
       // Tách danh sách URL bằng dấu xuống dòng, loại bỏ khoảng trắng và dòng trống
     if (urls.length === 0) {
       return { type: 'SOURCE.NOT_ADDED', payload: "payload.url (SOURCE.ADD) trống (string trống)" };
@@ -315,9 +274,9 @@ async function processSubtitles(videoId, candidate, rawText) {
   const subObj = { videoId, fileObj: candidate };
   subObj.parsedData = parser(rawText);
   try {
-    await addSubData(videoId, subObj);
-    await renderSendData(subObj);
-    return { type: 'SUB.READY', payload: subObj };
+    await addSubData(videoId, subObj); // Lưu dữ liệu ở storage
+    await renderSendData(subObj); // Gửi dữ liệu cho renderer
+    return { type: 'SUB.READY', payload: subObj }; // Trả dữ liệu cho UI
   } catch (err) {
     return { type: 'ERROR', payload: err.message };
   }
