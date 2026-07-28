@@ -1,5 +1,4 @@
-// Code bằng tay
-// v0.0.8 26juy26
+// v0.0.8 29juy26
 import { fetchSubtitleText, fetchSubtitleFile } from './fetcher.js';
 // 2 hàm fetchSubtitleText, fetchSubtitleFile
 import { addSource, getSourceList, removeSource, addSubData, getSubDataList, useSubData, removeSubData } from './storage.js';
@@ -19,11 +18,11 @@ function checkValidateURL(url) {
     "https://www.bilibili.com"
   ]
   if (!url || BlacklistUrlPrefixes.some(prefix => url.startsWith(prefix))) {
-      console.warn(`[ASS-CEE] background: (Blacklist-Prefix) Không chạy content-side trên tab này:\n${url}`);
+      console.warn(`[PD-47.ass] background: (Blacklist-Prefix) Không chạy content-side trên tab này:\n${url}`);
       return true;
   }
   if (!WhitelistUrlPrefixes.some(prefix => url.startsWith(prefix))) {
-      console.warn(`[ASS-CEE] background: (Whitelist-Prefix) Không chạy content-side trên tab này:\n${url}`);
+      console.warn(`[PD-47.ass] background: (Whitelist-Prefix) Không chạy content-side trên tab này:\n${url}`);
       return true;
   }
   return false; 
@@ -38,21 +37,19 @@ async function renderSendData(subObj) {
   if (checkValidateURL(tab?.url)) return; 
   try {
     await chrome.tabs.sendMessage(tab.id, { type: 'RENDER', payload: subObj });
-    console.log("[ASS-CEE] background: Gửi tín hiệu render thành công.");
+    console.log("[PD-47.ass] background: Gửi tín hiệu render thành công.");
   } catch (error) {
-    console.error("[ASS-CEE] background: Gửi tín hiệu render thất bại.", error.message);
+    console.error("[PD-47.ass] background: Gửi tín hiệu render thất bại.", error.message);
   } // Check cả chương trình chạy của renderer (có lẽ thế, vì tín hiệu này là chạy luôn hàm render() trong renderer.)
   return;
 }
-(/**
- * 2. Hàm lập trình xử lí của background khi nhấn vào icon extension (chạy luôn)
- */
+(/** 2. Hàm lập trình xử lí của background khi nhấn vào icon extension (chạy luôn) */
 function onClickedListener() {
   let isProcessing = false; // Chú ý: background ngủ thì biến bị reset về false (nhưng cooldown để ngủ là 30s, vẫn cần fallback là check loaded.)
   chrome.action.onClicked.addListener(async (tab) => {
     if (checkValidateURL(tab?.url)) return;
     if (isProcessing) {
-      console.warn(`[ASS-CEE] background: Tự động dừng xử lí onClick khi có luồng khác đang chạy (người dùng spam).`);
+      console.warn(`[PD-47.ass] background: Tự động dừng xử lí onClick khi có luồng khác đang chạy (người dùng spam).`);
       return;
     } // Tránh người dùng click nhiều lần 1 lúc
     isProcessing = true;
@@ -62,10 +59,10 @@ function onClickedListener() {
       try {
         loaded = await chrome.tabs.sendMessage(tabId, { action: "TOGGLE_OVERLAY_SIGNAL" });
       } catch (err) {
-        console.warn("[ASS-CEE] background: Lỗi khi check content-side. Coi như chưa tải.", err.message);
+        console.warn("[PD-47.ass] background: Lỗi khi check content-side. Coi như chưa tải.", err.message);
       }
       if (!loaded) {
-        console.log(`[ASS-CEE] background: (${tab.id}) Tải content-side lần đầu.`);
+        console.log(`[PD-47.ass] background: (${tab.id}) Tải content-side lần đầu.`);
         await chrome.scripting.insertCSS({
           target: { tabId, allFrames: false },
           files: ["content/ui.css"]
@@ -75,18 +72,16 @@ function onClickedListener() {
           files: ["content/content.js"]
         });
       } else {
-        console.log(`[ASS-CEE] background: (${tab.id}) Tải content-side có sẵn. (Toggle)`);
+        console.log(`[PD-47.ass] background: (${tab.id}) Tải content-side có sẵn. (Toggle)`);
       }
     } catch (err) {
-      console.error("[ASS-CEE] background: Lỗi tải content-side:", err.message);
+      console.error("[PD-47.ass] background: Lỗi tải content-side:", err.message);
     } finally {
       setTimeout(() => { isProcessing = false; }, 100); // Cooldown 100ms.
     }
   });
 })();
-(/**
- * 3. Hàm lập trình giao tiếp của background-side với content-side (chạy luôn)
- */
+(/** 3. Hàm lập trình giao tiếp của background-side với content-side (chạy luôn) */
 function onHandlersListener() {
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     const handler = handlers[msg.type];
@@ -94,11 +89,11 @@ function onHandlersListener() {
       Promise.resolve(handler(msg.payload, sender))
         .then(result => sendResponse(result))
         .catch(err => {
-          console.error(`[ASS-CEE] background: handlers có vấn đề ở ${msg.type}:`, err);
+          console.error(`[PD-47.ass] background: handlers có vấn đề ở ${msg.type}:`, err);
           sendResponse({ type: 'ERROR', payload: err.message });
         });
     } else {
-      console.error(`[ASS-CEE] background: msg ngoài chuẩn handler:`, msg);
+      console.error(`[PD-47.ass] background: msg ngoài chuẩn handler:`, msg);
       sendResponse({ type: 'ERROR', payload: 'Unknown action' });
     }
     return true; 
@@ -110,7 +105,8 @@ const handlers = {
   // Mặc định cấu trúc chuẩn là msg = { type, payload }. Ở đây lấy msg.type làm key của obj.
   'LOG': async (payload, sender) => { // Log
     // to-do: đoạn này ko có comment chú thích?
-    const { type, text, url, title, timestamp, extra } = payload;
+    const { type, text, url, title, now, extra } = payload;
+    const timestamp = new Date(now);
     const tabId = sender.tab?.id; // tab.id (background lấy)
     const tabTitle = sender.tab?.title || '<Ko thấy tiêu đề tab.>'; // tab.title (background lấy để kiểm tra với phía bên content)
     const isSameLocation = (tabId === lastLogLocation.tabId && url === lastLogLocation.url && tabTitle === lastLogLocation.tabTitle);
@@ -124,7 +120,7 @@ const handlers = {
       ? `[${timestamp.toLocaleTimeString()}]\n`
       : `[${timestamp.toLocaleTimeString()} (${timestamp.toISOString()})][${tabInfo}]\n[${url}]\n`;
     const consoleMethod = type || "log";
-    const formattedText = type !== 'table' ? `${logPrefix}[ASS-CEE] content: ${text}` : text;
+    const formattedText = type !== 'table' ? `${logPrefix}${text}` : text;
     if (extra) console[consoleMethod](formattedText, orgTabInfo, extra);
     else console[consoleMethod](formattedText);
     return { type: 'LOGGED' }; // Làm cảnh. Vì ở content-side ko đọc nội dung response khi gửi log.
@@ -228,19 +224,19 @@ async function resolveSubtitles(videoId, folderMode) {
   // Đầu ra luôn là dạng { type: "", payload: "" }
   const sources = await getSourceList();
   if (sources.length === 0) {
-    console.log(`[ASS-CEE] background: Không có thư mục nào để quét.`);
+    console.log(`[PD-47.ass] background: Không có thư mục nào để quét.`);
     return { type: 'SOURCE.LIST', payload: [] };
   }
   const candidates = await fetchSubtitleFile(sources, videoId, folderMode); // Quét danh sách nguồn
   // Nếu videoId === "" và folderMode === true thì tức là đang refetch. Trả về cấu trúc tương tự 'SOURCE.GET_ALL', 'SOURCE.REMOVE'
   if (videoId === "" && folderMode) {
     try {
-      console.log(`[ASS-CEE] background: Đã refetch các nguồn sẵn có. Đang ghi đè lên cache.`);
+      console.log(`[PD-47.ass] background: Đã refetch các nguồn sẵn có. Đang ghi đè lên cache.`);
       const oldSources = await getSourceList();
       for (const src of oldSources) {
         await removeSource(src.savedAt);
       } // Xóa hoàn toàn cache nguồn cũ dựa trên thời gian 
-      console.log(`[ASS-CEE] background: Đã xóa cache nguồn cũ. Đang ghi đè dữ liệu mới.`);
+      console.log(`[PD-47.ass] background: Đã xóa cache nguồn cũ. Đang ghi đè dữ liệu mới.`);
       for (const src of sources) {
         if (src.type && src.folderName && src.folderId) {
           await addSource({
@@ -251,15 +247,15 @@ async function resolveSubtitles(videoId, folderMode) {
           });
         }
       } // Ghi lại các nguồn đã refetch
-      console.log(`[ASS-CEE] background: Đã ghi đè dữ liệu mới.`);
+      console.log(`[PD-47.ass] background: Đã ghi đè dữ liệu mới.`);
       return { type: 'SOURCE.LIST', payload: await getSourceList() };
     } catch (err) {
-      console.error("[ASS-CEE] background: Gặp lỗi trong quá trình refetch và ghi đè cache:", err);
+      console.error("[PD-47.ass] background: Gặp lỗi trong quá trình refetch và ghi đè cache:", err);
       return { type: 'ERROR', payload: err.message };
     }
   }
   // Nếu videoId === "" và folderMode === false thì tức là đang tìm tất cả file sub có trong các nguồn
-  console.log(`[ASS-CEE] background: Có ${candidates.length} file cho vid "${videoId}". Gửi thông tin cho content-side.`)
+  console.log(`[PD-47.ass] background: Có ${candidates.length} file cho vid "${videoId}". Gửi thông tin cho content-side.`)
   return { type: 'SUB.LIST', payload: candidates }; // candidates (xem mục 2.3.2 pipeline)
 }
 /**
@@ -275,10 +271,10 @@ async function processSubtitles(videoId, candidate, rawText) {
   subObj.parsedData = parser(rawText);
   try {
     await addSubData(videoId, subObj); // Lưu dữ liệu ở storage
-    await renderSendData(subObj); // Gửi dữ liệu cho renderer
+    // await renderSendData(subObj); // Gửi dữ liệu cho renderer
     return { type: 'SUB.READY', payload: subObj }; // Trả dữ liệu cho UI
   } catch (err) {
     return { type: 'ERROR', payload: err.message };
   }
 }
-console.log(`[ASS-CEE] background: Đã sẵn sàng.`);
+console.log(`[PD-47.ass] background: Đã sẵn sàng.`);

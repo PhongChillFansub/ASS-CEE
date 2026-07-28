@@ -1,5 +1,5 @@
-/* v0.0.7 18juy26 (21jun26) */
-#asscee_overlayRoot {
+/* v0.0.8 29juy26 */
+#UI-ssa2css47 {
   /* Phần quy định UI cho "khung UI" */
   position: fixed !important;
   right: 20px;
@@ -14,7 +14,7 @@
 }
 
 /* Phần quy định UI cho "khung UI" và các mục con của "khung UI" */
-#asscee_overlayRoot * {
+#UI-ssa2css47 * {
   box-sizing: border-box !important;
   margin: 0;
   padding: 0;

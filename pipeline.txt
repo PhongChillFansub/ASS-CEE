@@ -1,4 +1,4 @@
-v0.0.7 15juy26
+v0.0.8 29juy26
 Các hướng tính năng mới cho UI
 1. Hỗ trợ xử lí tag Aegisub (renderer.js)
 2. Chạy trên iframe (background.js) => Hỗ trợ trên BiliBili, VK Video bên cạnh YouTube?
@@ -14,23 +14,22 @@ Các hướng tính năng mới cho UI
     + parser.js (chuyên hóa đọc file sub chuyển thành cấu trúc JS).
     + storage.js (chuyên hóa lưu dữ liệu danh sách nguồn và dữ liệu file sub).
   - content
-    + [cũ, ko còn chạy nữa] content.js (script chạy chính của content?)
-    + renderer.js (chuyên hóa render)
-    + ui.js (chuyên hóa điều khiển và quản lí khung HTML của UI)
-        + ui_work.html (nơi viết, chỉnh sửa khung HTML của UI, ko sử dụng)
+    + content.js (hợp nhất ui.js và renderer.js cũ)
+    + [cũ] renderer.js (chuyên hóa render)
+    + [cũ] ui.js (chuyên hóa điều khiển và quản lí khung HTML của UI)
     + ui.css (chuyên hóa lưu định dạng bên ngoài của UI)
 
 2. Cấu trúc dữ liệu:
   2.1. background.js, fetcher.js, storage.js: Obj 1 nguồn folder
-        folderData = {
-          url,          // background.js (nhận từ phía content)
-          type,         // fetcher.js (fetchSubtitleFile*(), đầu vào đặc biệt)
-          folderName,   // fetcher.js (fetchSubtitleFile*(), đầu vào đặc biệt)
-          folderId,      // fetcher.js (fetchSubtitleFile*(), đầu vào đặc biệt)
-          savedAt,      // storage.js (addSource())
-        }
+    folderData = {
+      url,          // background.js (nhận từ phía content)
+      type,         // fetcher.js (fetchSubtitleFile*(), đầu vào đặc biệt)
+      folderName,   // fetcher.js (fetchSubtitleFile*(), đầu vào đặc biệt)
+      folderId,     // fetcher.js (fetchSubtitleFile*(), đầu vào đặc biệt)
+      savedAt,      // storage.js (addSource())
+    }
   2.2. storage.js: Cache Key lưu các obj các nguồn folder (trong chrome.storage.local)
-        SUBTITLE_SOURCES_KEY = [folderData,...]     // storage.js (addSource())
+    SUBTITLE_SOURCES_KEY = [folderData,...]     // storage.js (addSource())
   2.3. fetcher.js: Danh sách các file sub tương ứng với videoId (fetchSubtitleFile(), tìm từ danh sách folder)
     2.3.1. Lấy nguồn: getSourceList() => SUBTITLE_SOURCES_KEY
     2.3.2. fetchSubtitleFile(SUBTITLE_SOURCES_KEY, videoId, {}) =>
@@ -44,9 +43,9 @@ Các hướng tính năng mới cho UI
           groupName         // folderName trong folderData (mục 2.1)
         }
   2.4. fetcher.js, parser.js, storage.js: 
-        Lấy rawText từ link file sub trả về text, tiền xử lí thành dạng cấu trúc JS rồi lưu/thêm vào cache.
+    Lấy rawText từ link file sub trả về text, tiền xử lí thành dạng cấu trúc JS rồi lưu/thêm vào cache.
     2.4.1. fetcher.js (fetchSubtitleText(candidate)) => text    // candidate mục 2.3.2
-            Hoặc nhận text từ local (user tải file lên)
+      Hoặc nhận text từ local (user tải file lên)
     2.4.2. parser.js (parser(text)) => parsedData = {
       info: {},     // Phần [Script Info] 
       styles: [],   // Phần [V4+ Styles]
@@ -133,7 +132,8 @@ Các hướng tính năng mới cho UI
     4.1. action === "TOGGLE_OVERLAY_SIGNAL"
           (gửi lệnh toggleOverlay cho UI, do nút icon extension là background quản lí)
 
-5. (cũ) Cấu trúc khung HTML của UI: (.innerHTML trong file ui.js và ui_work.html)
+5. Cấu trúc khung HTML của UI: (.innerHTML trong file ui.js và ui_work.html)
+(cũ, để tham khảo chứ ko hoàn toàn chính xác) 
     (để tiện chỉnh sửa, sử dụng file ui_bea… à nhầm ui_work.html)
   - class="asscee_ui": khung giao diện
     - class="asscee_barTitle": thanh tiêu đề: hiển thị tên, nút chọn tab, nút ẩn/đóng UI
@@ -152,7 +152,7 @@ Các hướng tính năng mới cho UI
       - span id/class="asscee_footerInfo": phần hiển thị thông tin thêm (vd: khi di chuột đến vị trí nút/dòng cần chú thích)
       - span id/class="asscee_footerMisc": hiển thị thông tin khác (tạm thời trống)
 
-6. Cấu trúc code
+6. Cấu trúc code (có thể gọi tắt là "62abc". vd: selectTab (6.2.2.2.1.) gọi là hàm 62221, hoặc 221)
   6.1. background.js (ko tính các hàm import)
     1. renderSendData(): Hàm thực thi gửi dữ liệu cho renderer (thực ra là cho cả content-side nhưng chỉ renderer nhận)
     2. onClickedListener(): Hàm lập trình xử lí của background khi nhấn vào icon extension (chạy luôn)
@@ -162,36 +162,34 @@ Các hướng tính năng mới cho UI
       (ko tìm bố… à nhầm, cache, vì đã có hàm của storage tìm hộ)
     5. processSubtitles(): Hàm xử lý và lưu cache.
 
-  6.2. ui.js
-    1. Các hàm bổ trợ cơ bản
-      1.1. sendLogToBackground(): gửi log về background.js (content-side về background-side)
-      1.2. toggleOverlay(): hàm điều khiển ẩn/hiện UI
-      1.3. getRelativeTimeString(): tính thời gian (N (đơn vị) trước) và tuyệt đối (HH:MM:SS DD/MM/YYYY)
-      1.4. updateVideoIdInUI(): Hàm cập nhật video ID vào UI (hiện tại chỉ hỗ trợ YT.)
-    - Đặt obj uiData để quản lí dữ liệu toàn file
-    2. Các hàm hạng mục tính năng
-      2.1. buildMainHTML(): Hạng mục 1. Khởi tạo khung UI và API của nó.
-      2.2. buildTabListLogic(): Hạng mục 2. Khởi tạo logic trên danh sách trang hiển thị.
-        2.2.1. selectTab(): xử lí lựa chọn trang
-      2.3. buildDragFeature(): Hạng mục 3. Tính năng di chuyển giao diện.
-        2.3.1. handleMove(): xử lí tọa độ UI khi di chuyển
-        2.3.2. barTitleOnClick(): chuyển trạng thái UI sang kéo thả (chuyển vị trí), khi bấm vào thanh tiêu đề
-        2.3.3. barTitleOnClickHold(): xử lí hành động giữ nhấn + di chuyển chuột
-        2.3.4. barTitleOnTouchHold(): xử lí nhấn giữ + di chuyển chạm
-        2.3.5. barTitleOnRelease(): xử lí thả chuột/chạm
-      2.4. buildSourceManagerTab(): Hạng mục 4. Tính năng trong tab 1: Quản lí nguồn.
-        2.4.1. renderLinkList(): render danh sách nguồn
-        2.4.2. initSourceList(): hàm thực hiện tải danh sách nguồn từ background.js và chạy render danh sách nguồn.
-      2.5. buildSubtitleManagerTab(): Hạng mục 5. Tính năng trong tab 2: Quản lý phụ đề.
-        2.5.1. renderSubFileArray(): render danh sách tệp phụ đề
-        2.5.2. initSubFileArray(): hàm thực hiện tải danh sách tệp phụ đề từ background.js và chạy render danh sách tệp phụ đề.
-        - Cụ thể: nhận searchId (đoạn Id mà người dùng nhập), targetId (Id trên tab đang hiển thị), cacheSearchMode chế độ quét cache/online (true = cache, false = online)
-          + targetId sẽ truyền trực tiếp cho renderSubFileArray()
-          + Xử lí searchId và cacheSearchMode: Nếu searchId trống thì tìm toàn bộ. Nếu searchId ko trống thì tìm theo Id (trùng)
-            - nếu tìm toàn bộ trong cache: thì SUB.GET_ALL với {videoId: searchId} 
-            - nếu tìm toàn bộ trong các nguồn online: thì SUB.SEARCH với {videoId: searchId, folderMode = false}
+  6.2. content.js
+    - Đặt obj contentData làm dữ liệu chung
+    1. Hạng mục 1: Các hàm bổ trợ
+    1.1. sendLogToBackground(): gửi log về background.js
+    1.2. toggleOverlay(): hàm điều khiển ẩn/hiện node theo Id
+    1.3. getRelativeTimeString(): tính thời gian (N (đơn vị) trước) và tuyệt đối (HH:MM:SS DD/MM/YYYY)
+    1.4. updateVideoId(): Hàm cập nhật video ID (hỗ trợ YT, bilibili)
+
+    - Các tính năng chính (UI, render)
+    2. Hạng mục 2: UI (chung)
+    2.1.0. buildMainHTML(): Khởi tạo khung UI và API của nó.
+    2.2.0. buildTabListLogic(): Khởi tạo logic trên danh sách trang hiển thị.
+      2.2.1. selectTab(): xử lí lựa chọn trang
+
+    3. Hạng mục 3: UI (các tab)
+    3.0.0. buildSourceManagerTab(): Tính năng trong tab 0: Quản lí nguồn.
+      3.0.1. renderLinkList(): render danh sách nguồn
+      3.0.2. initSourceList(): hàm thực hiện tải danh sách nguồn từ background.js và chạy render danh sách nguồn.
+    3.1.0. buildSubtitleManagerTab(): Tính năng trong tab 1: Quản lý phụ đề.
+      3.1.1. renderSubFileArray(): render danh sách tệp phụ đề
+      3.1.2. initSubFileArray(): hàm thực hiện tải danh sách tệp phụ đề từ background.js và chạy render danh sách tệp phụ đề.
+      - Cụ thể: nhận searchId (đoạn Id mà người dùng nhập), targetId (Id trên tab đang hiển thị), cacheSearchMode chế độ quét cache/online (true = cache, false = online)
+        + targetId sẽ truyền trực tiếp cho renderSubFileArray()
+        + Xử lí searchId và cacheSearchMode: Nếu searchId trống thì tìm toàn bộ. Nếu searchId ko trống thì tìm theo Id (trùng)
+          - nếu tìm toàn bộ trong cache: thì SUB.GET_ALL với {videoId: searchId} 
+          - nếu tìm toàn bộ trong các nguồn online: thì SUB.SEARCH với {videoId: searchId, folderMode = false}
     - Phần chạy chính (chạy các hàm Hạng mục và kiểm tra): 
-      2.1 > 2.2 > 2.3 > 2.4 > 2.5.
+      2.1.0 > 2.2.0 > Khởi tạo đối tượng kéo thả cho UI > 3.0.0 > 3.1.0.
   
   6.3. renderer.js
     - Phần khai báo dữ liệu chung ở đầu tệp.

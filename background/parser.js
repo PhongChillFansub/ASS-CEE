@@ -1,18 +1,42 @@
 // Code bằng tay
-// v0.0.8 24juy26
+// v0.0.8 28juy26
 // parser.js
 // Chức năng: xử lí kế tiếp, giai đoạn từ giai đoạn có file sub thô (rawText) đến cấu trúc file sub JS (line.raw)
-// hàm export là parseAegisubRaw (từ rawText đến cấu trúc JS)
 // Mẫu text của các line [Events] trong file sub
 // [Events]
 // Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 // Dialogue: 0,0:00:00.00,0:00:05.00,Default,,0000,0000,0000,,
-// (Chỉnh sửa để dễ đọc hơn)
+// (Chỉnh sửa để dễ đọc hơn):
 // Format:      Layer,  Start,      End,        Style,    Name,   MarginL,  MarginR,  MarginV,  Effect, Text
 // Dialogue:    0,      0:00:00.00, 0:00:05.00, Default,      ,   0000,     0000,     0000,          ,
-// đơn vị:      index,  h:mm:ss.cs, h:mm:ss.cs, string,   string, px,       px,       px,       string  string
+// định dạng:	index,  h:mm:ss.cs, h:mm:ss.cs, string,   string, px,       px,       px,       string  string
 // !: Margin có thể là 0000 (undefined chuyển thành) hoặc 0 (defined). Xử lí cả 2 như giá trị 0
 // !: Name trong Aegisub chính là line.actor. Nếu trong line.actor có dấu "," thì sẽ bị lưu thành ";".
+FALLBACK_DEFAULT_STYLE: {						// Mẫu style sau chuẩn hóa
+	name: "Default";							// Tên style (style.name, line.styleref.name, syl.style.name)
+	fontName: "Arial";                          // Tên font (\fn)
+	fontSize: "20";                             // Font size (\fs, px, với PlayRes 640x480)
+	primaryColour: "rgba(255,255,255,1.0)";     // Màu 1, main (\1c)
+	secondaryColour: "rgba(255,0,0,1.0)";       // Màu 2, pre-kara (\2c)
+	outlineColour: "rgba(0,0,0,1.0)";           // Màu 3, outline (\3c)
+	backColour: "rgba(0,0,0,1.0)";              // Màu 4, shadow (\4c)
+	bold: false;                                // In đậm (\b, boolean)
+	italic: false;                              // In nghiêng (\i, boolean)
+	underline: false;                           // Gạch dưới (\u, boolean)
+	strikeOut: false;                           // Gạch ngang (\s, boolean)
+	scaleX: "100";                              // ScaleX (\fscx, %)
+	scaleY: "100";                              // ScaleY (\fscx, %)
+	spacing: "0";                               // (\fsp, px)
+	angle: "0";                                 // (\fr hoặc \frz, degree)
+	borderStyle: "1";                           // Kiểu border (1: viền thường, 3: box)
+	outline: "2";                               // (\bord, px. có \xbord và \ybord)
+	shadow: "2";                                // (\shad, px. có \xshad và \yshad)
+	alignment: "2";                             // (\an, 1-9 kiểu numpad)
+	marginL: "20";                              // (px, left)
+	marginR: "20";                              // (px, right)
+	marginV: "20";                              // (px, vertical)
+	encoding: "1";                              // (\fe, nên bị bỏ qua.)
+};
 /**
  * Hàm chuyển string sang CamelCase (thực chất là tùy chỉnh đảo lower/upper)
  * @param {string} str string
@@ -78,7 +102,7 @@ export default function parser(rawText) {
 	// Info lưu dưới dạng obj do file sub có cấu trúc key: value
 	// Styles và Events lưu dưới dạng array do file sub có cấu trúc khác, và trong Lua Automation của Aegisub cũng xử lí tương tự.
 	if (!rawText) {
-		console.warn("[ASS-CEE] parser: Đã có ai làm gì đâu? Đã làm gì đâu? (rawText trống)");
+		console.warn("[PD-47.ass] parser: Đã có ai làm gì đâu? Đã làm gì đâu? (rawText trống)");
 		return parsedData;
 	};
 	// Nếu ko có rawText, trả về Data trống và gửi log lỗi text trống.
@@ -126,7 +150,7 @@ export default function parser(rawText) {
 				const k = key.trim(), v = value.trim();
 				parsedData.info[k] = v;
 				if (k === 'ScriptType' && v !== 'v4.00+') { // Ko đảm bảo nếu ScriptType trong file ko phải v4.00+
-					console.warn(`[ASS-CEE] parser: Tin... File chuẩn chưa em? (Extension ko hỗ trợ tốt với ScriptType=${v})`);
+					console.warn(`[PD-47.ass] parser: Tin... File chuẩn chưa em? (Extension ko hỗ trợ tốt với ScriptType=${v})`);
 				}
 			}
 		} else if (currentSection === '[V4+ Styles]') {
@@ -211,7 +235,7 @@ export default function parser(rawText) {
     		}
 		}
 	}
-	console.log("[ASS-CEE] parser: Đã xử lí thô.", parsedData);
+	console.log("[PD-47.ass] parser: Đã xử lí thô.", parsedData);
 	// Phần xử lí chuyển đổi sang CSS. Sử dụng globalCss, styleCss và lineCss.
 	// Phần globalCss (các giá trị trong info)
     parsedData.info.WrapStyle = parseClampedNum(parsedData.info.WrapStyle, 0, 0, 3); // Chuẩn hóa WrapStyle
@@ -226,7 +250,9 @@ export default function parser(rawText) {
     };
 	// Phần styleCss (các giá trị trong style)
 	// Dựa trên giả định khung video là PlayRes(X-Y).
-
+	parsedData.styles.forEach((style) => {
+		styleParsedToCss()
+	});
 
 
 	return parsedData;

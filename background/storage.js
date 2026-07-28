@@ -1,16 +1,28 @@
-// Code bằng tay
-// v0.0.8 23juy26
+// v0.0.8 29juy26
 // storage.js
 // Chức năng: chuyên xử lí lưu trữ trên chrome.storage.local.
 // 7 hàm export là:
-
-import { cache } from "react";
-
 // 3 hàm với link folder: addSource, getSourceList, removeSource
 const SUBTITLE_SOURCES_KEY = "ASSCEE_sourceList"; // Lưu tất cả link folder trong 1 key.
 // 4 hàm với file sub: addSubData, getSubDataList, useSubData, removeSubData
 const SUBTITLE_DATA_KEY_BASE = "ASSCEE_subData"; 
 // Lưu các file sub trong key riêng biệt (do 1 file sub, thuần text đã có thể nặng đến 7MB)
+/** 
+ * Hàm kiểm tra URL 
+ * @param {string} url
+ * @returns {boolean} test
+*/
+function validateSourceUrl(url) {
+  if (typeof url !== "string") return false;
+  url = url.trim();
+  // GitHub folder
+  const githubRegex =
+    /^https:\/\/github\.com\/[^/]+\/[^/]+\/tree\/[^/]+(?:\/.*)?$/i;
+  // Google Drive folder
+  const driveRegex =
+    /^https:\/\/drive\.google\.com\/drive\/folders\/[A-Za-z0-9_-]+(?:\?.*)?$/i;
+  return githubRegex.test(url) || driveRegex.test(url);
+}
 /**
  * Hàm thêm nguồn (URL của folder GitHub/GDrive) vào bộ nhớ extension.
  * (do bộ nhớ theo dạng array, nên ở đây cập nhật dưới dạng spread, thay vì pop/push)
@@ -19,13 +31,21 @@ const SUBTITLE_DATA_KEY_BASE = "ASSCEE_subData";
  */
 export async function addSource(source = {}) {
   if (!source?.url?.trim()) {
-    console.warn(`[ASS-CEE] storage: Nguồn ko hợp lệ: ${source?.url}`);
-    return { success: false, error: "Dữ liệu nguồn không hợp lệ", url: source?.url };
+    console.warn(`[PD-47.ass] storage: Nguồn ko hợp lệ: ${source?.url}`);
+    return { success: false, error: "Dữ liệu nguồn không hợp lệ hoặc URL trống", url: source?.url };
+  }
+  if (!validateSourceUrl(source.url)) {
+    console.warn(`[PD-47.ass] storage: URL không được hỗ trợ: ${source.url}`);
+    return {
+      success: false,
+      error: "Chỉ hỗ trợ thư mục GitHub hoặc Google Drive",
+      url: source.url
+    };
   }
   const sources = await getSourceList(); // Lấy danh sách nguồn đã có để kiểm tra trùng lặp (hàm getSourceList đã fallback array trống)
   // Kiểm tra trùng lặp
   if (sources.some(item => item.url === source.url)) {
-    console.warn(`[ASS-CEE] storage: Nguồn đã tồn tại: ${source?.url}`);
+    console.warn(`[PD-47.ass] storage: Nguồn đã tồn tại: ${source?.url}`);
     return { success: false, error: "Nguồn này đã tồn tại trong danh sách", url: source.url };
   }  
   const createdSource = {
@@ -34,7 +54,7 @@ export async function addSource(source = {}) {
   };
   const updated = [...sources, createdSource];
   await chrome.storage.local.set({ [SUBTITLE_SOURCES_KEY]: updated });
-  console.log(`[ASS-CEE] storage: Đã thêm nguồn: ${source.folderName}`);
+  console.log(`[PD-47.ass] storage: Đã thêm nguồn: ${source.folderName}`);
   return { success: true, data: createdSource };
 }
 /**
@@ -57,7 +77,7 @@ export async function removeSource(time) {
   const updated = sources.filter(s => s.savedAt !== time);
   const deleted = sources.filter(s => s.savedAt == time);
   await chrome.storage.local.set({ [SUBTITLE_SOURCES_KEY]: updated });
-  console.log(`[ASS-CEE] storage: Đã xóa ${deleted.length} nguồn:\n   ${deleted.map(item => item.url).join('\n   ')}`);
+  console.log(`[PD-47.ass] storage: Đã xóa ${deleted.length} nguồn:\n   ${deleted.map(item => item.url).join('\n   ')}`);
   return updated;
 }
 /**
@@ -76,7 +96,7 @@ export async function addSubData(videoId, subtitleObj = {}) {
     // cấu trúc key: ASSCEE_<videoId>
     await chrome.storage.local.set({ [subKey]: subtitleObj });
     // Luôn luôn ghi đè
-    console.log(`[ASS-CEE] storage: Đã lưu cache sub obj cho vid: ${videoId}.`);
+    console.log(`[PD-47.ass] storage: Đã lưu cache sub obj cho vid: ${videoId}.`);
 }
 /**
  * Hàm lấy toàn bộ danh sách dữ liệu sub đang được lưu cache
@@ -104,7 +124,7 @@ export async function getSubDataList(searchId = "") {
   if (searchId) {
     return cacheList.filter(item => item.videoId === (searchId.startsWith('#') ? searchId.slice(1) : searchId));
   }
-  console.log(`[ASS-CEE] storage: Kết quả tìm kiếm cache cho ${searchId}:`, cacheList);
+  console.log(`[PD-47.ass] storage: Kết quả tìm kiếm cache cho ${searchId}:`, cacheList);
   return cacheList; // Trả về mảng dạng: [ { videoId, cachedId, cachedAt, ...candidate }, ... ]
 }
 /**
@@ -126,7 +146,7 @@ export async function useSubData(videoId) {
  */
 export async function removeSubData(videoId) {
   if (!videoId) {
-    console.warn(`[ASS-CEE] storage: videoId trống, ko có obj để xóa.`);
+    console.warn(`[PD-47.ass] storage: videoId trống, ko có obj để xóa.`);
     return false;
   }
   // Xác định đúng key dựa trên videoId tương tự như hàm useSubData
@@ -134,11 +154,11 @@ export async function removeSubData(videoId) {
   // Kiểm tra xem dữ liệu có tồn tại trước khi xóa (để hiển thị log chính xác)
   const data = await chrome.storage.local.get(subKey);
   if (!data[subKey]) {
-    console.warn(`[ASS-CEE] storage: obj ${videoId} ko có dữ liệu để xóa.`);
+    console.warn(`[PD-47.ass] storage: obj ${videoId} ko có dữ liệu để xóa.`);
     return false;
   }
   // Tiến hành xóa key cụ thể này khỏi chrome.storage.local
   await chrome.storage.local.remove(subKey);
-  console.log(`[ASS-CEE] storage: Đã xóa cache sub obj của vid: ${videoId}.`);
+  console.log(`[PD-47.ass] storage: Đã xóa cache sub obj của vid: ${videoId}.`);
   return true;
 }
